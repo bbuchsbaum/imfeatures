@@ -3,6 +3,6 @@
 export(im_feature_sim)
 export(im_features)
 export(im_predict)
-import("furrr,")
+import(furrr)
 import(keras)
 import(proxy)

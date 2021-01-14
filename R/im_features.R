@@ -1,7 +1,7 @@
 
 #' compute similarity matrix for a set of image using feature vectors from keras model
 #'
-#' @import furrr, proxy
+#' @import furrr proxy
 #' @param metric the similarity metric to use, default is 'cosine' (see \code{proxy} package for allowable metrics)
 #' @inheritParams im_features
 #' @export
@@ -55,6 +55,7 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224)) {
 }
 
 #' predict the class of an image using Keras model
+#'
 #' @inheritParams im_features
 #' @export
 im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
