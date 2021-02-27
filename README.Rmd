@@ -1,0 +1,48 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# imfeatures
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of imfeatures is to ...
+
+## Installation
+
+You can install the released version of imfeatures from [CRAN](https://CRAN.R-project.org) with:
+
+``` r
+install.packages("imfeatures")
+```
+
+And the development version from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("bbuchsbaum/imfeatures")
+```
+## Example
+
+This is a basic example which shows you how to solve a common problem:
+
+```{r example}
+library(imfeatures)
+## basic example code
+im1 = "testdata/1_A_1.jpeg"
+im2 = "testdata/1_B_1.jpeg"
+
+```
+
