@@ -72,6 +72,10 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
 }
 
 
+vgg16 <- memoise(function() {
+  model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
+})
+
 #' extract features from intermediate layers
 #'
 #' @param impath path to image file
