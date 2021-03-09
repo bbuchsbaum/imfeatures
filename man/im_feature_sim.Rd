@@ -9,7 +9,8 @@ im_feature_sim(
   layers,
   model = NULL,
   target_size = c(224, 224),
-  metric = "cosine"
+  metric = "cosine",
+  lowmem = TRUE
 )
 }
 \arguments{

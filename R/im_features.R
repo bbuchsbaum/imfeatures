@@ -24,7 +24,7 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
     m
   })
 
-  imfeat <- memoise(im_features)
+  imfeat <- memoise::memoise(im_features)
 
   pb <- progress_bar$new(total = length(impaths))
 
@@ -71,10 +71,16 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
   out
 }
 
+.vgg16 <<- NULL
 
-vgg16 <- memoise(function() {
-  model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
-})
+vgg16 <- function() {
+  if (is.null(.vgg16)) {
+    .vgg16 <<- application_vgg16(weights = 'imagenet', include_top = TRUE)
+    .vgg16
+  } else {
+    .vgg16
+  }
+}
 
 #' extract features from intermediate layers
 #'

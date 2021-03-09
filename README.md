@@ -10,13 +10,6 @@ The goal of imfeatures is to …
 
 ## Installation
 
-You can install the released version of imfeatures from
-[CRAN](https://CRAN.R-project.org) with:
-
-``` r
-install.packages("imfeatures")
-```
-
 And the development version from [GitHub](https://github.com/) with:
 
 ``` r
@@ -35,7 +28,7 @@ im1 = "testdata/1_A_1.jpeg"
 im2 = "testdata/1_B_1.jpeg"
 
 im_feature_sim(c(im1,im2), layers=c(1,2,3))
-#> [=======================================================================================] 100%
+#> [========================================================================================] 100%
 #> $layer_1
 #>            1_A_1.jpeg 1_B_1.jpeg
 #> 1_A_1.jpeg  0.0000000  0.3326229
