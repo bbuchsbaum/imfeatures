@@ -15,6 +15,8 @@ knitr::opts_chunk$set(
 
 # imfeatures
 
+
+
 <!-- badges: start -->
 <!-- badges: end -->
 
@@ -22,11 +24,6 @@ The goal of imfeatures is to ...
 
 ## Installation
 
-You can install the released version of imfeatures from [CRAN](https://CRAN.R-project.org) with:
-
-``` r
-install.packages("imfeatures")
-```
 
 And the development version from [GitHub](https://github.com/) with:
 

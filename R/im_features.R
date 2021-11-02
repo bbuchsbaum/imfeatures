@@ -133,3 +133,10 @@ im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   imagenet_decode_predictions(preds,topn)
 
 }
+
+#p=reticulate::import("keras_models.models.pretrained.vgg16_places365")
+#model=p$VGG16_Places365()
+#target_size=c(224,224)
+#intermediate_layer_model <- keras_model(inputs = model$input,
+                                       # outputs = get_layer(model, index=index)$output)
+#predict(intermediate_layer_model, x)
