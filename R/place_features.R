@@ -1,5 +1,6 @@
 
-
+#' @export
+#' @import reticulate
 vgg16_places <- function() {
   m <- reticulate::import("keras_models.models.pretrained.vgg16_places365")
   model <- m$VGG16_Places365()
