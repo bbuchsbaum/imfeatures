@@ -118,6 +118,7 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224)) {
 #'
 #' @inheritParams im_features
 #' @export
+#' @importFrom dplyr top_n arrange
 im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   if (is.null(model)) {
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
@@ -130,8 +131,13 @@ im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   x <- imagenet_preprocess_input(x)
 
   preds <- model %>% predict(x)
-  imagenet_decode_predictions(preds,topn)
 
+  if (model$name == "vgg16-places365") {
+    data("places_cat365")
+    data.frame(class_name=places_cat365$category, score=preds[1,]) %>% arrange(desc(score)) %>% top_n(topn)
+  } else {
+    imagenet_decode_predictions(preds,topn)
+  }
 }
 
 #p=reticulate::import("keras_models.models.pretrained.vgg16_places365")
