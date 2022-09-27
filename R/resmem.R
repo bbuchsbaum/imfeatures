@@ -14,4 +14,5 @@ memorability <- function(im) {
   cacheEnv$resmodel$eval()
   image_x = resmem$transformer(img)
   prediction = cacheEnv$resmodel(image_x$view(-1L, 3L, 227L, 227L))
+  prediction$detach()$numpy()[1,1]
 }
