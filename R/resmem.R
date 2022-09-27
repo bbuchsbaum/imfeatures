@@ -1,9 +1,12 @@
 
 #resmem <<- reticulate::import("resmem")
 #PIL <<- reticulate::import("PIL")
+resmodel <- NULL
 
 memorability <- function(im) {
-
+  if (is.null(resmodel)) {
+    resmodel <<- resmem$ResMem(pretrained=TRUE)
+  }
   img = PIL$Image$open(im) # This loads your image into memory
   img = img$convert('RGB')
   resmodel$eval()
