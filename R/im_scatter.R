@@ -21,7 +21,7 @@ im_scatter <- function(dframe, xvar="x", yvar="y", imagename="image") {
 #' @param height height of device in pixels
 #' @export
 #' @importFrom imager load.image save.image
-im_scatter3d <- function(dframe, imagename="image", radius=1, width=700, height=700) {
+im_scatter3d <- function(dframe, imagename="image", radius=1, width=700, height=700, bgcol="white") {
   tfiles <- vector(nrow(dframe), mode="list")
   for (i in 1:nrow(dframe)) {
     tmpF <- tempfile(fileext=".png")
@@ -30,6 +30,7 @@ im_scatter3d <- function(dframe, imagename="image", radius=1, width=700, height=
     tfiles[[i]] <- tmpF
   }
   rgl.open()
+  rgl::rgl.bg(color=bgcol)
   par3d(windowRect=c(0,0,700,700),zoom=.6)
 
   for (i in 1:nrow(dframe)) {
