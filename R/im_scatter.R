@@ -20,12 +20,13 @@ im_scatter <- function(dframe, xvar="x", yvar="y", imagename="image") {
 #' @param width width of device in pixels
 #' @param height height of device in pixels
 #' @export
+#' @importFrom imager load.image save.image
 im_scatter3d <- function(dframe, imagename="image", radius=1, width=700, height=700) {
   tfiles <- vector(nrow(dframe), mode="list")
   for (i in 1:nrow(dframe)) {
     tmpF <- tempfile(fileext=".png")
-    im <- load.image(dframe[[imagename]][i])
-    save.image(im,tmpF)
+    im <- imager::load.image(dframe[[imagename]][i])
+    imager::save.image(im,tmpF)
     tfiles[[i]] <- tmpF
   }
   rgl.open()
