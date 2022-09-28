@@ -1,6 +1,6 @@
 Package: imfeatures
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Methods for extracting visual feature information from 2D images
 Version: 0.1.0
 Author: Bradley Buchsbaum
 Maintainer: The package maintainer <brad.buchsbaum@gmail.com>
@@ -16,7 +16,11 @@ Imports:
   proxy,
   progress,
   memoise,
-  reticulate
+  reticulate,
+  ggimage,
+  ggplot2
+Suggests:
+  rgl
 RoxygenNote: 7.1.2
 Depends: 
     R (>= 2.10)

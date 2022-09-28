@@ -1,15 +1,30 @@
 
-# @import ggimage
+#' a 2D scatterplot with images displayed at each location
+#'
+#' @import ggimage
+#' @param dframe a `data.frame` containing x and y coordinates and path to image file.
+#' @param dframe xvar the name of the variable containing the x coordinates
+#' @param dframe yvar the name of the variable containing the y coordinates
+#' @param imagename the name of the image variable in `dframe`
+#' @export
 im_scatter <- function(dframe, xvar="x", yvar="y", imagename="image") {
-  ggplot(dframe, aes(x,y)) + geom_image(aes(image=image)) + theme_bw()
+  ggplot(dframe, aes_string(xvar,yvar)) + geom_image(aes_string(image=imagename)) + theme_bw()
 }
 
+#' a 3D scatterplot with images displayed at each location
+#'
 #' @import rgl
-im_scatter3d <- function(dframe, imagename="image", radius=1) {
+#' @param dframe a `data.frame` containing x, y, z coordinates and path to image file.
+#' @param imagename the name of the image variable in `dframe`
+#' @param radius the radius of the image sprite
+#' @param width width of device in pixels
+#' @param height height of device in pixels
+#' @export
+im_scatter3d <- function(dframe, imagename="image", radius=1, width=700, height=700) {
   tfiles <- vector(nrow(dframe), mode="list")
   for (i in 1:nrow(dframe)) {
     tmpF <- tempfile(fileext=".png")
-    im <- load.image(dframe$image[i])
+    im <- load.image(dframe[[imagename]][i])
     save.image(im,tmpF)
     tfiles[[i]] <- tmpF
   }
