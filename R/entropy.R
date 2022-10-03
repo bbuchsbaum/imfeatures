@@ -213,7 +213,7 @@ do_statistics <- function(counts, bins_vec) {
   circular_mean_length = abs(mean_vector)
 
   # correction as proposed by Zar 1999
-  d = 2*pi/gabor_bins
+  d = 2*pi/length(bins_vec)
   c = d / 2.0 / sin(d/2.0)
   circular_mean_length = circular_mean_length * c
 
