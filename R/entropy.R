@@ -243,11 +243,11 @@ do_statistics <- function(counts, bins_vec) {
 
 
 #' @export
-edge_entropy <- function(impath, max_pixels=150*200, gabor_bins=24, filter_length=31) {
+edge_entropy <- function(impath, max_pixels=150*200, gabor_bins=24, filter_length=31, circ_bins=48) {
   fimg <- filtered_image(impath, max_pixels)
   fbank <- filter_bank(gabor_bins, filter_length)
   fres <- run_filterbank(fimg, fbank)
-  cts <- do_counting(fres)
+  cts <- do_counting(fres, circ_bins)
   stats <- do_statistics(cts$counts, fres$fbank$bins_vec)
 
   ranges <- list(c(20,80), c(80,160), c(160,240))
