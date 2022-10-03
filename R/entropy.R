@@ -182,7 +182,7 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48) {
     i1 <- (ex-ex[cp])+edge_dims[1]
     i2 <- (ey-ey[cp])+edge_dims[2]
     distance_rel = round(dist[cbind(i1,i2)]) + 1
-    distance_rel[distance_rel>=max_diagonal] = max_diagonal
+    distance_rel[distance_rel>=maxdiag] = maxdiag
 
     direction <- round(atan2(ey-ey[cp], ex-ex[cp]) / (2.0*pi)*circ_bins + (orientations[cp]/gabor_bins*circ_bins))
     direction <- (direction+circ_bins) %% circ_bins
