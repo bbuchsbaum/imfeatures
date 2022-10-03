@@ -9,7 +9,8 @@ im_scatter3d(
   imagename = "image",
   radius = 1,
   width = 700,
-  height = 700
+  height = 700,
+  bgcol = "white"
 )
 }
 \arguments{

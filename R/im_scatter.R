@@ -2,6 +2,7 @@
 #' a 2D scatterplot with images displayed at each location
 #'
 #' @import ggimage
+#' @import ggplot2
 #' @param dframe a `data.frame` containing x and y coordinates and path to image file.
 #' @param dframe xvar the name of the variable containing the x coordinates
 #' @param dframe yvar the name of the variable containing the y coordinates
