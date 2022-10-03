@@ -135,7 +135,7 @@ zero_borders <- function(resp_val, nlines=2) {
 }
 
 #' @keywords internal
-do_counting <- function(fres, maxdiag=80, circbins=48) {
+do_counting <- function(fres, maxdiag=80, circ_bins=48) {
   isize <- fres$fimg$image_size
   w <- isize[1]
   h <- isize[2]
