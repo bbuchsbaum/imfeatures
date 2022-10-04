@@ -140,7 +140,6 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48) {
   w <- isize[1]
   h <- isize[2]
 
-
   #normalize_fac = float(filter_img.resp_val.shape[0]*filter_img.resp_val.shape[1])
   #complex_before = np.sum(filter_img.resp_val)/normalize_fac
 
@@ -148,6 +147,8 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48) {
 
   # cutoff minor filter responses
   normalize_fac = dim(resp_val)[1]*dim(resp_val)[2]
+
+  ## gradient magnitude
   complex_before = sum(resp_val)/normalize_fac
 
 
@@ -243,11 +244,12 @@ do_statistics <- function(counts, bins_vec) {
 
 
 #' @export
-edge_entropy <- function(impath, max_pixels=150*200, gabor_bins=24, filter_length=31, circ_bins=48) {
+edge_entropy <- function(impath, max_pixels=300*400, maxdiag=500, gabor_bins=24,
+                         filter_length=31, circ_bins=48, ranges=list(c(20,80), c(80, 160), c(160,240))) {
   fimg <- filtered_image(impath, max_pixels)
   fbank <- filter_bank(gabor_bins, filter_length)
   fres <- run_filterbank(fimg, fbank)
-  cts <- do_counting(fres, maxdiag=500, circ_bins=circ_bins)
+  cts <- do_counting(fres, maxdiag=maxdiag, circ_bins=circ_bins)
   stats <- do_statistics(cts$counts, fres$fbank$bins_vec)
 
   ranges <- list(c(20,80), c(80,160), c(160,240))
