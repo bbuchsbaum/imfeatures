@@ -252,7 +252,7 @@ edge_entropy <- function(impath, max_pixels=300*400, maxdiag=500, gabor_bins=24,
   cts <- do_counting(fres, maxdiag=maxdiag, circ_bins=circ_bins)
   stats <- do_statistics(cts$counts, fres$fbank$bins_vec)
 
-  ranges <- list(c(20,80), c(80,160), c(160,240))
+  #ranges <- list(c(20,80), c(80,160), c(160,240))
   fo <- first_order_entropy(fres)
 
   shannon <- lapply(ranges, function(r) {
