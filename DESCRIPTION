@@ -18,7 +18,8 @@ Imports:
   memoise,
   reticulate,
   ggimage,
-  ggplot2
+  ggplot2,
+  imager
 Suggests:
   rgl
 RoxygenNote: 7.1.2
