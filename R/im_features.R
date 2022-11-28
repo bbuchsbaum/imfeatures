@@ -1,4 +1,7 @@
 
+
+
+
 #' compute similarity matrix for a set of image using feature vectors from keras model
 #'
 #' @import furrr proxy
@@ -98,8 +101,13 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224)) {
   img <- image_load(impath, target_size = target_size)
 
   x <- image_to_array(img)
-  x <- array_reshape(x, c(1, dim(x)))
-  #x <- array_reshape(x, c(1, unlist(x$shape)))
+
+  x <- if (class(x)[1] == "numpy.ndarray") {
+    array_reshape(x, c(1, unlist(x$shape)))
+  } else {
+    array_reshape(x, c(1, dim(x)))
+  }
+
   x <- imagenet_preprocess_input(x)
 
   features <- lapply(layers, function(index) {
