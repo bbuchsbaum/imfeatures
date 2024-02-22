@@ -14,7 +14,7 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
                            metric="cosine", lowmem=TRUE) {
 
   if (!(all(file.exists(impaths)))) {
-    stop("not all files fout, check image paths.")
+    stop("not all files exist, check image paths.")
   }
   if (is.null(model)) {
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
@@ -74,11 +74,11 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
   out
 }
 
-.vgg16 <<- NULL
+.vgg16 <- NULL
 
 vgg16 <- function() {
   if (is.null(.vgg16)) {
-    .vgg16 <<- application_vgg16(weights = 'imagenet', include_top = TRUE)
+    .vgg16 <<- keras::application_vgg16(weights = 'imagenet', include_top = TRUE)
     .vgg16
   } else {
     .vgg16
@@ -102,11 +102,9 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224)) {
 
   x <- image_to_array(img)
 
-  x <- if (class(x)[1] == "numpy.ndarray") {
-    array_reshape(x, c(1, unlist(x$shape)))
-  } else {
-    array_reshape(x, c(1, dim(x)))
-  }
+  ## iif this fails, it means 'numpy' not available...
+  x <- array_reshape(x, c(1, dim(x)))
+
 
   x <- imagenet_preprocess_input(x)
 
