@@ -2,3 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+patches/
+testcode/
+testdata/
+testdata2/
+dnn_mds_cluster.png
+layer_simtab.txt
+pcmri_layers/

@@ -27,7 +27,7 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
     m
   })
 
-  imfeat <- memoise::memoise(im_features)
+  imfeat <- memoise::memoise(im_features, omit_args=c("model"))
 
   pb <- progress_bar$new(total = length(impaths))
 
