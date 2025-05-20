@@ -25,13 +25,14 @@ Images can be located in different directories and will be processed relative
 to a computed common root.}
 
 \item{model_name}{Character string. The name of the `thingsvision` model architecture
-(e.g., `"resnet50"`, `"clip"`).}
+(e.g., `"resnet50"`, `"clip"`). Must be a non-empty string.}
 
 \item{source}{Character string. The source library of the model
-(e.g., `"torchvision"`, `"custom"`).}
+(e.g., `"torchvision"`, `"custom"`). Must be a non-empty string.}
 
 \item{module_names}{Character vector. The specific layer/module names within the
-model from which to extract features for similarity calculation. Use
+model from which to extract features for similarity calculation. Must contain at
+least one non-empty string. Use
 `tv_show_model(tv_get_extractor(model_name, source))` to find valid names.}
 
 \item{metric}{Character string. The similarity metric to use. Defaults to "cosine".
@@ -137,6 +138,15 @@ sim_results <- im_feature_sim_tv(
 print(names(sim_results))
 print(dim(sim_results$avgpool))
 print(sim_results$avgpool)
+
+# Example showing argument validation (will error)
+im_feature_sim_tv(
+  impaths = image_paths,
+  model_name = "",
+  source = "torchvision",
+  module_names = "avgpool"
+)
+#> Error: 'model_name' must be a non-empty character string.
 
 # Clean up
 unlink(image_dir, recursive = TRUE)
