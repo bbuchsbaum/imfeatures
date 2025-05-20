@@ -58,9 +58,10 @@ models (e.g., `list(variant = "ViT-B/32")` for CLIP). Defaults to NULL.}
 used during feature extraction. Defaults to `tempdir()`.}
 }
 \value{
-A named list where each element corresponds to a `module_name` provided
-        in the input. Each element contains a square similarity matrix
-        (n_images x n_images).
+A named list of similarity matrices. Elements are named according to the
+provided `module_names`. If a name repeats, a numeric suffix ("_1", "_2",
+...) is appended to keep names unique. Each element contains a square
+similarity matrix (n_images x n_images).
 }
 \description{
 Calculates the pairwise similarity between a set of images based on features
