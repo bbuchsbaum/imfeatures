@@ -13,13 +13,15 @@
 #'        in `impaths`. Support for images across multiple directories might require
 #'        custom dataloader usage with lower-level `tv_` functions.
 #' @param model_name Character string. The name of the model architecture (e.g.,
-#'        `"resnet50"`, `"clip"`, `"dino-vit-base-p16"`). See the Details section
-#'        of \code{\link{tv_get_extractor}} for available models.
+#'        `"resnet50"`, `"clip"`, `"dino-vit-base-p16"`). Must be a non-empty
+#'        string. See the Details section of \code{\link{tv_get_extractor}} for
+#'        available models.
 #' @param source Character string. The source library of the model (e.g.,
-#'        `"torchvision"`, `"timm"`, `"ssl"`, `"custom"`). See the Details section
-#'        of \code{\link{tv_get_extractor}} for sources.
+#'        `"torchvision"`, `"timm"`, `"ssl"`, `"custom"`). Must be a non-empty
+#'        string. See the Details section of \code{\link{tv_get_extractor}} for
+#'        sources.
 #' @param module_name Character string. The specific layer or module within the
-#'        model from which to extract activations. Use
+#'        model from which to extract activations. Must be a non-empty string. Use
 #'        `tv_show_model(tv_get_extractor(model_name, source))` to list available
 #'        module names for a given model. Common examples include final layers
 #'        like `"avgpool"` or `"fc"` (in ResNets), `"classifier.6"` (in VGG/AlexNet),
@@ -190,6 +192,15 @@
 #' print(result) # Should print NULL
 #' print(list.files(low_mem_dir)) # Shows the saved .npy files
 #'
+#' # Example showing argument validation (will error)
+#' im_features_tv(
+#'   impaths = image_paths,
+#'   model_name = "",
+#'   source = "torchvision",
+#'   module_name = "avgpool"
+#' )
+#' #> Error: 'model_name' must be a non-empty character string.
+#'
 #' # Clean up dummy files
 #' unlink(image_dir, recursive = TRUE)
 #' unlink(low_mem_dir, recursive = TRUE)
@@ -206,6 +217,15 @@ im_features_tv <- function(impaths, model_name, source, module_name,
   if (!all(file.exists(impaths))) {
      missing_files <- impaths[!file.exists(impaths)]
      stop("Some image paths do not exist: ", paste(missing_files, collapse=", "))
+  }
+  if (!is.character(model_name) || length(model_name) != 1 || nchar(model_name) == 0) {
+    stop("'model_name' must be a non-empty character string.")
+  }
+  if (!is.character(source) || length(source) != 1 || nchar(source) == 0) {
+    stop("'source' must be a non-empty character string.")
+  }
+  if (!is.character(module_name) || length(module_name) != 1 || nchar(module_name) == 0) {
+    stop("'module_name' must be a non-empty character string.")
   }
   # Infer root directory (assuming all files share the immediate parent)
   # More robust handling might be needed if paths are very diverse
@@ -305,11 +325,12 @@ im_features_tv <- function(impaths, model_name, source, module_name,
 #'        The order determines the rows/columns of the output similarity matrices.
 #'        Assumes images share a common parent directory (see `im_features_tv` details).
 #' @param model_name Character string. The name of the `thingsvision` model architecture
-#'        (e.g., `"resnet50"`, `"clip"`).
+#'        (e.g., `"resnet50"`, `"clip"`). Must be a non-empty string.
 #' @param source Character string. The source library of the model
-#'        (e.g., `"torchvision"`, `"custom"`).
+#'        (e.g., `"torchvision"`, `"custom"`). Must be a non-empty string.
 #' @param module_names Character vector. The specific layer/module names within the
-#'        model from which to extract features for similarity calculation. Use
+#'        model from which to extract features for similarity calculation. Must contain
+#'        at least one non-empty string. Use
 #'        `tv_show_model(tv_get_extractor(model_name, source))` to find valid names.
 #' @param metric Character string. The similarity metric to use. Defaults to "cosine".
 #'        Common options include "cosine", "correlation". See `proxy::pr_simil_funs`
@@ -408,6 +429,15 @@ im_features_tv <- function(impaths, model_name, source, module_name,
 #' print(dim(sim_results$avgpool))
 #' print(sim_results$avgpool)
 #'
+#' # Example showing argument validation (will error)
+#' im_feature_sim_tv(
+#'   impaths = image_paths,
+#'   model_name = "",
+#'   source = "torchvision",
+#'   module_names = "avgpool"
+#' )
+#' #> Error: 'model_name' must be a non-empty character string.
+#'
 #' # Clean up
 #' unlink(image_dir, recursive = TRUE)
 #' }
@@ -421,8 +451,14 @@ im_feature_sim_tv <- function(impaths, model_name, source, module_names,
   if (!is.character(impaths) || length(impaths) < 2) {
     stop("'impaths' must be a character vector with at least two image paths.")
   }
-  if (!is.character(module_names) || length(module_names) == 0) {
-    stop("'module_names' must be a character vector with at least one module name.")
+  if (!is.character(model_name) || length(model_name) != 1 || nchar(model_name) == 0) {
+    stop("'model_name' must be a non-empty character string.")
+  }
+  if (!is.character(source) || length(source) != 1 || nchar(source) == 0) {
+    stop("'source' must be a non-empty character string.")
+  }
+  if (!is.character(module_names) || length(module_names) == 0 || any(nchar(module_names) == 0)) {
+    stop("'module_names' must be a non-empty character vector.")
   }
   # Add check for metric validity using proxy?
   if (!metric %in% proxy::pr_simil_funs()) {
