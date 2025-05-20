@@ -343,7 +343,13 @@ install_imfeatures_python <- function(envname = "r-imfeatures",
       PIL <<- reticulate::import("PIL", delay_load = TRUE)
       resmem <<- reticulate::import("resmem", delay_load = TRUE)
       tv <<- reticulate::import("thingsvision", delay_load = TRUE)
-      packageStartupMessage("imfeatures: PIL, resmem, thingsvision modules queued for delayed loading from: ", env_path_msg)
+      tv_data <<- reticulate::import("thingsvision.utils.data", delay_load = TRUE)
+      tv_utils_storing <<- reticulate::import("thingsvision.utils.storing", delay_load = TRUE)
+      tv_core_extraction <<- reticulate::import("thingsvision.core.extraction", delay_load = TRUE)
+      packageStartupMessage(
+        "imfeatures: PIL, resmem, thingsvision modules queued for delayed loading from: ",
+        env_path_msg
+      )
     }, error = function(e) {
       import_error <<- e
     })

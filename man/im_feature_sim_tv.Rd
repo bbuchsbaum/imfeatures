@@ -21,16 +21,18 @@ im_feature_sim_tv(
 \arguments{
 \item{impaths}{Character vector. A vector of full file paths to the images.
 The order determines the rows/columns of the output similarity matrices.
-Assumes images share a common parent directory (see `im_features_tv` details).}
+Images can be located in different directories and will be processed relative
+to a computed common root.}
 
 \item{model_name}{Character string. The name of the `thingsvision` model architecture
-(e.g., `"resnet50"`, `"clip"`).}
+(e.g., `"resnet50"`, `"clip"`). Must be a non-empty string.}
 
 \item{source}{Character string. The source library of the model
-(e.g., `"torchvision"`, `"custom"`).}
+(e.g., `"torchvision"`, `"custom"`). Must be a non-empty string.}
 
 \item{module_names}{Character vector. The specific layer/module names within the
-model from which to extract features for similarity calculation. Use
+model from which to extract features for similarity calculation. Must contain at
+least one non-empty string. Use
 `tv_show_model(tv_get_extractor(model_name, source))` to find valid names.}
 
 \item{metric}{Character string. The similarity metric to use. Defaults to "cosine".
@@ -58,9 +60,10 @@ models (e.g., `list(variant = "ViT-B/32")` for CLIP). Defaults to NULL.}
 used during feature extraction. Defaults to `tempdir()`.}
 }
 \value{
-A named list where each element corresponds to a `module_name` provided
-        in the input. Each element contains a square similarity matrix
-        (n_images x n_images).
+A named list of similarity matrices. Elements are named according to the
+provided `module_names`. If a name repeats, a numeric suffix ("_1", "_2",
+...) is appended to keep names unique. Each element contains a square
+similarity matrix (n_images x n_images).
 }
 \description{
 Calculates the pairwise similarity between a set of images based on features
@@ -135,6 +138,15 @@ sim_results <- im_feature_sim_tv(
 print(names(sim_results))
 print(dim(sim_results$avgpool))
 print(sim_results$avgpool)
+
+# Example showing argument validation (will error)
+im_feature_sim_tv(
+  impaths = image_paths,
+  model_name = "",
+  source = "torchvision",
+  module_names = "avgpool"
+)
+#> Error: 'model_name' must be a non-empty character string.
 
 # Clean up
 unlink(image_dir, recursive = TRUE)

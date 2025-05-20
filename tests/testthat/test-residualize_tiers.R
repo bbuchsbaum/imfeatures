@@ -112,4 +112,11 @@ test_that("low and residualized high are orthogonal (new data)", {
   expect_lt(max(abs(orth2)), tol, "High-tier residuals should be orthogonal to the kept low-tier PCs (new data)")
 })
 
+test_that("feature_list row mismatches trigger an error", {
+  m1 <- matrix(rnorm(10), nrow = 5)
+  m2 <- matrix(rnorm(8), nrow = 4)
+  fl_bad <- list(first = m1, second = m2)
+  expect_error(residualize_tiers(fl_bad), "same number of rows")
+})
+
 # cat("All residualize_tiers tests passed ✔\n") # This cat() is more for interactive script, testthat has its own reporting 
