@@ -17,11 +17,11 @@ extract_vgg_features(
 
 \item{tier}{Character; one of "low", "mid", "high", or "semantic".}
 
-\item{model}{Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras::application_vgg16(pretrained = 'imagenet')}.}
+\item{model}{Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras::application_vgg16(weights = 'imagenet')}.}
 
 \item{target_size}{Numeric vector of length 2 specifying image resize dimensions (width, height).}
 
-\item{pooling}{Character string specifying spatial pooling; passed to \code{im_features::spatial_pooling}.
+\item{pooling}{Character string specifying spatial pooling; passed to the \code{spatial_pooling} argument of \code{im_features}.
 Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7".}
 }
 \value{
