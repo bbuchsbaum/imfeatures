@@ -4,10 +4,31 @@ NULL
 
 #' @keywords internal
 entropy <- function(a) {
-  if (sum(a) !=1.0 && sum(a)>0) {
-    a = a / sum(a)
+  # Ensure input is numeric
+  if (!is.numeric(a)) {
+    stop("`a` must be numeric")
   }
-  v = a>0.0
+
+  # Remove NA values
+  a <- a[!is.na(a)]
+
+  if (length(a) == 0) {
+    warning("All values are NA")
+    return(NA_real_)
+  }
+
+  s <- sum(a)
+  if (s == 0) {
+    warning("Sum of probabilities is zero")
+    return(NA_real_)
+  }
+
+  eps <- sqrt(.Machine$double.eps)
+  if (abs(s - 1) > eps) {
+    a <- a / s
+  }
+
+  v <- a > 0.0
   -sum(a[v] * log2(a[v]))
 }
 
