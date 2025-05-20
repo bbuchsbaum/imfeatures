@@ -10,6 +10,8 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Imports: 
+  Rcpp,
+  RcppArmadillo,
   keras,
   coop,
   furrr,
@@ -22,6 +24,9 @@ Imports:
   imager
 Suggests:
   rgl
-RoxygenNote: 7.1.2
+RoxygenNote: 7.3.2.9000
 Depends: 
     R (>= 3.10)
+LinkingTo:
+    Rcpp,
+    RcppArmadillo

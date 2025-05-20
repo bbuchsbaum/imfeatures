@@ -1,3 +1,6 @@
+#' @useDynLib imfeatures, .registration = TRUE
+#' @importFrom Rcpp sourceCpp
+NULL
 
 #' @keywords internal
 entropy <- function(a) {
@@ -9,7 +12,7 @@ entropy <- function(a) {
 }
 
 #' @keywords internal
-first_order_entropy <- function(fres, gabor_bins) {
+first_order_entropy <- function(fres, gabor_bins = NULL) {
   first_order_bin = numeric(fres$num_filters)
   for (b in 1:fres$num_filters) {
     first_order_bin[b] = sum(fres$resp_val[fres$resp_bin==b])
@@ -28,6 +31,13 @@ filter_bank <- function(num_filters, flt_size,  octave=3) {
   for (i in 1:num_filters) {
     #filter_bank.set_flt(i, filter_bank.create_gabor(FILTER_SIZE, theta=BINS_VEC[i], octave=3))
     flt_raw[i,,] <- create_gabor(flt_size, theta=bins_vec[i], octave=octave)
+    # --- Debug: Print range/sum of the first filter --- 
+    if (i == 1) {
+      message("[R] filter_bank: First Gabor filter range: [", 
+              min(flt_raw[i,,]), ", ", max(flt_raw[i,,]), 
+              "], Sum = ", sum(flt_raw[i,,]))
+    }
+    # -----------------------------------------------
   }
 
   ret <- list(bins_vec=bins_vec,
@@ -73,18 +83,50 @@ create_gabor <- function(size, theta, octave=3) {
 
 #' @keywords internal
 filtered_image <- function(file, max_pixels=300*300) {
-  img <- imager::load.image(file)
+  # Validate input file
+  if (!is.character(file) || length(file) != 1) {
+    stop("'file' must be a single character string (file path)")
+  }
+  
+  if (!file.exists(file)) {
+    stop("Image file not found: ", file)
+  }
+  
+  # Try to load the image and handle errors gracefully
+  img <- tryCatch({
+    imager::load.image(file)
+  }, error = function(e) {
+    stop("Failed to load image: ", file, "\nError: ", e$message)
+  })
+  
+  # Verify it's a valid image object
+  if (!inherits(img, "cimg")) {
+    stop("imager::load.image did not return a valid cimg object for: ", file)
+  }
+  
   if (!is.null(max_pixels)) {
     isize <- dim(img)[1:2]
 
-    #a = np.sqrt(max_pixels / float(img.size[0]*img.size[1]))
-    #img = img.resize((int(img.size[0]*a),int(img.size[1]*a)), Image.ANTIALIAS)
-
     a = sqrt(max_pixels / (isize[1]*isize[2]))
-    img <- imager::resize(img, as.integer(isize[1]*a), as.integer(isize[2]*a),interpolation_type=6)
+    img <- tryCatch({
+      imager::resize(img, as.integer(isize[1]*a), as.integer(isize[2]*a), interpolation_type=6)
+    }, error = function(e) {
+      warning("Image resize failed, using original size. Error: ", e$message)
+      img # Return original image
+    })
   }
 
-  image_raw = as.array(imager::grayscale(img)) # luma transform
+  # Convert to grayscale and ensure it's a valid matrix
+  image_raw = tryCatch({
+    as.array(imager::grayscale(img)) # luma transform
+  }, error = function(e) {
+    stop("Failed to convert image to grayscale: ", e$message)
+  })
+  
+  if (!is.array(image_raw) || length(dim(image_raw)) < 2) {
+    stop("Failed to create valid image matrix from: ", file)
+  }
+  
   ret <- list(file=file, img=img, image_raw=image_raw, image_size=dim(image_raw)[1:2])
   class(ret) <- c("filtered_image", "list")
   ret
@@ -101,8 +143,22 @@ run_filterbank <- function(fimg, fbank) {
   img_filt <- array(0, c(num_filters, h, w))
 
   iraw <- imager::as.cimg(fimg$image_raw)
+  # --- Debug: Print input image range --- 
+  message("[R] run_filterbank: Input image range: [", 
+          min(iraw), ", ", max(iraw), 
+          "], Mean = ", mean(iraw))
+  # ------------------------------------
+  
   for (i in 1:num_filters) {
-    img_filt[i,,] <- imager::convolve(iraw, imager::as.cimg(fbank$flt_weights[i,,]))
+    conv_result <- imager::convolve(iraw, imager::as.cimg(fbank$flt_weights[i,,]))
+    img_filt[i,,] <- as.array(conv_result) # Ensure it's an array for min/max
+    # --- Debug: Print range/sum of the first convolution result --- 
+    if (i == 1) {
+        message("[R] run_filterbank: First convolution result (conv) range: [", 
+                min(img_filt[i,,]), ", ", max(img_filt[i,,]), 
+                "], Sum = ", sum(img_filt[i,,]))
+    }
+    # -----------------------------------------------------------
   }
 
   resp_bin <- apply(img_filt, c(2,3), which.max)
@@ -110,6 +166,9 @@ run_filterbank <- function(fimg, fbank) {
   resp_val <- apply(img_filt, c(2,3), max)
 
   resp_val <- zero_borders(resp_val, 2)
+
+  message("[R] run_filterbank: Range resp_val (after border zero): [", 
+          min(resp_val), ", ", max(resp_val), "]")
 
   ret <- list(
     fimg=fimg,
@@ -144,6 +203,8 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48) {
   #complex_before = np.sum(filter_img.resp_val)/normalize_fac
 
   resp_val <- fres$resp_val
+  message("[R] do_counting: Range resp_val (input): [", 
+          min(resp_val), ", ", max(resp_val), "]")
 
   # cutoff minor filter responses
   normalize_fac = dim(resp_val)[1]*dim(resp_val)[2]
@@ -153,7 +214,10 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48) {
 
 
   cutoff = sort(as.vector(resp_val), decreasing=TRUE)[10000] # get 10000th highest response for cutting of beneath
+  message("[R] do_counting: Calculated cutoff (k-th=10000): ", cutoff)
   resp_val[resp_val<cutoff] = 0
+  message("[R] do_counting: Range resp_val (after cutoff): [", 
+          min(resp_val), ", ", max(resp_val), "]")
   #ey, ex = filter_img.resp_val.nonzero()
 
   # lookup tables to speed up calculations
@@ -193,6 +257,10 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48) {
     #          fres.resp_val[cbind(ey,ex)] * fres.resp_val[ey[cp],ex[cp])
   }
 
+  message("[R] do_counting: Range counts cube: [", 
+          min(counts), ", ", max(counts), 
+          "], Sum = ", sum(counts))
+
   list(counts=counts, complex_before=complex_before)
 }
 
@@ -202,7 +270,14 @@ do_statistics <- function(counts, bins_vec) {
 
   #counts_sum = sum(counts, axis=2) + 0.00001
   counts_sum <- apply(counts, c(1,2), sum) + .00001
+  message("[R] do_statistics: counts_sum range: [", 
+          min(counts_sum), ", ", max(counts_sum), 
+          "], Sum = ", sum(counts_sum))
+          
   normalized_counts <- sweep(counts, c(1,2), counts_sum, "/")
+  message("[R] do_statistics: normalized_counts range: [", 
+          min(normalized_counts), ", ", max(normalized_counts), 
+          "], Sum = ", sum(normalized_counts)) # Sum should be ~ maxdiag * circ_bins
   #normalized_counts <- counts / (counts_sum[,,,np.newaxis])
 
   x = normalized_counts * cos(bins_vec)
@@ -234,6 +309,9 @@ do_statistics <- function(counts, bins_vec) {
     }
   }
 
+  message("[R] do_statistics: shannon matrix range: [", 
+          min(shannon, na.rm=TRUE), ", ", max(shannon, na.rm=TRUE), "]")
+
   list(normalized_counts=normalized_counts,
        circular_mean_angle=circular_mean_angle,
        circular_mean_length=circular_mean_length,
@@ -243,25 +321,234 @@ do_statistics <- function(counts, bins_vec) {
 
 
 
+#' Calculate Edge Entropy Features from Images
+#'
+#' This function calculates first-order and pairwise edge entropy features from an image,
+#' which can be used for analyzing texture and structural complexity in images.
+#'
+#' @param image Either a file path to an image (character string) or a numeric matrix
+#'        representing a grayscale image. If a file path is provided, the image will
+#'        be loaded and converted to grayscale.
+#' @param max_pixels Integer. The maximum number of pixels allowed in the processed image.
+#'        Larger images will be resized. Only used when \code{image} is a file path.
+#'        Set to NULL to disable resizing. Defaults to 300*400.
+#' @param maxdiag Integer. Maximum diagonal distance for pairwise entropy calculations.
+#'        Defaults to 500.
+#' @param gabor_bins Integer. Number of orientation bins for Gabor filter bank.
+#'        Defaults to 24.
+#' @param filter_length Integer. Size of the Gabor filters (must be odd). 
+#'        Defaults to 31.
+#' @param circ_bins Integer. Number of circular bins for directional statistics.
+#'        Defaults to 48.
+#' @param ranges List of integer vectors. Each vector should contain two elements
+#'        specifying the start and end indices for grouping pairwise entropy at
+#'        different distance ranges. Defaults to list(c(20,80), c(80,160), c(160,240)).
+#' @param use_cpp Logical. Whether to use the C++ implementation (generally faster).
+#'        Defaults to TRUE. If FALSE, uses the pure R implementation.
+#'
+#' @return A data frame with the following columns:
+#'   \item{im}{Image identifier (file path or "matrix" for matrix input)}
+#'   \item{entropy}{First-order entropy value}
+#'   \item{pentropy_20_80}{Pairwise entropy for distance range 20-80}
+#'   \item{pentropy_80_160}{Pairwise entropy for distance range 80-160}
+#'   \item{pentropy_160_240}{Pairwise entropy for distance range 160-240}
+#'   \item{complex_before}{Image complexity measure before thresholding}
+#'
+#' @details
+#' Edge entropy measures quantify the distribution and organization of oriented edges
+#' in images. The method applies a bank of Gabor filters at different orientations
+#' and measures both first-order entropy (distribution of dominant orientations) and
+#' pairwise entropy (how orientation relationships vary with distance and direction).
+#'
+#' The C++ implementation is substantially faster for larger images but requires the same inputs.
+#' It automatically converts the ranges list to the required format for the C++ function.
+#'
+#' @examples
+#' \donttest{
+#' # Using a file path
+#'
+#'
+#' # Using a matrix
+#' img_matrix <- matrix(runif(100*100), nrow=100)
+#' result <- edge_entropy(img_matrix)
+#' }
+#'
 #' @export
-edge_entropy <- function(impath, max_pixels=300*400, maxdiag=500, gabor_bins=24,
-                         filter_length=31, circ_bins=48, ranges=list(c(20,80), c(80, 160), c(160,240))) {
-  fimg <- filtered_image(impath, max_pixels)
-  fbank <- filter_bank(gabor_bins, filter_length)
-  fres <- run_filterbank(fimg, fbank)
-  cts <- do_counting(fres, maxdiag=maxdiag, circ_bins=circ_bins)
-  stats <- do_statistics(cts$counts, fres$fbank$bins_vec)
-
-  #ranges <- list(c(20,80), c(80,160), c(160,240))
-  fo <- first_order_entropy(fres)
-
-  shannon <- lapply(ranges, function(r) {
-    mean(rowMeans(stats$shannon)[r[1]:r[2]])
-  })
-
-  data.frame(im=impath, entropy=fo, pentropy_20_80=shannon[[1]], pentropy_80_160=shannon[[2]], pentropy_160_240=shannon[[3]],
-             complex_before=cts$complex_before)
-
+edge_entropy <- function(image, max_pixels=300*400, maxdiag=500, gabor_bins=24,
+                         filter_length=31, circ_bins=48, 
+                         ranges=list(c(20,80), c(80, 160), c(160,240)),
+                         use_cpp=TRUE) {
+  
+  # Check if image is a file path or a matrix
+  if (is.character(image) && length(image) == 1) {
+    # It's a file path
+    impath <- image
+    
+    # Check if the file exists
+    if (!file.exists(impath)) {
+      stop("Image file does not exist: ", impath)
+    }
+    
+    if (use_cpp) {
+      # For C++ implementation, we load the image and convert to matrix here
+      fimg <- tryCatch({
+        filtered_image(impath, max_pixels)
+      }, error = function(e) {
+        stop("Failed to load image: ", impath, "\nError: ", e$message)
+      })
+      
+      # Verify image_raw is a matrix
+      if (!is.matrix(fimg$image_raw) && !is.array(fimg$image_raw)) {
+        stop("Failed to convert image to matrix: ", impath)
+      }
+      
+      image_matrix <- fimg$image_raw
+      # Additional check for numeric matrix with valid dimensions
+      if (!is.numeric(image_matrix) || length(dim(image_matrix)) < 2) {
+        stop("Image must be a numeric matrix/array with at least 2 dimensions")
+      }
+      
+      result <- edge_entropy_cpp(
+        image = as.matrix(image_matrix),
+        impath = impath,
+        maxdiag = as.integer(maxdiag),
+        gabor_bins = as.integer(gabor_bins),
+        filter_length = as.integer(filter_length),
+        circ_bins = as.integer(circ_bins),
+        ranges = lapply(ranges, function(r) as.integer(r))
+      )
+      return(result)
+    } else {
+      # Use the existing R implementation
+      fimg <- filtered_image(impath, max_pixels)
+      fbank <- filter_bank(gabor_bins, filter_length)
+      fres <- run_filterbank(fimg, fbank)
+      cts <- do_counting(fres, maxdiag=maxdiag, circ_bins=circ_bins)
+      stats <- do_statistics(cts$counts, fres$fbank$bins_vec)
+      
+      fo <- first_order_entropy(fres)
+      
+      shannon_summary <- lapply(ranges, function(r) {
+        # Ensure rowMeans are calculated correctly and handle potential NaNs
+        valid_rows <- r[1]:r[2]
+        # Check bounds
+        valid_rows <- valid_rows[valid_rows <= nrow(stats$shannon)]
+        if (length(valid_rows) == 0) return(NA)
+        
+        row_means_subset <- rowMeans(stats$shannon[valid_rows, , drop = FALSE], na.rm = TRUE)
+        # Handle case where all values in a range might be NaN or empty
+        mean_val <- mean(row_means_subset, na.rm = TRUE)
+        if (!is.finite(mean_val)) mean_val <- NA
+        
+        message(sprintf("[R] edge_entropy: Range [%d, %d]: rowmeans mean = %.6f", r[1], r[2], mean_val))
+        mean_val
+      })
+      
+      message("[R] edge_entropy: Calculated fo = ", fo)
+      message("[R] edge_entropy: final_shannon[1] = ", shannon_summary[[1]])
+      message("[R] edge_entropy: final_shannon[2] = ", shannon_summary[[2]])
+      message("[R] edge_entropy: final_shannon[3] = ", shannon_summary[[3]])
+      
+      return(data.frame(
+        im=impath, 
+        entropy=fo, 
+        pentropy_20_80=shannon_summary[[1]], 
+        pentropy_80_160=shannon_summary[[2]], 
+        pentropy_160_240=shannon_summary[[3]],
+        complex_before=cts$complex_before
+      ))
+    }
+  } else if (is.matrix(image)) {
+    # It's a matrix
+    
+    # Add additional validation for the matrix
+    if (!is.numeric(image)) {
+      stop("Image matrix must contain numeric values")
+    }
+    
+    if (length(dim(image)) != 2) {
+      stop("Image must be a 2D matrix, not higher-dimensional array")
+    }
+    
+    if (nrow(image) < 3 || ncol(image) < 3) {
+      stop("Image matrix is too small (minimum size: 3x3)")
+    }
+    
+    if (use_cpp) {
+      result <- tryCatch({
+        edge_entropy_cpp(
+          image = image,
+          impath = "matrix", # Use "matrix" as the identifier
+          maxdiag = as.integer(maxdiag),
+          gabor_bins = as.integer(gabor_bins),
+          filter_length = as.integer(filter_length),
+          circ_bins = as.integer(circ_bins),
+          ranges = lapply(ranges, function(r) as.integer(r))
+        )
+      }, error = function(e) {
+        stop("C++ function failed: ", e$message)
+      })
+      return(result)
+    } else {
+      # Create a filtered_image object from the matrix
+      fimg <- list(
+        file = "matrix",
+        img = NULL, # No imager object for direct matrix input
+        image_raw = image,
+        image_size = dim(image)
+      )
+      class(fimg) <- c("filtered_image", "list")
+      
+      # Then proceed with the R implementation
+      fbank <- filter_bank(gabor_bins, filter_length)
+      fres <- run_filterbank(fimg, fbank)
+      cts <- do_counting(fres, maxdiag=maxdiag, circ_bins=circ_bins)
+      stats <- do_statistics(cts$counts, fres$fbank$bins_vec)
+      
+      fo <- first_order_entropy(fres)
+      
+      shannon_summary <- lapply(ranges, function(r) {
+        # Ensure rowMeans are calculated correctly and handle potential NaNs
+        valid_rows <- r[1]:r[2]
+        # Check bounds
+        valid_rows <- valid_rows[valid_rows <= nrow(stats$shannon)]
+        if (length(valid_rows) == 0) return(NA)
+        
+        row_means_subset <- rowMeans(stats$shannon[valid_rows, , drop = FALSE], na.rm = TRUE)
+        # Handle case where all values in a range might be NaN or empty
+        mean_val <- mean(row_means_subset, na.rm = TRUE)
+        if (!is.finite(mean_val)) mean_val <- NA
+        
+        message(sprintf("[R] edge_entropy (matrix): Range [%d, %d]: rowmeans mean = %.6f", r[1], r[2], mean_val))
+        mean_val
+      })
+      
+      message("[R] edge_entropy (matrix): Calculated fo = ", fo)
+      message("[R] edge_entropy (matrix): final_shannon[1] = ", shannon_summary[[1]])
+      message("[R] edge_entropy (matrix): final_shannon[2] = ", shannon_summary[[2]])
+      message("[R] edge_entropy (matrix): final_shannon[3] = ", shannon_summary[[3]])
+      
+      return(data.frame(
+        im="matrix", 
+        entropy=fo, 
+        pentropy_20_80=shannon_summary[[1]], 
+        pentropy_80_160=shannon_summary[[2]], 
+        pentropy_160_240=shannon_summary[[3]],
+        complex_before=cts$complex_before
+      ))
+    }
+  } else {
+    # Not a file path or matrix
+    if (is.null(image)) {
+      stop("'image' cannot be NULL. Must be a file path or numeric matrix")
+    } else if (is.character(image) && length(image) > 1) {
+      stop("'image' must be a single file path, not a character vector")
+    } else if (is.data.frame(image)) {
+      stop("'image' is a data.frame. Please convert to a matrix with as.matrix()")
+    } else {
+      stop("'image' must be either a file path (character string) or a numeric matrix, not ", class(image)[1])
+    }
+  }
 }
 
 #filter_bank = Filter_bank(GABOR_BINS, flt_size=FILTER_SIZE)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/im_features.R
 \name{im_feature_sim}
 \alias{im_feature_sim}
-\title{compute similarity matrix for a set of image using feature vectors from keras model}
+\title{Compute similarity matrix for a set of image using feature vectors from keras model}
 \usage{
 im_feature_sim(
   impaths,
@@ -10,7 +10,9 @@ im_feature_sim(
   model = NULL,
   target_size = c(224, 224),
   metric = "cosine",
-  lowmem = TRUE
+  lowmem = TRUE,
+  cache_size = 2048 * 2048^2,
+  subsamp_prop = 1
 )
 }
 \arguments{
@@ -23,5 +25,5 @@ im_feature_sim(
 \item{metric}{the similarity metric to use, default is 'cosine' (see \code{proxy} package for allowable metrics)}
 }
 \description{
-compute similarity matrix for a set of image using feature vectors from keras model
+Compute similarity matrix for a set of image using feature vectors from keras model
 }

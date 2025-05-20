@@ -4,7 +4,13 @@
 \alias{im_features}
 \title{extract features from intermediate layers}
 \usage{
-im_features(impath, layers, model = NULL, target_size = c(224, 224))
+im_features(
+  impath,
+  layers,
+  model = NULL,
+  target_size = c(224, 224),
+  spatial_pooling = "none"
+)
 }
 \arguments{
 \item{impath}{path to image file}
@@ -14,6 +20,17 @@ im_features(impath, layers, model = NULL, target_size = c(224, 224))
 \item{model}{the Keras model}
 
 \item{target_size}{the target image dimensions for approproate for model}
+
+\item{spatial_pooling}{A character string specifying the type of spatial processing to apply to 4D feature maps (typically from convolutional layers).
+Options are:
+\itemize{
+  \item{\code{"none"}: (Default) No spatial processing is applied; the full feature maps are returned (usually as a 4D array: 1 x H x W x C).}
+  \item{\code{"avg"}: Global average pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).}
+  \item{\code{"max"}: Global max pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).}
+  \item{\code{"resize_HxW"}: (e.g., \code{"resize_3x3"}, \code{"resize_7x7"}) Downsamples the spatial dimensions (H, W) to H_new x W_new using bilinear interpolation, then flattens. Results in a vector of length H_new * W_new * C.}
+}
+This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
+this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.}
 }
 \description{
 extract features from intermediate layers
