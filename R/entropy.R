@@ -408,10 +408,13 @@ do_statistics <- function(counts, bins_vec) {
 #'
 #' @export
 edge_entropy <- function(image, max_pixels=300*400, maxdiag=500, gabor_bins=24,
-                         filter_length=31, circ_bins=48, 
+                         filter_length=31, circ_bins=48,
                          ranges=list(c(20,80), c(80, 160), c(160,240)),
                          use_cpp=TRUE) {
-  
+
+  if (!is.numeric(filter_length) || filter_length <= 0 || filter_length %% 2 == 0)
+      stop("'filter_length' must be a positive odd integer")
+
   # Check if image is a file path or a matrix
   if (is.character(image) && length(image) == 1) {
     # It's a file path
