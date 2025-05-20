@@ -2,10 +2,7 @@ library(testthat)
 library(imfeatures)
 
 context("im_feature_sim")
-
-with_mocked_bindings <- function(..., .env = environment()) {
-  withr::local_bindings(..., .env = .env)
-}
+# with_mocked_bindings defined in helper-mocks.R
 
 
 test_that("subsampling logic works and output matrices are symmetric", {

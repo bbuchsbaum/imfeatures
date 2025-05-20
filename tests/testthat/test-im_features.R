@@ -3,11 +3,7 @@ library(imfeatures)
 
 context("im_features")
 
-# helper to mock dependencies
-
-with_mocked_bindings <- function(..., .env = environment()) {
-  withr::local_bindings(..., .env = .env)
-}
+# helper to mock dependencies provided by helper-mocks.R
 
 
 test_that("im_features errors on missing file paths", {

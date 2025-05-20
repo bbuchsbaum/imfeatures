@@ -2,11 +2,7 @@ library(testthat)
 library(imfeatures)
 
 context(".process_feature_map helper function")
-
-# helper to mock dependencies
-with_mocked_bindings <- function(..., .env = environment()) {
-  withr::local_bindings(..., .env = .env)
-}
+# with_mocked_bindings defined in helper-mocks.R
 
 test_that("average pooling returns correct values for 4D input", {
   # Create a dummy feature map: batch=1, H=2, W=2, C=2
