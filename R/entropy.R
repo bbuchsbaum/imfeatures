@@ -241,8 +241,13 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48) {
   complex_before = sum(resp_val)/normalize_fac
 
 
-  cutoff = sort(as.vector(resp_val), decreasing=TRUE)[10000] # get 10000th highest response for cutting of beneath
-  message("[R] do_counting: Calculated cutoff (k-th=10000): ", cutoff)
+  # Determine the k-th largest response to use as cutoff. For small images
+  # length(resp_val) may be < 10,000, so we clamp k to the number of pixels.
+  k <- min(10000L, length(resp_val))
+  cutoff = sort(as.vector(resp_val), decreasing = TRUE)[k]
+  # If k equals the number of pixels the cutoff will be the minimum response
+  # value, meaning no responses are removed.
+  message(sprintf("[R] do_counting: Calculated cutoff (k=%d): %f", k, cutoff))
   resp_val[resp_val<cutoff] = 0
   message("[R] do_counting: Range resp_val (after cutoff): [", 
           min(resp_val), ", ", max(resp_val), "]")
