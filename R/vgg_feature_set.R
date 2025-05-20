@@ -109,6 +109,20 @@ extract_vgg_features <- function(impaths,
   res
 }
 
+#' Print method for vgg_feature_set objects
+#'
+#' Displays a summary of a VGG-16 feature set, including the tier,
+#' number of images, feature dimensionality and pooling type.
+#'
+#' @param x A \code{vgg_feature_set} object.
+#' @param ... Additional arguments (ignored).
+#'
+#' @examples
+#' \dontrun{
+#' img <- system.file("extdata", "cat.jpg", package = "imfeatures")
+#' fs <- extract_vgg_features(img)
+#' print(fs)
+#' }
 #' @export
 print.vgg_feature_set <- function(x, ...) {
   cat("VGG-16 feature set\n")
