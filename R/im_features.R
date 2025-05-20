@@ -60,7 +60,8 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
     if (subsamp_prop < 1) {
       f1 <- im_features(impaths[1], layers=layers, model=model)
       subsamp_ind <- lapply(f1, function(feat) {
-        ind <- sample(1:length(feat), as.integer(length(feat) * subsamp_prop))
+        size <- max(1L, round(length(feat) * subsamp_prop))
+        sample(seq_along(feat), size)
       })
     }
 
