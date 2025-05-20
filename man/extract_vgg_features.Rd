@@ -17,11 +17,11 @@ extract_vgg_features(
 
 \item{tier}{Character; one of "low", "mid", "high", or "semantic".}
 
-\item{model}{Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras::application_vgg16(pretrained = 'imagenet')}.}
+\item{model}{Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras::application_vgg16(weights = 'imagenet')}.}
 
 \item{target_size}{Numeric vector of length 2 specifying image resize dimensions (width, height).}
 
-\item{pooling}{Character string specifying spatial pooling; passed to \code{im_features::spatial_pooling}.
+\item{pooling}{Character string specifying spatial pooling; passed to the \code{spatial_pooling} argument of \code{im_features}.
 Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7".}
 }
 \value{
@@ -31,7 +31,7 @@ An S3 object of class \code{vgg_feature_set}, a list with components:
   \item{image_paths}{Character vector of input image paths.}
   \item{tier}{The tier name.}
   \item{pooling}{Pooling type used.}
-  \item{layer_indices}{Numeric indices of VGG-16 layers used.}
+  \item{layer_indices}{Numeric indices of the selected layers (derived from \code{layer_names}).}
   \item{layer_names}{Character names of VGG-16 layers.}
   \item{model_name}{Character, set to "vgg16".}
   \item{target_size}{Numeric vector of image resize dimensions.}
@@ -45,4 +45,5 @@ Convenience wrapper around \code{im_features()} to extract VGG-16 features group
   \\item{\\code{"high"}: conv5_1–conv5_3}
   \\item{\\code{"semantic"}: fc1 (fc6) and fc2 (fc7)}
 }
+Layers are retrieved by name (e.g., \code{"block1_conv1"}) instead of numeric indices.
 }

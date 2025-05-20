@@ -4,10 +4,31 @@ NULL
 
 #' @keywords internal
 entropy <- function(a) {
-  if (sum(a) !=1.0 && sum(a)>0) {
-    a = a / sum(a)
+  # Ensure input is numeric
+  if (!is.numeric(a)) {
+    stop("`a` must be numeric")
   }
-  v = a>0.0
+
+  # Remove NA values
+  a <- a[!is.na(a)]
+
+  if (length(a) == 0) {
+    warning("All values are NA")
+    return(NA_real_)
+  }
+
+  s <- sum(a)
+  if (s == 0) {
+    warning("Sum of probabilities is zero")
+    return(NA_real_)
+  }
+
+  eps <- sqrt(.Machine$double.eps)
+  if (abs(s - 1) > eps) {
+    a <- a / s
+  }
+
+  v <- a > 0.0
   -sum(a[v] * log2(a[v]))
 }
 
@@ -190,10 +211,17 @@ run_filterbank <- function(fimg, fbank, verbose = FALSE) {
 zero_borders <- function(resp_val, nlines=2) {
   nr <- nrow(resp_val)
   nc <- ncol(resp_val)
-  resp_val[1:nlines,] <- 0
-  resp_val[, 1:nlines] <- 0
-  resp_val[(nr-nlines):nr,] <- 0
-  resp_val[, (nc-nlines):nc] <- 0
+
+  # Clamp nlines to valid range and ensure non-negative
+  nlines <- max(0, min(nlines, nr - 1, nc - 1))
+
+  if (nlines > 0) {
+    resp_val[1:nlines, ] <- 0
+    resp_val[, 1:nlines] <- 0
+    resp_val[(nr - nlines + 1):nr, ] <- 0
+    resp_val[, (nc - nlines + 1):nc] <- 0
+  }
+
   resp_val
 }
 
@@ -217,6 +245,7 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48, verbose = FALSE) {
 
   ## gradient magnitude
   complex_before = sum(resp_val)/normalize_fac
+
 
 
   cutoff = sort(as.vector(resp_val), decreasing=TRUE)[10000] # get 10000th highest response for cutting of beneath
