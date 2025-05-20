@@ -112,6 +112,30 @@ test_that("low and residualized high are orthogonal (new data)", {
   expect_lt(max(abs(orth2)), tol, "High-tier residuals should be orthogonal to the kept low-tier PCs (new data)")
 })
 
+test_that("error when NA values are present", {
+  feature_list_bad <- list(
+    tier1 = matrix(c(1, NA, 3, 4), nrow = 2),
+    tier2 = matrix(rnorm(4), nrow = 2)
+  )
+  expect_error(
+    residualize_tiers(feature_list_bad, numpcs = 1),
+    "non-finite values.*tier1"
+  )
+})
+
+test_that("error when Inf values are present", {
+  feature_list_bad <- list(
+    tier1 = matrix(c(1, Inf, 3, 4), nrow = 2),
+    tier2 = matrix(rnorm(4), nrow = 2)
+  )
+  expect_error(
+    residualize_tiers(feature_list_bad, numpcs = 1),
+    "non-finite values.*tier1"
+  )
+})
+
+# cat("All residualize_tiers tests passed ✔\n") # This cat() is more for interactive script, testthat has its own reporting 
+
 test_that("feature_list row mismatches trigger an error", {
   m1 <- matrix(rnorm(10), nrow = 5)
   m2 <- matrix(rnorm(8), nrow = 4)
@@ -120,3 +144,4 @@ test_that("feature_list row mismatches trigger an error", {
 })
 
 # cat("All residualize_tiers tests passed ✔\n") # This cat() is more for interactive script, testthat has its own reporting 
+
