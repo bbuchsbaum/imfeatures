@@ -143,9 +143,14 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
 
   #subsamp_indices <- vector(length(layers), mode="list")
 
-  features <- lapply(layers, function(index) {
+  features <- lapply(layers, function(layer) {
+    lyr <- if (is.numeric(layer)) {
+      get_layer(model, index = as.integer(layer))
+    } else {
+      get_layer(model, name = layer)
+    }
     intermediate_layer_model <- keras_model(inputs = model$input,
-                                            outputs = get_layer(model, index=index)$output)
+                                            outputs = lyr$output)
 
     p <- predict(intermediate_layer_model, x)
 

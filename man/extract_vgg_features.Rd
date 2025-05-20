@@ -31,7 +31,7 @@ An S3 object of class \code{vgg_feature_set}, a list with components:
   \item{image_paths}{Character vector of input image paths.}
   \item{tier}{The tier name.}
   \item{pooling}{Pooling type used.}
-  \item{layer_indices}{Numeric indices of VGG-16 layers used.}
+  \item{layer_indices}{Numeric indices of the selected layers (derived from \code{layer_names}).}
   \item{layer_names}{Character names of VGG-16 layers.}
   \item{model_name}{Character, set to "vgg16".}
   \item{target_size}{Numeric vector of image resize dimensions.}
@@ -45,4 +45,5 @@ Convenience wrapper around \code{im_features()} to extract VGG-16 features group
   \\item{\\code{"high"}: conv5_1–conv5_3}
   \\item{\\code{"semantic"}: fc1 (fc6) and fc2 (fc7)}
 }
+Layers are retrieved by name (e.g., \code{"block1_conv1"}) instead of numeric indices.
 }

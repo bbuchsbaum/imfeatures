@@ -7,6 +7,7 @@
 #'   \\item{\\code{"high"}: conv5_1–conv5_3}
 #'   \\item{\\code{"semantic"}: fc1 (fc6) and fc2 (fc7)}
 #' }
+#' Layers are retrieved by name (e.g., \code{"block1_conv1"}) instead of numeric indices.
 #'
 #' @param impaths Character vector of image file paths.
 #' @param tier Character; one of "low", "mid", "high", or "semantic".
@@ -20,8 +21,8 @@
 #'   \item{image_paths}{Character vector of input image paths.}
 #'   \item{tier}{The tier name.}
 #'   \item{pooling}{Pooling type used.}
-#'   \item{layer_indices}{Numeric indices of VGG-16 layers used.}
-#'   \item{layer_names}{Character names of VGG-16 layers.}
+#'   \item{layer_indices}{Numeric indices of the selected layers (derived from \code{layer_names}).}
+#'   \item{layer_names}{Character names of VGG-16 layers used.}
 #'   \item{model_name}{Character, set to "vgg16".}
 #'   \item{target_size}{Numeric vector of image resize dimensions.}
 #' }
@@ -57,21 +58,22 @@ extract_vgg_features <- function(impaths,
     model <- keras::application_vgg16(weights = 'imagenet', include_top = TRUE)
   }
 
-  # Define layer index map for VGG-16
+  # Define layer name map for VGG-16
   tier_map <- list(
-    low = c(1L, 2L, 4L, 5L),           # conv1_1, conv1_2, conv2_1, conv2_2
-    mid = c(7L,  8L,  9L, 11L, 12L, 13L), # conv3_1–conv4_3
-    high = c(15L, 16L, 17L),            # conv5_1–conv5_3
-    semantic = c(20L, 21L)              # fc1 (fc6), fc2 (fc7)
+    low = c("block1_conv1", "block1_conv2", "block2_conv1", "block2_conv2"),
+    mid = c(
+      "block3_conv1", "block3_conv2", "block3_conv3",
+      "block4_conv1", "block4_conv2", "block4_conv3"
+    ),
+    high = c("block5_conv1", "block5_conv2", "block5_conv3"),
+    semantic = c("fc1", "fc2")
   )
   layers <- tier_map[[tier]]
 
-  # Get layer names
-  layer_names <- vapply(
-    layers,
-    function(idx) keras::get_layer(model, index = idx)$name,
-    character(1)
-  )
+  # Get numeric indices for reference and store layer names
+  all_names <- vapply(model$layers, function(l) l$name, character(1))
+  layer_indices <- match(layers, all_names)
+  layer_names <- layers
 
   # Extract features for each image; wrap errors per image
   feats_list <- lapply(impaths, function(path) {
@@ -100,7 +102,7 @@ extract_vgg_features <- function(impaths,
     image_paths = impaths,
     tier = tier,
     pooling = pooling,
-    layer_indices = layers,
+    layer_indices = layer_indices,
     layer_names = layer_names,
     model_name = "vgg16",
     target_size = target_size
