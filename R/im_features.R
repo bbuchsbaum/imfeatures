@@ -133,6 +133,10 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
   }
 
+  if (!file.exists(impath)) {
+    stop(sprintf("Image path does not exist: %s", impath))
+  }
+
   img <- image_load(impath, target_size = target_size)
 
   x <- image_to_array(img)
