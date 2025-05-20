@@ -275,7 +275,7 @@ im_features_tv <- function(impaths, model_name, source, module_name,
        # Attempt to add rownames
        img_basenames <- try(tools::file_path_sans_ext(basename(impaths)), silent = TRUE)
        if (!inherits(img_basenames, "try-error") && length(img_basenames) == NROW(features)) {
-          try(rownames(features) <- img_basenames, silent = TRUE)
+          features <- .add_feature_dimnames(features, img_basenames)
        } else {
           warning("Could not set rownames for features. Number of images might not match feature rows, or basename extraction failed.")
        }
@@ -507,5 +507,16 @@ im_feature_sim_tv <- function(impaths, model_name, source, module_names,
      return(list())
   }
 
-  return(sim_matrices)
+return(sim_matrices)
 }
+
+#' @keywords internal
+.add_feature_dimnames <- function(features, img_basenames) {
+  if (length(dim(features)) > 2) {
+    dimnames(features)[[1]] <- img_basenames
+  } else {
+    rownames(features) <- img_basenames
+  }
+  features
+}
+
