@@ -1,4 +1,5 @@
 library(testthat)
+library(progress)
 # library(imfeatures) # Assuming devtools::test() or similar loads the package
 
 context("im_feature_sim")
