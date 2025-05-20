@@ -30,7 +30,7 @@ before conversion to R. Defaults to "ndarray".}
 
 \item{output_dir}{Character string (optional). Directory to save features iteratively.}
 
-\item{step_size}{Integer (optional). Step size for saving if `output_dir` is used.}
+\item{step_size}{Integer (optional). Step size for saving if `output_dir` is used. Must be a finite numeric scalar.}
 
 \item{...}{Additional arguments (currently ignored).}
 }
