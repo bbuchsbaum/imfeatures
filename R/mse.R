@@ -1,15 +1,25 @@
 #' Multiscale entropy for images
 #'
+#' Compute the entropy of the Hue, Saturation and Value components of an image
+#' across multiple blur scales.
 #'
 #' @import imager
 #' @import entropy
-#' @param im image of type `cimg` from `imager` package
+#' @param im image of type `cimg` from `imager` package. The function expects an
+#'   image with three colour channels. If a single-channel image is supplied it
+#'   will be converted with \code{add.colour()}, and an error is thrown if the
+#'   result does not contain exactly three channels.
 #' @param sf vector smoothing factors indicating the scales for entropy computation
 #' @param bins number of bins for computing information
+#' @return A named numeric vector with the mean multiscale entropy for the
+#'   \code{H}, \code{S} and \code{V} channels.
 #' @export
 image_mse <- function(im, sf=c(100, 50, 8, 4, 0), bins=16) {
-  if (length(channels(im)) ==1) {
+  if (length(channels(im)) == 1) {
     im <- add.colour(im)
+  }
+  if (length(channels(im)) != 3) {
+    stop("image_mse expects an image with 3 colour channels after add.colour()")
   }
 
   hsvim <- RGBtoHSV(im)
@@ -39,5 +49,8 @@ image_mse <- function(im, sf=c(100, 50, 8, 4, 0), bins=16) {
   })
 
   ret <- do.call(rbind, ret)
-  colMeans(as.matrix(ret[, 2:4]), na.rm = TRUE)
+  out <- colMeans(as.matrix(ret[,2:4]))
+  names(out) <- c("H", "S", "V")
+  out
+
 }
