@@ -324,7 +324,7 @@ get_backend.thingsvision_extractor <- function(object, ...) {
 #' @param output_type Character string ("ndarray" or "tensor"). The desired Python output type
 #'        before conversion to R. Defaults to "ndarray".
 #' @param output_dir Character string (optional). Directory to save features iteratively.
-#' @param step_size Integer (optional). Step size for saving if `output_dir` is used.
+#' @param step_size Integer (optional). Step size for saving if `output_dir` is used. Must be a finite numeric scalar.
 #' @param ... Additional arguments (currently ignored).
 #'
 #' @return An R matrix or array containing the features, or `NULL` invisibly if
@@ -341,7 +341,17 @@ tv_extract.thingsvision_extractor <- function(object, dataloader, module_name, f
       warning("'dataloader' does not appear to be a reticulate Python object reference.")
    }
 
-   py_step_size <- if (!is.null(step_size)) as.integer(step_size) else NULL
+   if (!is.null(step_size)) {
+      if (!is.numeric(step_size) || length(step_size) != 1) {
+         stop("'step_size' must be a numeric scalar if provided.")
+      }
+      if (!is.finite(step_size)) {
+         stop("'step_size' must be a finite number.")
+      }
+      py_step_size <- as.integer(step_size)
+   } else {
+      py_step_size <- NULL
+   }
 
    features_py <- tryCatch({
       object$py_obj$extract_features(
@@ -385,7 +395,7 @@ tv_extract.thingsvision_extractor <- function(object, dataloader, module_name, f
 #' @param object An object of class `thingsvision_extractor`.
 #' @param features An R matrix or array of features (will be converted to Python).
 #' @param module_name The module name corresponding to the features being aligned.
-#' @param alignment_type Character string. The alignment method (e.g., "gLocal").
+#' @param alignment_type Character string. The alignment method (e.g., "gLocal"). Must be a character scalar. A warning is issued if the type is not recognized.
 #' @param ... Additional arguments (currently ignored).
 #'
 #' @return Aligned features as an R matrix or array.
@@ -397,6 +407,13 @@ tv_align.thingsvision_extractor <- function(object, features, module_name, align
    }
    if (!inherits(features, c("matrix", "array"))) {
       stop("'features' must be an R matrix or array.")
+   }
+   if (!is.character(alignment_type) || length(alignment_type) != 1) {
+       stop("'alignment_type' must be a character scalar.")
+   }
+   known_types <- c("gLocal")
+   if (!(alignment_type %in% known_types)) {
+       warning("Unknown alignment_type '", alignment_type, "'.")
    }
 
    features_py <- reticulate::r_to_py(features)
