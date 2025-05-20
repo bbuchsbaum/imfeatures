@@ -186,10 +186,17 @@ run_filterbank <- function(fimg, fbank) {
 zero_borders <- function(resp_val, nlines=2) {
   nr <- nrow(resp_val)
   nc <- ncol(resp_val)
-  resp_val[1:nlines,] <- 0
-  resp_val[, 1:nlines] <- 0
-  resp_val[(nr-nlines):nr,] <- 0
-  resp_val[, (nc-nlines):nc] <- 0
+
+  # Clamp nlines to valid range and ensure non-negative
+  nlines <- max(0, min(nlines, nr - 1, nc - 1))
+
+  if (nlines > 0) {
+    resp_val[1:nlines, ] <- 0
+    resp_val[, 1:nlines] <- 0
+    resp_val[(nr - nlines + 1):nr, ] <- 0
+    resp_val[, (nc - nlines + 1):nc] <- 0
+  }
+
   resp_val
 }
 
