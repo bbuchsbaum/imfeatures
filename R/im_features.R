@@ -117,7 +117,7 @@ vgg16 <- function() {
 #'          \item{\code{"none"}: (Default) No spatial processing is applied; the full feature maps are returned (usually as a 4D array: 1 x H x W x C).}
 #'          \item{\code{"avg"}: Global average pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).}
 #'          \item{\code{"max"}: Global max pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).}
-#'          \item{\code{"resize_HxW"}: (e.g., \code{"resize_3x3"}, \code{"resize_7x7"}) Downsamples the spatial dimensions (H, W) to H_new x W_new using bilinear interpolation, then flattens. Results in a vector of length H_new * W_new * C.}
+#'          \item{\code{"resize_HxW"}: Downsamples the spatial dimensions to \code{H} by \code{W} using bilinear interpolation, then flattens. Any value matching \code{"^resize_[0-9]+x[0-9]+$"} is accepted (e.g., \code{"resize_3x3"}, \code{"resize_7x7"}). Results in a vector of length \code{H * W * C}.}
 #'        }
 #'        This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
 #'        this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.
@@ -126,9 +126,13 @@ vgg16 <- function() {
 im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
                         spatial_pooling = "none") {
 
-  # Define allowed pooling options - extend this list for more resize options
-  allowed_pooling_options <- c("none", "avg", "max", "resize_3x3", "resize_5x5", "resize_7x7")
-  spatial_pooling <- match.arg(spatial_pooling, allowed_pooling_options)
+  # Validate spatial pooling argument. Accept 'none', 'avg', 'max' or
+  # patterns of the form 'resize_HxW'
+  valid_opts <- c("none", "avg", "max")
+  if (!(spatial_pooling %in% valid_opts ||
+        grepl("^resize_[0-9]+x[0-9]+$", spatial_pooling))) {
+    stop("'spatial_pooling' must be 'none', 'avg', 'max', or 'resize_HxW'")
+  }
 
   if (is.null(model)) {
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
