@@ -167,9 +167,6 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
   # 5. Collect Intermediate Features & Clean Up Hooks
   # ------------------------------------------------------------------
   if (length(hook_handles) > 0) {
-    # Map original layer requests to the (potentially modified) module path keys
-    # to name the output list elements as requested by the user.
-    original_to_resolved_map <- setNames(resolved_intermediate_module_paths, resolved_intermediate_module_paths) # Default: path is key
 
     # Create a map for original integer requests to their resolved block names for output naming
     for (orig_lyr_req_idx in seq_along(intermediate_layers_requested)) {
