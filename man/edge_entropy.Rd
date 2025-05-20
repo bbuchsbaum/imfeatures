@@ -12,7 +12,8 @@ edge_entropy(
   filter_length = 31,
   circ_bins = 48,
   ranges = list(c(20, 80), c(80, 160), c(160, 240)),
-  use_cpp = TRUE
+  use_cpp = TRUE,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -42,6 +43,8 @@ different distance ranges. Defaults to list(c(20,80), c(80,160), c(160,240)).}
 
 \item{use_cpp}{Logical. Whether to use the C++ implementation (generally faster).
 Defaults to TRUE. If FALSE, uses the pure R implementation.}
+
+\item{verbose}{Logical. If TRUE, print detailed progress messages.}
 }
 \value{
 A data frame with the following columns:

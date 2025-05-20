@@ -22,6 +22,7 @@ Imports:
   ggimage,
   ggplot2,
   dplyr,
+  entropy,
   imager
 Suggests:
   rgl

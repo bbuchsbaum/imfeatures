@@ -19,9 +19,9 @@ image_mse <- function(im, sf=c(100, 50, 8, 4, 0), bins=16) {
     i1 <- imager::isoblur(hsvim2[[1]], fac)
     i2 <- imager::isoblur(hsvim2[[2]], fac)
     i3 <- imager::isoblur(hsvim2[[3]], fac)
-    f1 <- try(freqs(entropy::discretize(as.vector(i1),bins)))
-    f2 <- try(freqs(entropy::discretize(as.vector(i2),bins)))
-    f3 <- try(freqs(entropy::discretize(as.vector(i3),bins)))
+    f1 <- try(freqs(entropy::discretize(as.vector(i1), bins)), silent = TRUE)
+    f2 <- try(freqs(entropy::discretize(as.vector(i2), bins)), silent = TRUE)
+    f3 <- try(freqs(entropy::discretize(as.vector(i3), bins)), silent = TRUE)
 
     e1 <- if (!inherits(f1, "try-error")) {
       entropy(f1)
@@ -39,5 +39,5 @@ image_mse <- function(im, sf=c(100, 50, 8, 4, 0), bins=16) {
   })
 
   ret <- do.call(rbind, ret)
-  colMeans(as.matrix(ret[,2:4]))
+  colMeans(as.matrix(ret[, 2:4]), na.rm = TRUE)
 }
