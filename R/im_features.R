@@ -194,7 +194,7 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
 #'
 #' @inheritParams im_features
 #' @export
-#' @importFrom dplyr top_n arrange
+#' @importFrom dplyr top_n arrange desc
 im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   if (is.null(model)) {
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
