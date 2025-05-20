@@ -3,6 +3,11 @@ library(imfeatures)
 
 context(".process_feature_map helper function")
 
+# helper to mock dependencies
+with_mocked_bindings <- function(..., .env = environment()) {
+  withr::local_bindings(..., .env = .env)
+}
+
 test_that("average pooling returns correct values for 4D input", {
   # Create a dummy feature map: batch=1, H=2, W=2, C=2
   p <- array(0, dim = c(1, 2, 2, 2))
@@ -45,4 +50,25 @@ test_that("invalid resize option returns original with warning", {
     "Invalid resize format"
   )
   expect_identical(out, p)
-}) 
+})
+
+test_that("resize option calls tensorflow and returns flattened output", {
+  p <- array(1:16, dim = c(1, 4, 4, 1))
+  fake_tf <- list(
+    constant = function(x, dtype) x,
+    float32 = "float32",
+    image = list(
+      resize = function(images, size, method) {
+        array(seq_len(size[[1]] * size[[2]]),
+              dim = c(1, size[[1]], size[[2]], 1))
+      },
+      ResizeMethod = list(BILINEAR = "bilinear")
+    )
+  )
+  out <- with_mocked_bindings(
+    requireNamespace = function(pkg, quietly = TRUE) TRUE,
+    `reticulate::import` = function(name, delay_load = TRUE) fake_tf,
+    imfeatures:::.process_feature_map(p, "resize_2x2")
+  )
+  expect_equal(out, as.vector(array(1:4, dim = c(1, 2, 2, 1))))
+})
