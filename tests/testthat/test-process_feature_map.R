@@ -1,5 +1,5 @@
 library(testthat)
-library(imfeatures)
+#library(imfeatures)
 
 context(".process_feature_map helper function")
 # with_mocked_bindings defined in helper-mocks.R

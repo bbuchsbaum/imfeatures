@@ -1,6 +1,6 @@
 library(testthat)
-library(progress)
-# library(imfeatures) # Assuming devtools::test() or similar loads the package
+library(imfeatures)
+# progress library not needed
 
 context("im_feature_sim")
 
@@ -39,14 +39,6 @@ test_that("subsampling logic works and output matrices are symmetric", {
     setNames(list(seq_len(20)), as.character(layers))
   }
   
-  # Mock for progress::progress_bar$new()
-  # We mock the progress_bar object generator itself
-  mock_progress_package_obj <- list(
-    progress_bar = list(
-      new = function(total, ...) list(tick = function(...){})
-    )
-  )
-
   # Mock for memoise::memoise
   mock_memoise_func <- function(f, ...) { f } # Pass through
 
@@ -68,8 +60,7 @@ test_that("subsampling logic works and output matrices are symmetric", {
     `memoise::memoise` = mock_memoise_func,
     `coop::tcosine` = mock_cosine_func,
     `furrr::future_map` = mock_furrr_future_map_func,
-    sample = mock_sample_func,
-    `progress::progress_bar` = mock_progress_package_obj$progress_bar
+    sample = mock_sample_func
     # .env argument is specific to testthat::with_mock if needed, but usually defaults correctly.
   )
   

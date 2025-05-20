@@ -1,5 +1,5 @@
 library(testthat)
-library(imfeatures)
+#library(imfeatures)
 
 context("image_mse")
 

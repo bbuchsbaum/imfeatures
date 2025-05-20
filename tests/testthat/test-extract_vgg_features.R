@@ -1,5 +1,5 @@
 library(testthat)
-library(imfeatures)
+#library(imfeatures)
 
 context("extract_vgg_features")
 

@@ -1,5 +1,5 @@
 library(testthat)
-library(imfeatures)
+#library(imfeatures)
 
 context(".add_feature_dimnames helper function")
 
