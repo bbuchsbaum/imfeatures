@@ -34,10 +34,11 @@
 #' Note: For applications like fMRI analysis where data might be processed in folds (e.g., for cross-validation),
 #' z-scoring should ideally be performed based on training fold statistics and then applied to test folds.
 #' This function, when applied to a whole dataset, uses statistics from the entire input for z-scoring.
+#' All matrices must contain only finite values; the function stops if any NA or Inf values are detected.
 #'
 #' @export
-residualize_tiers <- function(feature_list, numpcs = NULL, 
-                              pca_method = c("stats", "irlba"), 
+residualize_tiers <- function(feature_list, numpcs = NULL,
+                              pca_method = c("stats", "irlba"),
                               svd_tol = 1e-7,
                               scale_scores = TRUE) {
   if (!is.list(feature_list) || is.null(names(feature_list))) {
@@ -77,6 +78,9 @@ residualize_tiers <- function(feature_list, numpcs = NULL,
     X <- feature_list[[i]]
     if (!is.matrix(X)) {
       X <- as.matrix(X)
+    }
+    if (any(!is.finite(X))) {
+      stop(sprintf("Tier '%s' contains non-finite values (NA/Inf).", tier_name))
     }
     k_requested <- numpcs[i]
     P <- ncol(X)

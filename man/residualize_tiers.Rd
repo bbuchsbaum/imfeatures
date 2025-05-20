@@ -46,4 +46,5 @@ The process for each tier is as follows:
 To apply this full transformation (PCA and sequential residualization) to a new dataset, use the S3 method
 \code{predict(object, newdata)}, where \code{object} is the result of \code{residualize_tiers} and \code{newdata}
 is a named list of feature matrices matching the structure of the original \code{feature_list}.
+All matrices in \code{feature_list} must contain only finite numeric values; the function stops if any NA or Inf values are detected.
 }
