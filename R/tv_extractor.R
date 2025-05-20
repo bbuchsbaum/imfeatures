@@ -455,4 +455,33 @@ tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...)
   )
   return(dataset)
 }
-# Similar modification needed for tv_create_dataloader
+
+#' Create a thingsvision ImageDataLoader
+#' @param dataset A thingsvision ImageDataset object
+#' @param batch_size Integer batch size
+#' @param extractor An R object of class `thingsvision_extractor`
+#' @param ... Additional arguments for ImageDataLoader (e.g., shuffle, num_workers)
+#' @return A reticulate Python object reference to the ImageDataLoader
+#' @export
+tv_create_dataloader <- function(dataset, batch_size, extractor, ...) {
+  if (!inherits(extractor, "thingsvision_extractor")) {
+    stop("'extractor' must be an object of class 'thingsvision_extractor'.")
+  }
+  if (is.null(tv_data)) {
+    stop("thingsvision.utils.data not imported.")
+  }
+
+  py_extractor <- extractor$py_obj
+  if (reticulate::py_is_null_xptr(py_extractor)) {
+    stop("The underlying Python extractor object is NULL in the provided R object.")
+  }
+
+  dl <- tv_data$ImageDataLoader(
+    dataset = dataset,
+    batch_size = as.integer(batch_size),
+    backend = py_extractor$get_backend(),
+    ...
+  )
+  return(dl)
+}
+
