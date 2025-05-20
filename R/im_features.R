@@ -7,7 +7,8 @@
 #' @import progress
 #' @export
 im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
-                           metric="cosine", lowmem=TRUE,cache_size=2048 * 2048^2, 
+                           spatial_pooling = "none",
+                           metric="cosine", lowmem=TRUE,cache_size=2048 * 2048^2,
                            subsamp_prop=1) {
 
   if (!(all(file.exists(impaths)))) {
@@ -41,8 +42,10 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
       for (j in 1:length(impaths)) {
         if (i < j & i != j) {
           #print(j)
-          fi <- imfeat(impaths[i], layers=layers, model=model)
-          fj <- imfeat(impaths[j], layers=layers, model=model)
+          fi <- imfeat(impaths[i], layers=layers, model=model,
+                        spatial_pooling = spatial_pooling)
+          fj <- imfeat(impaths[j], layers=layers, model=model,
+                        spatial_pooling = spatial_pooling)
           for (k in 1:length(layers)) {
             m <- proxy::simil(as.vector(fi[[k]]), as.vector(fj[[k]]), method=metric, by_rows=FALSE)
             out[[k]][i,j] <- m[1,1]
@@ -58,7 +61,8 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
 
   } else{
     if (subsamp_prop < 1) {
-      f1 <- im_features(impaths[1], layers=layers, model=model)
+      f1 <- im_features(impaths[1], layers=layers, model=model,
+                         spatial_pooling = spatial_pooling)
       subsamp_ind <- lapply(f1, function(feat) {
         size <- max(1L, round(length(feat) * subsamp_prop))
         sample(seq_along(feat), size)
@@ -66,7 +70,8 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
     }
 
     featlist <- furrr::future_map(impaths, function(im) {
-      feats <- im_features(im, layers=layers, model=model)
+      feats <- im_features(im, layers=layers, model=model,
+                           spatial_pooling = spatial_pooling)
       if (subsamp_prop < 1) {
         feats <- lapply(seq_along(feats), function(i) {
           feats[[i]][subsamp_ind[[i]]]

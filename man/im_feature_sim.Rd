@@ -9,6 +9,7 @@ im_feature_sim(
   layers,
   model = NULL,
   target_size = c(224, 224),
+  spatial_pooling = "none",
   metric = "cosine",
   lowmem = TRUE,
   cache_size = 2048 * 2048^2,
@@ -21,6 +22,10 @@ im_feature_sim(
 \item{model}{the Keras model}
 
 \item{target_size}{the target image dimensions for approproate for model}
+
+\item{spatial_pooling}{Passed to \code{im_features} to control spatial pooling
+  of 4D feature maps. Defaults to \code{"none"}. Options include
+  \code{"avg"}, \code{"max"}, or \code{"resize_HxW"}.}
 
 \item{metric}{the similarity metric to use, default is 'cosine' (see \code{proxy} package for allowable metrics)}
 }
