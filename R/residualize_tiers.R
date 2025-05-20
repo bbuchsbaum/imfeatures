@@ -43,6 +43,12 @@ residualize_tiers <- function(feature_list, numpcs = NULL,
   if (!is.list(feature_list) || is.null(names(feature_list))) {
     stop("feature_list must be a named list of matrices.")
   }
+  # Ensure all matrices have the same number of rows (samples)
+  row_counts <- vapply(feature_list, function(x) nrow(as.matrix(x)), integer(1))
+  if (length(unique(row_counts)) != 1) {
+    counts_str <- paste(sprintf("%s=%d", names(row_counts), row_counts), collapse = ", ")
+    stop(sprintf("All matrices in 'feature_list' must have the same number of rows (samples); got: %s", counts_str))
+  }
   pca_method <- match.arg(pca_method)
 
   if (!is.numeric(svd_tol) || svd_tol <= 0) {
