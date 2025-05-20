@@ -98,6 +98,9 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
   # ------------------------------------------------------------------
   needs_final_embedding <- "final" %in% layers
   intermediate_layers_requested <- setdiff(layers, "final")
+  numeric_idx <- grepl("^[0-9]+$", intermediate_layers_requested)
+  intermediate_layers_requested[numeric_idx] <-
+    as.integer(intermediate_layers_requested[numeric_idx])
 
   # Generate standard block names if integer indices are used
   # Base path for vision transformer residual blocks
