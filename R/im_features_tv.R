@@ -355,9 +355,10 @@ im_features_tv <- function(impaths, model_name, source, module_name,
 #' Requires a correctly configured Python environment with `thingsvision` installed.
 #' Use \code{\link{install_thingsvision}} and configure `reticulate` before use.
 #'
-#' @return A named list where each element corresponds to a `module_name` provided
-#'         in the input. Each element contains a square similarity matrix
-#'         (n_images x n_images).
+#' @return A named list of similarity matrices. Elements are named according to
+#'         the provided `module_names`. If a name is repeated, a numeric suffix
+#'         ("_1", "_2", ...) is appended to keep names unique. Each element
+#'         contains a square similarity matrix (n_images x n_images).
 #'
 #' @importFrom proxy simil
 #' @importFrom tools file_path_sans_ext
@@ -424,8 +425,11 @@ im_feature_sim_tv <- function(impaths, model_name, source, module_names,
   # --- Feature Extraction and Similarity Calculation ---
   sim_matrices <- list()
   image_basenames <- try(tools::file_path_sans_ext(basename(impaths)), silent = TRUE)
+  unique_names <- make.unique(module_names, sep = "_")
 
-  for (mod_name in module_names) {
+  for (i in seq_along(module_names)) {
+    mod_name <- module_names[i]
+    list_name <- unique_names[i]
     message("Processing module: ", mod_name, "...")
 
     # Extract features for the current module for ALL images
@@ -487,8 +491,6 @@ im_feature_sim_tv <- function(impaths, model_name, source, module_names,
     }
 
     # Store in the list, named by module
-    # Use make.names to ensure valid R list names if module names contain weird characters
-    list_name <- make.names(mod_name)
     sim_matrices[[list_name]] <- sim_mat
     message("Similarity matrix for ", mod_name, " calculated.")
 
