@@ -22,6 +22,10 @@ clip_features <- function(impath,
 
   device <- match.arg(device)
 
+  if (!file.exists(impath)) {
+    stop("Image file not found: ", impath)
+  }
+
   # Python helper function string
   py_helpers <- "
 import torch
