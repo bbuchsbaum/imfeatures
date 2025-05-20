@@ -21,7 +21,8 @@ im_feature_sim_tv(
 \arguments{
 \item{impaths}{Character vector. A vector of full file paths to the images.
 The order determines the rows/columns of the output similarity matrices.
-Assumes images share a common parent directory (see `im_features_tv` details).}
+Images can be located in different directories and will be processed relative
+to a computed common root.}
 
 \item{model_name}{Character string. The name of the `thingsvision` model architecture
 (e.g., `"resnet50"`, `"clip"`).}

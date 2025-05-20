@@ -8,10 +8,9 @@
 #' @param impaths Character vector. A vector of full file paths to the images
 #'        for which features should be extracted. The order of features in the
 #'        output will correspond to the order of paths in this vector.
-#'        \strong{Note:} Currently, this function assumes all images reside in the
-#'        same parent directory. The parent directory is inferred from the first path
-#'        in `impaths`. Support for images across multiple directories might require
-#'        custom dataloader usage with lower-level `tv_` functions.
+#'        The images can be located in different directories. A common root
+#'        directory is automatically derived and the paths are passed to the
+#'        Python dataset relative to that root.
 #' @param model_name Character string. The name of the model architecture (e.g.,
 #'        `"resnet50"`, `"clip"`, `"dino-vit-base-p16"`). See the Details section
 #'        of \code{\link{tv_get_extractor}} for available models.
@@ -207,18 +206,11 @@ im_features_tv <- function(impaths, model_name, source, module_name,
      missing_files <- impaths[!file.exists(impaths)]
      stop("Some image paths do not exist: ", paste(missing_files, collapse=", "))
   }
-  # Infer root directory (assuming all files share the immediate parent)
-  # More robust handling might be needed if paths are very diverse
-  common_parent <- unique(dirname(impaths))
-  if (length(common_parent) > 1) {
-     warning("Images seem to be from multiple directories. Assuming first path's directory ('", common_parent[1],"') as root for ImageDataset. This might fail if images aren't found relative to this root.")
-     image_root <- common_parent[1]
-  } else if (length(common_parent) == 1) {
-     image_root <- common_parent
-  } else {
-     stop("Cannot determine image root directory from impaths.")
-  }
-   if (!dir.exists(image_root)) stop("Inferred image root directory not found: ", image_root)
+  # Determine a common root directory and relative paths
+  image_root <- .common_root(impaths)
+  image_fnames <- .relative_to_root(impaths, image_root)
+  if (!dir.exists(image_root))
+    stop("Computed common root directory not found: ", image_root)
 
   # Ensure temp_out_dir exists for the file list
   if (!dir.exists(temp_out_dir)) {
@@ -242,7 +234,6 @@ im_features_tv <- function(impaths, model_name, source, module_name,
     # 2. Create Dataset and Dataloader
     # Assuming tv_create_dataset and tv_create_dataloader now accept the R extractor object
     message("Creating dataset and dataloader...")
-    image_fnames <- basename(impaths)
 
     dataset <- tv_create_dataset(
        root = image_root,
@@ -303,7 +294,8 @@ im_features_tv <- function(impaths, model_name, source, module_name,
 #'
 #' @param impaths Character vector. A vector of full file paths to the images.
 #'        The order determines the rows/columns of the output similarity matrices.
-#'        Assumes images share a common parent directory (see `im_features_tv` details).
+#'        Images can reside in different directories and will be processed
+#'        relative to their computed common root.
 #' @param model_name Character string. The name of the `thingsvision` model architecture
 #'        (e.g., `"resnet50"`, `"clip"`).
 #' @param source Character string. The source library of the model
