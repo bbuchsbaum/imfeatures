@@ -4,16 +4,16 @@
 \alias{tv_create_dataloader}
 \title{Create a thingsvision ImageDataLoader}
 \usage{
- tv_create_dataloader(dataset, batch_size, extractor, ...)
+tv_create_dataloader(dataset, batch_size, extractor, ...)
 }
 \arguments{
-\item{dataset}{A Python ImageDataset object}
+\item{dataset}{A thingsvision ImageDataset object}
 
-\item{batch_size}{Batch size for loading images}
+\item{batch_size}{Integer batch size}
 
-\item{extractor}{An object of class `thingsvision_extractor`}
+\item{extractor}{An R object of class `thingsvision_extractor`}
 
-\item{...}{Additional arguments for ImageDataLoader}
+\item{...}{Additional arguments for ImageDataLoader (e.g., shuffle, num_workers)}
 }
 \value{
 A reticulate Python object reference to the ImageDataLoader
