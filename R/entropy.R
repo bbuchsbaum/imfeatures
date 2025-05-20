@@ -4,32 +4,54 @@ NULL
 
 #' @keywords internal
 entropy <- function(a) {
-  # Ensure input is numeric
-  if (!is.numeric(a)) {
-    stop("`a` must be numeric")
+  # Initial check: if 'a' is not numeric, it must consist entirely of NA values to proceed.
+  # This allows c(NA,NA) (logical NAs) to pass, which will then be handled by NA removal.
+  # If 'a' has non-NA values but is not numeric (e.g., characters), it will stop.
+  if (!is.numeric(a) && !all(is.na(a))) {
+    stop("`a` must be numeric or consist entirely of NA values.")
   }
 
   # Remove NA values
   a <- a[!is.na(a)]
 
   if (length(a) == 0) {
-    warning("All values are NA")
+    # This covers cases where original 'a' was empty, all NAs (any type), 
+    # or became empty after stripping NAs from a mixed vector that passed the initial check.
+    warning("All values are NA or input is empty after initial NA removal from input to entropy().") 
     return(NA_real_)
   }
+  
+  # At this point, 'a' contains only non-NA values. 
+  # The initial check should ensure these are numeric if original 'a' wasn't purely NAs.
+  # However, an explicit check here for safety on the cleaned 'a'.
+  if (!is.numeric(a)) {
+      # This case should ideally not be reached if the first check is comprehensive for non-all-NA inputs.
+      # It might occur if 'a' was all NAs of a type that !is.na() removed, leaving a non-numeric zero-length vector of a different type.
+      # But R coerces empty vectors: numeric(0), logical(0), character(0). sum() handles numeric(0) and logical(0).
+      # This is more of a safeguard for an unexpected state of 'a' after NA removal.
+      stop("Internal error: Non-NA values remaining in `a` are not numeric. This should not happen.")
+  }
 
-  s <- sum(a)
+  s <- sum(a) # sum() works correctly for numeric(0) (returns 0) and logical(0) (returns 0)
   if (s == 0) {
-    warning("Sum of probabilities is zero")
-    return(NA_real_)
+    # No warning for zero sum, as this is handled by returning NA_real_ 
+    # and managed by na.rm=TRUE in downstream calculations.
+    return(NA_real_) 
   }
 
   eps <- sqrt(.Machine$double.eps)
-  if (abs(s - 1) > eps) {
-    a <- a / s
+  if (abs(s - 1) > eps) { # If not already a probability distribution
+    a <- a / s # Normalize. If 'a' was logical (e.g. from logical(0) sum), it's coerced to numeric here.
   }
 
-  v <- a > 0.0
-  -sum(a[v] * log2(a[v]))
+  v <- a > 0.0 
+  a_pos <- a[v]
+  
+  if (length(a_pos) == 0) {
+    return(NA_real_) 
+  }
+  
+  -sum(a_pos * log2(a_pos))
 }
 
 #' @keywords internal
@@ -478,10 +500,11 @@ edge_entropy <- function(image, max_pixels=300*400, maxdiag=500, gabor_bins=24,
         # Ensure rowMeans are calculated correctly and handle potential NaNs
         valid_rows <- r[1]:r[2]
         # Check bounds
-        valid_rows <- valid_rows[valid_rows <= nrow(stats$shannon)]
+        valid_rows <- valid_rows[valid_rows <= nrow(stats$shannon_nan)]
         if (length(valid_rows) == 0) return(NA)
         
-        row_means_subset <- rowMeans(stats$shannon[valid_rows, , drop = FALSE], na.rm = TRUE)
+        # Use shannon_nan which has NaN for low-count bins
+        row_means_subset <- rowMeans(stats$shannon_nan[valid_rows, , drop = FALSE], na.rm = TRUE)
         # Handle case where all values in a range might be NaN or empty
         mean_val <- mean(row_means_subset, na.rm = TRUE)
         if (!is.finite(mean_val)) mean_val <- NA
@@ -561,10 +584,11 @@ edge_entropy <- function(image, max_pixels=300*400, maxdiag=500, gabor_bins=24,
         # Ensure rowMeans are calculated correctly and handle potential NaNs
         valid_rows <- r[1]:r[2]
         # Check bounds
-        valid_rows <- valid_rows[valid_rows <= nrow(stats$shannon)]
+        valid_rows <- valid_rows[valid_rows <= nrow(stats$shannon_nan)]
         if (length(valid_rows) == 0) return(NA)
         
-        row_means_subset <- rowMeans(stats$shannon[valid_rows, , drop = FALSE], na.rm = TRUE)
+        # Use shannon_nan which has NaN for low-count bins
+        row_means_subset <- rowMeans(stats$shannon_nan[valid_rows, , drop = FALSE], na.rm = TRUE)
         # Handle case where all values in a range might be NaN or empty
         mean_val <- mean(row_means_subset, na.rm = TRUE)
         if (!is.finite(mean_val)) mean_val <- NA
