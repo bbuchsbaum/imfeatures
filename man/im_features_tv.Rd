@@ -22,21 +22,20 @@ im_features_tv(
 \item{impaths}{Character vector. A vector of full file paths to the images
 for which features should be extracted. The order of features in the
 output will correspond to the order of paths in this vector.
-\strong{Note:} Currently, this function assumes all images reside in the
-same parent directory. The parent directory is inferred from the first path
-in `impaths`. Support for images across multiple directories might require
-custom dataloader usage with lower-level `tv_` functions.}
+The images may be stored in different directories. A common root directory is
+automatically computed and the image paths are passed to Python relative to that
+root.}
 
 \item{model_name}{Character string. The name of the model architecture (e.g.,
-`"resnet50"`, `"clip"`, `"dino-vit-base-p16"`). See the Details section
-of \code{\link{tv_get_extractor}} for available models.}
+`"resnet50"`, `"clip"`, `"dino-vit-base-p16"`). Must be a non-empty string.
+See the Details section of \code{\link{tv_get_extractor}} for available models.}
 
 \item{source}{Character string. The source library of the model (e.g.,
-`"torchvision"`, `"timm"`, `"ssl"`, `"custom"`). See the Details section
-of \code{\link{tv_get_extractor}} for sources.}
+`"torchvision"`, `"timm"`, `"ssl"`, `"custom"`). Must be a non-empty string.
+See the Details section of \code{\link{tv_get_extractor}} for sources.}
 
 \item{module_name}{Character string. The specific layer or module within the
-model from which to extract activations. Use
+model from which to extract activations. Must be a non-empty string. Use
 `tv_show_model(tv_get_extractor(model_name, source))` to list available
 module names for a given model. Common examples include final layers
 like `"avgpool"` or `"fc"` (in ResNets), `"classifier.6"` (in VGG/AlexNet),
@@ -217,6 +216,15 @@ result <- im_features_tv(
 )
 print(result) # Should print NULL
 print(list.files(low_mem_dir)) # Shows the saved .npy files
+
+# Example showing argument validation (will error)
+im_features_tv(
+  impaths = image_paths,
+  model_name = "",
+  source = "torchvision",
+  module_name = "avgpool"
+)
+#> Error: 'model_name' must be a non-empty character string.
 
 # Clean up dummy files
 unlink(image_dir, recursive = TRUE)

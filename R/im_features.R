@@ -30,7 +30,7 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
   })
 
   #imfeat <- memoise::memoise(im_features, omit_args=c("model"), cache=cachem::cache_mem(max_size = 2044 * 2048^2))
-  imfeat <<- memoise::memoise(im_features, cache=cachem::cache_mem(max_size = cache_size))
+  imfeat <- memoise::memoise(im_features, cache=cachem::cache_mem(max_size = cache_size))
 
   pb <- progress_bar$new(total = length(impaths))
 
@@ -60,7 +60,8 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
     if (subsamp_prop < 1) {
       f1 <- im_features(impaths[1], layers=layers, model=model)
       subsamp_ind <- lapply(f1, function(feat) {
-        ind <- sample(1:length(feat), as.integer(length(feat) * subsamp_prop))
+        size <- max(1L, round(length(feat) * subsamp_prop))
+        sample(seq_along(feat), size)
       })
     }
 
@@ -116,7 +117,7 @@ vgg16 <- function() {
 #'          \item{\code{"none"}: (Default) No spatial processing is applied; the full feature maps are returned (usually as a 4D array: 1 x H x W x C).}
 #'          \item{\code{"avg"}: Global average pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).}
 #'          \item{\code{"max"}: Global max pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).}
-#'          \item{\code{"resize_HxW"}: (e.g., \code{"resize_3x3"}, \code{"resize_7x7"}) Downsamples the spatial dimensions (H, W) to H_new x W_new using bilinear interpolation, then flattens. Results in a vector of length H_new * W_new * C.}
+#'          \item{\code{"resize_HxW"}: Downsamples the spatial dimensions to \code{H} by \code{W} using bilinear interpolation, then flattens. Any value matching \code{"^resize_[0-9]+x[0-9]+$"} is accepted (e.g., \code{"resize_3x3"}, \code{"resize_7x7"}). Results in a vector of length \code{H * W * C}.}
 #'        }
 #'        This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
 #'        this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.
@@ -125,12 +126,20 @@ vgg16 <- function() {
 im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
                         spatial_pooling = "none") {
 
-  # Define allowed pooling options - extend this list for more resize options
-  allowed_pooling_options <- c("none", "avg", "max", "resize_3x3", "resize_5x5", "resize_7x7")
-  spatial_pooling <- match.arg(spatial_pooling, allowed_pooling_options)
+  # Validate spatial pooling argument. Accept 'none', 'avg', 'max' or
+  # patterns of the form 'resize_HxW'
+  valid_opts <- c("none", "avg", "max")
+  if (!(spatial_pooling %in% valid_opts ||
+        grepl("^resize_[0-9]+x[0-9]+$", spatial_pooling))) {
+    stop("'spatial_pooling' must be 'none', 'avg', 'max', or 'resize_HxW'")
+  }
 
   if (is.null(model)) {
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
+  }
+
+  if (!file.exists(impath)) {
+    stop(sprintf("Image path does not exist: %s", impath))
   }
 
   img <- image_load(impath, target_size = target_size)
@@ -143,9 +152,14 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
 
   #subsamp_indices <- vector(length(layers), mode="list")
 
-  features <- lapply(layers, function(index) {
+  features <- lapply(layers, function(layer) {
+    lyr <- if (is.numeric(layer)) {
+      get_layer(model, index = as.integer(layer))
+    } else {
+      get_layer(model, name = layer)
+    }
     intermediate_layer_model <- keras_model(inputs = model$input,
-                                            outputs = get_layer(model, index=index)$output)
+                                            outputs = lyr$output)
 
     p <- predict(intermediate_layer_model, x)
 
@@ -167,6 +181,10 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
       return(as.vector(apply(p, MARGIN = c(1, 4), FUN = max)))
     } else if (startsWith(spatial_pooling, "resize_")) {
       # Delegate to TensorFlow for resizing
+      if (!requireNamespace("tensorflow", quietly = TRUE)) {
+        warning("TensorFlow not available. Original features returned.")
+        return(p)
+      }
       tf <- reticulate::import("tensorflow", delay_load = TRUE)
       dims_str <- sub("resize_", "", spatial_pooling)
       target_dims_int <- tryCatch({ as.integer(strsplit(dims_str, "x")[[1]]) }, error = function(e) NULL)
@@ -194,7 +212,7 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
 #'
 #' @inheritParams im_features
 #' @export
-#' @importFrom dplyr top_n arrange
+#' @importFrom dplyr top_n arrange desc
 im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   if (is.null(model)) {
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
