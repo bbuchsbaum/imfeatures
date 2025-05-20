@@ -160,48 +160,9 @@ residualize_tiers <- function(feature_list, numpcs = NULL,
   }
   numpcs <- numpcs_computed
 
-  residuals_final <- vector("list", ntiers)
-  projection_bases <- vector("list", ntiers)
-  names(residuals_final) <- tier_names
-  names(projection_bases) <- tier_names
-  
-  H_cumulative <- NULL
-  for (i in seq_along(tier_names)) {
-    tier_name <- tier_names[i]
-    current_scores <- pc_scores_raw[[tier_name]]
-
-    if (is.null(H_cumulative) || ncol(H_cumulative) == 0) {
-      residuals_final[[tier_name]] <- current_scores
-      projection_bases[[tier_name]] <- NULL 
-    } else {
-      num_left_vectors <- min(nrow(H_cumulative), ncol(H_cumulative))
-      svd_H <- svd(H_cumulative, nu = num_left_vectors, nv = 0)
-      
-      abs_rank_tol <- svd_tol * max(dim(H_cumulative)) * svd_H$d[1]
-      if (svd_H$d[1] < .Machine$double.eps) { 
-          effective_rank <- 0
-      } else {
-          effective_rank <- sum(svd_H$d > abs_rank_tol & svd_H$d > .Machine$double.eps)
-      }
-              
-      if (effective_rank > 0) {
-        Q <- svd_H$u[, seq_len(effective_rank), drop = FALSE]
-        projection_bases[[tier_name]] <- Q
-        proj_coeffs <- crossprod(Q, current_scores)
-        residuals_final[[tier_name]] <- current_scores - (Q %*% proj_coeffs)
-      } else { 
-        residuals_final[[tier_name]] <- current_scores
-        projection_bases[[tier_name]] <- NULL
-      }
-    }
-    if (ncol(current_scores) > 0) {
-        if (is.null(H_cumulative) || ncol(H_cumulative) == 0) { 
-            H_cumulative <- current_scores
-        } else {
-            H_cumulative <- cbind(H_cumulative, current_scores)
-        }
-    } 
-  }
+  orth <- .orthogonal_residuals(pc_scores_raw, svd_tol, return_projection_bases = TRUE)
+  residuals_final <- orth$residuals
+  projection_bases <- orth$projection_bases
 
   result <- list(
     pca = pca_list,
@@ -305,49 +266,13 @@ predict.residualized_tiers <- function(object, newdata, ...) {
     }
   }
 
-  residuals_new_final <- vector("list", ntiers)
-  names(residuals_new_final) <- object$tiers
-  
   current_svd_tol <- if (!is.null(object$svd_tol_info) && !is.null(object$svd_tol_info$value)) {
     object$svd_tol_info$value
-  } else { 
-    1e-7 
+  } else {
+    1e-7
   }
 
-  H_new_cumulative <- NULL
-  for (i in seq_along(object$tiers)) {
-    tier_name <- object$tiers[i]
-    current_new_scores <- new_pc_scores_raw_list[[tier_name]]
+  residuals_new_final <- .orthogonal_residuals(new_pc_scores_raw_list, current_svd_tol, return_projection_bases = FALSE)
 
-    if (is.null(H_new_cumulative) || ncol(H_new_cumulative) == 0) {
-      residuals_new_final[[tier_name]] <- current_new_scores
-    } else {
-      num_lv_new <- min(nrow(H_new_cumulative), ncol(H_new_cumulative))
-      svd_H_new  <- svd(H_new_cumulative, nu = num_lv_new, nv = 0)
-      
-      abs_rank_tol_new <- current_svd_tol * max(dim(H_new_cumulative)) * svd_H_new$d[1]
-      if (svd_H_new$d[1] < .Machine$double.eps) {
-          effective_rank_new <- 0
-      } else {
-          effective_rank_new <- sum(svd_H_new$d > abs_rank_tol_new & svd_H_new$d > .Machine$double.eps)
-      }
-            
-      if (effective_rank_new > 0) {
-        Q_basis_new_data <- svd_H_new$u[, seq_len(effective_rank_new), drop = FALSE]
-        proj_coeffs_new <- crossprod(Q_basis_new_data, current_new_scores)
-        residuals_new_final[[tier_name]] <- current_new_scores - (Q_basis_new_data %*% proj_coeffs_new)
-      } else { 
-        residuals_new_final[[tier_name]] <- current_new_scores
-      }
-    }
-    if (ncol(current_new_scores) > 0) {
-        if (is.null(H_new_cumulative) || ncol(H_new_cumulative) == 0) {
-            H_new_cumulative <- current_new_scores
-        } else {
-            H_new_cumulative <- cbind(H_new_cumulative, current_new_scores)
-        }
-    }
-  }
-  
   return(residuals_new_final)
-} 
+}
