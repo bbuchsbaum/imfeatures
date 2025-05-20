@@ -10,10 +10,10 @@
 #'
 #' @param impaths Character vector of image file paths.
 #' @param tier Character; one of "low", "mid", "high", or "semantic".
-#' @param model Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras::application_vgg16(pretrained = 'imagenet')}.
-#' @param target_size Numeric vector of length 2 specifying image resize dimensions (width, height).
-#' @param pooling Character string specifying spatial pooling; passed to \code{im_features::spatial_pooling}.
-#'        Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7".
+#' @param model Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras::application_vgg16(weights = 'imagenet')}. 
+#' @param target_size Numeric vector of length 2 specifying image resize dimensions (width, height). 
+#' @param pooling Character string specifying spatial pooling; passed to the \code{spatial_pooling} argument of \code{im_features}. 
+#'        Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7". 
 #' @return An S3 object of class \code{vgg_feature_set}, a list with components:
 #' \describe{
 #'   \item{features}{Numeric matrix (N_images × total_channels) of pooled features.}
