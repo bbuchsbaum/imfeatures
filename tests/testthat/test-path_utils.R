@@ -1,0 +1,33 @@
+library(testthat)
+library(imfeatures)
+
+context("path utilities")
+
+test_that("common_root works across directories", {
+  d1 <- tempfile("dir1_")
+  d2 <- tempfile("dir2_")
+  dir.create(d1)
+  dir.create(d2)
+  f1 <- file.path(d1, "a.jpg")
+  f2 <- file.path(d2, "b.jpg")
+  file.create(f1)
+  file.create(f2)
+  root <- imfeatures:::.common_root(c(f1, f2))
+  rel  <- imfeatures:::.relative_to_root(c(f1, f2), root)
+  expect_true(dir.exists(root))
+  expect_equal(file.path(root, rel[1]), normalizePath(f1, winslash="/"))
+  expect_equal(file.path(root, rel[2]), normalizePath(f2, winslash="/"))
+})
+
+test_that("common_root for same directory", {
+  d <- tempfile("dir_")
+  dir.create(d)
+  f1 <- file.path(d, "a.jpg")
+  f2 <- file.path(d, "b.jpg")
+  file.create(f1)
+  file.create(f2)
+  root <- imfeatures:::.common_root(c(f1, f2))
+  rel  <- imfeatures:::.relative_to_root(c(f1, f2), root)
+  expect_equal(root, normalizePath(d, winslash="/"))
+  expect_equal(rel, basename(c(f1, f2)))
+})

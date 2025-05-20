@@ -441,7 +441,8 @@ tv_align.thingsvision_extractor <- function(object, features, module_name, align
 }
 
 #' Create a thingsvision ImageDataset
-#' @param root Path to the image directory
+#' @param root Path to the common root directory for images. File names passed to
+#'   the Python dataset should be relative to this directory.
 #' @param out_path Path for storing file order list
 #' @param extractor An R object of class `thingsvision_extractor`. # MODIFIED
 #' @param transforms Optional Python transforms object (usually get from extractor)
