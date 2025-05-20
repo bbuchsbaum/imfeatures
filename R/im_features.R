@@ -181,6 +181,10 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
       return(as.vector(apply(p, MARGIN = c(1, 4), FUN = max)))
     } else if (startsWith(spatial_pooling, "resize_")) {
       # Delegate to TensorFlow for resizing
+      if (!requireNamespace("tensorflow", quietly = TRUE)) {
+        warning("TensorFlow not available. Original features returned.")
+        return(p)
+      }
       tf <- reticulate::import("tensorflow", delay_load = TRUE)
       dims_str <- sub("resize_", "", spatial_pooling)
       target_dims_int <- tryCatch({ as.integer(strsplit(dims_str, "x")[[1]]) }, error = function(e) NULL)
