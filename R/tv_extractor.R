@@ -153,6 +153,8 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
      stop("Python 'thingsvision' module not imported. Did you run configure_thingsvision_python() or install_thingsvision() and configure reticulate (e.g., use_condaenv)?")
   }
 
+  source <- match.arg(source, c("torchvision", "timm", "keras", "ssl", "custom"))
+
   py_model_params <- if (!is.null(model_parameters)) {
                          if (!is.list(model_parameters) || is.null(names(model_parameters))) {
                             warning("'model_parameters' should be a named list. Attempting conversion.")
