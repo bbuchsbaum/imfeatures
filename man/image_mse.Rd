@@ -7,11 +7,18 @@
 image_mse(im, sf = c(100, 50, 8, 4, 0), bins = 16)
 }
 \arguments{
-\item{im}{image of type `cimg` from `imager` package}
+\item{im}{image of type `cimg` from `imager` package. The function expects an
+image with three colour channels. If a single-channel image is supplied it will
+be converted with \code{add.colour()}, and an error is thrown if the result does
+not contain exactly three channels.}
 
 \item{sf}{vector smoothing factors indicating the scales for entropy computation}
 
 \item{bins}{number of bins for computing information}
+}
+\value{
+A named numeric vector with the mean multiscale entropy for the \code{H},
+\code{S} and \code{V} channels.
 }
 \description{
 Multiscale entropy for images

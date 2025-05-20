@@ -135,3 +135,13 @@ test_that("error when Inf values are present", {
 })
 
 # cat("All residualize_tiers tests passed ✔\n") # This cat() is more for interactive script, testthat has its own reporting 
+
+test_that("feature_list row mismatches trigger an error", {
+  m1 <- matrix(rnorm(10), nrow = 5)
+  m2 <- matrix(rnorm(8), nrow = 4)
+  fl_bad <- list(first = m1, second = m2)
+  expect_error(residualize_tiers(fl_bad), "same number of rows")
+})
+
+# cat("All residualize_tiers tests passed ✔\n") # This cat() is more for interactive script, testthat has its own reporting 
+

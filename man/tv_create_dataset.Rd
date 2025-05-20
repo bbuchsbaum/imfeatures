@@ -7,7 +7,8 @@
 tv_create_dataset(root, out_path, extractor, transforms = NULL, ...)
 }
 \arguments{
-\item{root}{Path to the image directory}
+\item{root}{Path to the common root directory for the images. File names
+should be relative to this directory.}
 
 \item{out_path}{Path for storing file order list}
 
