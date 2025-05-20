@@ -22,6 +22,10 @@ clip_features <- function(impath,
 
   device <- match.arg(device)
 
+  if (!file.exists(impath)) {
+    stop("Image file not found: ", impath)
+  }
+
   # Python helper function string
   py_helpers <- "
 import torch
@@ -94,6 +98,9 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
   # ------------------------------------------------------------------
   needs_final_embedding <- "final" %in% layers
   intermediate_layers_requested <- setdiff(layers, "final")
+  numeric_idx <- grepl("^[0-9]+$", intermediate_layers_requested)
+  intermediate_layers_requested[numeric_idx] <-
+    as.integer(intermediate_layers_requested[numeric_idx])
 
   # Generate standard block names if integer indices are used
   # Base path for vision transformer residual blocks
@@ -160,9 +167,6 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
   # 5. Collect Intermediate Features & Clean Up Hooks
   # ------------------------------------------------------------------
   if (length(hook_handles) > 0) {
-    # Map original layer requests to the (potentially modified) module path keys
-    # to name the output list elements as requested by the user.
-    original_to_resolved_map <- setNames(resolved_intermediate_module_paths, resolved_intermediate_module_paths) # Default: path is key
 
     # Create a map for original integer requests to their resolved block names for output naming
     for (orig_lyr_req_idx in seq_along(intermediate_layers_requested)) {

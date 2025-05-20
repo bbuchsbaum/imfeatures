@@ -8,10 +8,9 @@
 #' @param impaths Character vector. A vector of full file paths to the images
 #'        for which features should be extracted. The order of features in the
 #'        output will correspond to the order of paths in this vector.
-#'        \strong{Note:} Currently, this function assumes all images reside in the
-#'        same parent directory. The parent directory is inferred from the first path
-#'        in `impaths`. Support for images across multiple directories might require
-#'        custom dataloader usage with lower-level `tv_` functions.
+#'        The images can be located in different directories. A common root
+#'        directory is automatically derived and the paths are passed to the
+#'        Python dataset relative to that root.
 #' @param model_name Character string. The name of the model architecture (e.g.,
 #'        `"resnet50"`, `"clip"`, `"dino-vit-base-p16"`). Must be a non-empty
 #'        string. See the Details section of \code{\link{tv_get_extractor}} for
@@ -218,6 +217,7 @@ im_features_tv <- function(impaths, model_name, source, module_name,
      missing_files <- impaths[!file.exists(impaths)]
      stop("Some image paths do not exist: ", paste(missing_files, collapse=", "))
   }
+
   if (!is.character(model_name) || length(model_name) != 1 || nchar(model_name) == 0) {
     stop("'model_name' must be a non-empty character string.")
   }
@@ -262,7 +262,6 @@ im_features_tv <- function(impaths, model_name, source, module_name,
     # 2. Create Dataset and Dataloader
     # Assuming tv_create_dataset and tv_create_dataloader now accept the R extractor object
     message("Creating dataset and dataloader...")
-    image_fnames <- basename(impaths)
 
     dataset <- tv_create_dataset(
        root = image_root,
@@ -295,7 +294,7 @@ im_features_tv <- function(impaths, model_name, source, module_name,
        # Attempt to add rownames
        img_basenames <- try(tools::file_path_sans_ext(basename(impaths)), silent = TRUE)
        if (!inherits(img_basenames, "try-error") && length(img_basenames) == NROW(features)) {
-          try(rownames(features) <- img_basenames, silent = TRUE)
+          features <- .add_feature_dimnames(features, img_basenames)
        } else {
           warning("Could not set rownames for features. Number of images might not match feature rows, or basename extraction failed.")
        }
@@ -323,7 +322,8 @@ im_features_tv <- function(impaths, model_name, source, module_name,
 #'
 #' @param impaths Character vector. A vector of full file paths to the images.
 #'        The order determines the rows/columns of the output similarity matrices.
-#'        Assumes images share a common parent directory (see `im_features_tv` details).
+#'        Images can reside in different directories and will be processed
+#'        relative to their computed common root.
 #' @param model_name Character string. The name of the `thingsvision` model architecture
 #'        (e.g., `"resnet50"`, `"clip"`). Must be a non-empty string.
 #' @param source Character string. The source library of the model
@@ -384,9 +384,10 @@ im_features_tv <- function(impaths, model_name, source, module_name,
 #' Requires a correctly configured Python environment with `thingsvision` installed.
 #' Use \code{\link{install_thingsvision}} and configure `reticulate` before use.
 #'
-#' @return A named list where each element corresponds to a `module_name` provided
-#'         in the input. Each element contains a square similarity matrix
-#'         (n_images x n_images).
+#' @return A named list of similarity matrices. Elements are named according to
+#'         the provided `module_names`. If a name is repeated, a numeric suffix
+#'         ("_1", "_2", ...) is appended to keep names unique. Each element
+#'         contains a square similarity matrix (n_images x n_images).
 #'
 #' @importFrom proxy simil
 #' @importFrom tools file_path_sans_ext
@@ -468,8 +469,11 @@ im_feature_sim_tv <- function(impaths, model_name, source, module_names,
   # --- Feature Extraction and Similarity Calculation ---
   sim_matrices <- list()
   image_basenames <- try(tools::file_path_sans_ext(basename(impaths)), silent = TRUE)
+  unique_names <- make.unique(module_names, sep = "_")
 
-  for (mod_name in module_names) {
+  for (i in seq_along(module_names)) {
+    mod_name <- module_names[i]
+    list_name <- unique_names[i]
     message("Processing module: ", mod_name, "...")
 
     # Extract features for the current module for ALL images
@@ -531,8 +535,6 @@ im_feature_sim_tv <- function(impaths, model_name, source, module_names,
     }
 
     # Store in the list, named by module
-    # Use make.names to ensure valid R list names if module names contain weird characters
-    list_name <- make.names(mod_name)
     sim_matrices[[list_name]] <- sim_mat
     message("Similarity matrix for ", mod_name, " calculated.")
 
@@ -543,5 +545,16 @@ im_feature_sim_tv <- function(impaths, model_name, source, module_names,
      return(list())
   }
 
-  return(sim_matrices)
+return(sim_matrices)
 }
+
+#' @keywords internal
+.add_feature_dimnames <- function(features, img_basenames) {
+  if (length(dim(features)) > 2) {
+    dimnames(features)[[1]] <- img_basenames
+  } else {
+    rownames(features) <- img_basenames
+  }
+  features
+}
+

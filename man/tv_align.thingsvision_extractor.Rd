@@ -13,7 +13,7 @@
 
 \item{module_name}{The module name corresponding to the features being aligned.}
 
-\item{alignment_type}{Character string. The alignment method (e.g., "gLocal").}
+\item{alignment_type}{Character string. The alignment method (e.g., "gLocal"). Must be a scalar string. A warning is issued if the value is not recognized.}
 
 \item{...}{Additional arguments (currently ignored).}
 }

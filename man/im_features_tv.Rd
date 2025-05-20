@@ -22,10 +22,9 @@ im_features_tv(
 \item{impaths}{Character vector. A vector of full file paths to the images
 for which features should be extracted. The order of features in the
 output will correspond to the order of paths in this vector.
-\strong{Note:} Currently, this function assumes all images reside in the
-same parent directory. The parent directory is inferred from the first path
-in `impaths`. Support for images across multiple directories might require
-custom dataloader usage with lower-level `tv_` functions.}
+The images may be stored in different directories. A common root directory is
+automatically computed and the image paths are passed to Python relative to that
+root.}
 
 \item{model_name}{Character string. The name of the model architecture (e.g.,
 `"resnet50"`, `"clip"`, `"dino-vit-base-p16"`). Must be a non-empty string.
