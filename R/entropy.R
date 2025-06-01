@@ -441,8 +441,10 @@ do_statistics <- function(counts, bins_vec, verbose = FALSE) {
 #' result <- edge_entropy(img_matrix)
 #' }
 #'
+#' @name compute_edge_entropy
+#' @rdname compute_edge_entropy
 #' @export
-edge_entropy <- function(image, max_pixels=300*400, maxdiag=500, gabor_bins=24,
+compute_edge_entropy <- function(image, max_pixels=300*400, maxdiag=500, gabor_bins=24,
                          filter_length=31, circ_bins=48,
                          ranges=list(c(20,80), c(80, 160), c(160,240)),
                          use_cpp=TRUE, verbose = FALSE) {
@@ -628,6 +630,10 @@ edge_entropy <- function(image, max_pixels=300*400, maxdiag=500, gabor_bins=24,
     }
   }
 }
+
+#' @rdname compute_edge_entropy
+#' @export
+edge_entropy <- compute_edge_entropy
 
 #filter_bank = Filter_bank(GABOR_BINS, flt_size=FILTER_SIZE)
 #for i in range(filter_bank.num_filters):

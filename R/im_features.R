@@ -1,12 +1,14 @@
 #' Compute similarity matrix for a set of image using feature vectors from keras model
 #'
+#' @name compute_feature_similarity
+#' @rdname compute_feature_similarity
 #' @import furrr proxy
 #' @param metric the similarity metric to use, default is 'cosine' (see \code{proxy} package for allowable metrics)
-#' @inheritParams im_features
+#' @inheritParams extract_features
 #' @import memoise
 #' @import progress
 #' @export
-im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
+compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=c(224,224),
                            spatial_pooling = "none",
                            metric="cosine", lowmem=TRUE,cache_size=2048 * 2048^2,
                            subsamp_prop=1) {
@@ -30,8 +32,8 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
     m
   })
 
-  #imfeat <- memoise::memoise(im_features, omit_args=c("model"), cache=cachem::cache_mem(max_size = 2044 * 2048^2))
-  imfeat <- memoise::memoise(im_features, cache=cachem::cache_mem(max_size = cache_size))
+  #imfeat <- memoise::memoise(extract_features, omit_args=c("model"), cache=cachem::cache_mem(max_size = 2044 * 2048^2))
+  imfeat <- memoise::memoise(extract_features, cache=cachem::cache_mem(max_size = cache_size))
 
   pb <- progress_bar$new(total = length(impaths))
 
@@ -61,8 +63,8 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
 
   } else{
     if (subsamp_prop < 1) {
-      f1 <- im_features(impaths[1], layers=layers, model=model,
-                         spatial_pooling = spatial_pooling)
+      f1 <- extract_features(impaths[1], layers=layers, model=model,
+                         spatial_pooling = spatial_pooling)$feature
       subsamp_ind <- lapply(f1, function(feat) {
         size <- max(1L, round(length(feat) * subsamp_prop))
         sample(seq_along(feat), size)
@@ -70,8 +72,8 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
     }
 
     featlist <- furrr::future_map(impaths, function(im) {
-      feats <- im_features(im, layers=layers, model=model,
-                           spatial_pooling = spatial_pooling)
+      feats <- extract_features(im, layers=layers, model=model,
+                           spatial_pooling = spatial_pooling)$feature
       if (subsamp_prop < 1) {
         feats <- lapply(seq_along(feats), function(i) {
           feats[[i]][subsamp_ind[[i]]]
@@ -98,6 +100,10 @@ im_feature_sim <- function(impaths, layers, model=NULL, target_size=c(224,224),
 
   out
 }
+
+#' @rdname compute_feature_similarity
+#' @export
+im_feature_sim <- compute_feature_similarity
 
 .vgg16 <- NULL
 
@@ -127,8 +133,12 @@ vgg16 <- function() {
 #'        This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
 #'        this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.
 #' @import keras
+#' @return A tibble with columns \code{image}, \code{layer} and a list-column \code{feature}.
+#'   The tibble inherits class \code{imfeatures_feature_tbl} for dplyr compatibility.
+#' @name extract_features
+#' @rdname extract_features
 #' @export
-im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
+extract_features <- function(impath, layers, model=NULL, target_size=c(224,224),
                         spatial_pooling = "none") {
 
   # Validate spatial pooling argument. Accept 'none', 'avg', 'max' or
@@ -171,10 +181,17 @@ im_features <- function(impath, layers, model=NULL, target_size=c(224,224),
     p <- .process_feature_map(p, spatial_pooling)
   })
 
-  #preds <- model %>% predict(x,6)
-  #preds <- imagenet_decode_predictions(preds,10)
-  features
+  tbl <- tibble::tibble(
+    image = rep(impath, length(layers)),
+    layer = layers,
+    feature = features
+  )
+new_feature_tbl(tbl)
 }
+
+#' @rdname extract_features
+#' @export
+im_features <- extract_features
 
 #' @keywords internal
 .process_feature_map <- function(p, spatial_pooling) {

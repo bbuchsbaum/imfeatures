@@ -1,3 +1,5 @@
+#' @name extract_features_tv
+#' @rdname extract_features_tv
 #' Extract Deep Learning Features using thingsvision
 #'
 #' This is the primary user-facing function to extract features from images
@@ -204,7 +206,7 @@
 #' unlink(image_dir, recursive = TRUE)
 #' unlink(low_mem_dir, recursive = TRUE)
 #' }
-im_features_tv <- function(impaths, model_name, source, module_name,
+extract_features_tv <- function(impaths, model_name, source, module_name,
                           device = "cuda", pretrained = TRUE, model_parameters = NULL,
                           flatten_acts = FALSE, batch_size = 32, temp_out_dir = tempdir(),
                           output_dir = NULL) {
@@ -312,6 +314,10 @@ im_features_tv <- function(impaths, model_name, source, module_name,
 
 }
 
+#' @rdname extract_features_tv
+#' @export
+im_features_tv <- extract_features_tv
+
 # Add necessary imports if not already present in DESCRIPTION or NAMESPACE
 # Imports: proxy, tools
 
@@ -415,6 +421,8 @@ im_features_tv <- function(impaths, model_name, source, module_name,
 #' image_paths <- list.files(image_dir, full.names = TRUE, pattern = "\\.png$")
 #'
 #' # Calculate similarity based on ResNet-18 avgpool and layer4 features
+#' @name compute_feature_similarity_tv
+#' @rdname compute_feature_similarity_tv
 #' sim_results <- im_feature_sim_tv(
 #'   impaths = image_paths,
 #'   model_name = "resnet18",
@@ -442,7 +450,7 @@ im_features_tv <- function(impaths, model_name, source, module_name,
 #' # Clean up
 #' unlink(image_dir, recursive = TRUE)
 #' }
-im_feature_sim_tv <- function(impaths, model_name, source, module_names,
+compute_feature_similarity_tv <- function(impaths, model_name, source, module_names,
                               metric = "cosine",
                               flatten_acts = TRUE,
                               device = "cuda", pretrained = TRUE, model_parameters = NULL,
@@ -479,7 +487,7 @@ im_feature_sim_tv <- function(impaths, model_name, source, module_names,
     # Extract features for the current module for ALL images
     # This now calls the updated im_features_tv which handles the R extractor object
     features_r <- tryCatch({
-        im_features_tv(
+        extract_features_tv(
             impaths = impaths,
             model_name = model_name,
             source = source,
@@ -547,6 +555,10 @@ im_feature_sim_tv <- function(impaths, model_name, source, module_names,
 
 return(sim_matrices)
 }
+
+#' @rdname compute_feature_similarity_tv
+#' @export
+im_feature_sim_tv <- compute_feature_similarity_tv
 
 #' @keywords internal
 .add_feature_dimnames <- function(features, img_basenames) {

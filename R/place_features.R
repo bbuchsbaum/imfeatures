@@ -1,10 +1,16 @@
 
+#' @name load_vgg16_places
+#' @rdname load_vgg16_places
 #' @export
 #' @import reticulate
-vgg16_places <- function() {
+load_vgg16_places <- function() {
   m <- reticulate::import("keras_models.models.pretrained.vgg16_places365")
   model <- m$VGG16_Places365()
 }
+
+#' @rdname load_vgg16_places
+#' @export
+vgg16_places <- load_vgg16_places
 
 # place_features <- function(impath, layers, model=NULL, target_size=c(224,224)) {
 #   if (is.null(model)) {

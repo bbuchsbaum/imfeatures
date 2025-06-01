@@ -7,10 +7,16 @@
 #' @param dframe xvar the name of the variable containing the x coordinates
 #' @param dframe yvar the name of the variable containing the y coordinates
 #' @param imagename the name of the image variable in `dframe`
+#' @name plot_im_scatter
+#' @rdname plot_im_scatter
 #' @export
-im_scatter <- function(dframe, xvar="x", yvar="y", imagename="image") {
+plot_im_scatter <- function(dframe, xvar="x", yvar="y", imagename="image") {
   ggplot(dframe, aes_string(xvar,yvar)) + geom_image(aes_string(image=imagename)) + theme_bw()
 }
+
+#' @rdname plot_im_scatter
+#' @export
+im_scatter <- plot_im_scatter
 
 #' a 3D scatterplot with images displayed at each location
 #'
@@ -22,7 +28,7 @@ im_scatter <- function(dframe, xvar="x", yvar="y", imagename="image") {
 #' @param height height of device in pixels
 #' @export
 #' @importFrom imager load.image save.image
-im_scatter3d <- function(dframe, imagename="image", radius=1, width=700, height=700, bgcol="white") {
+plot_im_scatter3d <- function(dframe, imagename="image", radius=1, width=700, height=700, bgcol="white") {
   tfiles <- vector(nrow(dframe), mode="list")
   for (i in 1:nrow(dframe)) {
     tmpF <- tempfile(fileext=".png")
@@ -52,3 +58,7 @@ im_scatter3d <- function(dframe, imagename="image", radius=1, width=700, height=
   }
 
 }
+
+#' @rdname plot_im_scatter
+#' @export
+im_scatter3d <- plot_im_scatter3d
