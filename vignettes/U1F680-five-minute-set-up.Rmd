@@ -1,0 +1,31 @@
+---
+title: "\U1F680 Five-minute set-up"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{\U1F680 Five-minute set-up}
+  %\VignetteEngine{rmarkdown::html_vignette}
+  %\VignetteEncoding{UTF-8}
+---
+
+This short guide shows how to configure **imfeatures**.
+
+## GPU installation
+
+```r
+imfeatures_config()
+```
+
+If CUDA is available, the output will highlight the GPU being used.
+
+## CPU only
+
+```r
+imfeatures_config(reset = TRUE)
+```
+
+The function recreates the environment and reports that CPU is used.
+
+## Offline
+
+Place the wheels listed in `requirements.txt` in a directory and pass the
+path via `RETICULATE_PYTHON` before calling `imfeatures_config()`.
