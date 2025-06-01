@@ -22,6 +22,11 @@ clip_features <- function(impath,
 
   device <- match.arg(device)
 
+  assert_image(impath)
+  checkmate::assert_character(layers, min.len = 1, any.missing = FALSE)
+  assert_scalar(model_name, "character")
+  assert_scalar(num_transformer_blocks, "integer")
+
   if (!file.exists(impath)) {
     stop("Image file not found: ", impath)
   }

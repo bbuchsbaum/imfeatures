@@ -24,6 +24,7 @@ Imports:
   dplyr,
   entropy,
   imager,
+  checkmate
   crayon
 Suggests:
   rgl
