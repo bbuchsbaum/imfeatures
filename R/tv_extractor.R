@@ -148,6 +148,10 @@
 #' print(extractor_rn18)
 #' }
 tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = TRUE, model_parameters = NULL) {
+  assert_scalar(model_name, "character")
+  assert_scalar(source, "character")
+  assert_scalar(device, "character")
+  assert_scalar(pretrained, "logical")
   # Ensure tv (main thingsvision module) is loaded via reticulate
   if (is.null(tv) || reticulate::py_is_null_xptr(tv)) {
      stop("Python 'thingsvision' module not imported. Did you run configure_thingsvision_python() or install_thingsvision() and configure reticulate (e.g., use_condaenv)?")
@@ -334,6 +338,8 @@ get_backend.thingsvision_extractor <- function(object, ...) {
 #' @export
 #' @method tv_extract thingsvision_extractor
 tv_extract.thingsvision_extractor <- function(object, dataloader, module_name, flatten_acts = FALSE, output_type = "ndarray", output_dir = NULL, step_size = NULL, ...) {
+   assert_scalar(module_name, "character")
+   assert_scalar(flatten_acts, "logical")
 
    if (reticulate::py_is_null_xptr(object$py_obj)) {
      stop("The underlying Python extractor object is NULL.")
@@ -404,6 +410,8 @@ tv_extract.thingsvision_extractor <- function(object, dataloader, module_name, f
 #' @export
 #' @method tv_align thingsvision_extractor
 tv_align.thingsvision_extractor <- function(object, features, module_name, alignment_type = "gLocal", ...) {
+   assert_scalar(module_name, "character")
+   assert_scalar(alignment_type, "character")
    if (reticulate::py_is_null_xptr(object$py_obj)) {
      stop("The underlying Python extractor object is NULL.")
    }
@@ -450,7 +458,8 @@ tv_align.thingsvision_extractor <- function(object, features, module_name, align
 #' @return A reticulate Python object reference to the ImageDataset
 #' @export
 tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...) {
-  # Input check for R object type
+  assert_scalar(root, "character")
+  assert_scalar(out_path, "character")
   if (!inherits(extractor, "thingsvision_extractor")) {
       stop("'extractor' must be an object of class 'thingsvision_extractor'.")
   }
@@ -485,6 +494,7 @@ tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...)
 #' @return A reticulate Python object reference to the ImageDataLoader
 #' @export
 tv_create_dataloader <- function(dataset, batch_size, extractor, ...) {
+  assert_scalar(batch_size, "integer")
   if (!inherits(extractor, "thingsvision_extractor")) {
     stop("'extractor' must be an object of class 'thingsvision_extractor'.")
   }

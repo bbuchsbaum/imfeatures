@@ -446,6 +446,16 @@ edge_entropy <- function(image, max_pixels=300*400, maxdiag=500, gabor_bins=24,
                          filter_length=31, circ_bins=48,
                          ranges=list(c(20,80), c(80, 160), c(160,240)),
                          use_cpp=TRUE, verbose = FALSE) {
+
+  assert_image(image)
+  assert_scalar(max_pixels, "integer")
+  assert_scalar(maxdiag, "integer")
+  assert_scalar(gabor_bins, "integer")
+  assert_scalar(filter_length, "integer")
+  assert_scalar(circ_bins, "integer")
+  checkmate::assert_list(ranges, types = "numeric", min.len = 1)
+  assert_scalar(use_cpp, "logical")
+  assert_scalar(verbose, "logical")
   
   # Check if image is a file path or a matrix
   if (is.character(image) && length(image) == 1) {

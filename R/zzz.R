@@ -64,10 +64,12 @@ install_imfeatures_python <- function(envname = "r-imfeatures",
   message("Starting imfeatures Python setup using method: ", method)
 
   # --- Argument Checks ---
-  stopifnot(method %in% c("conda", "virtualenv"))
-  stopifnot(is.logical(install_thingsvision), is.logical(install_resmem), is.logical(force_create))
-  stopifnot(is.character(envname), length(envname) == 1)
-  stopifnot(is.character(python_version), length(python_version) == 1)
+  method <- match.arg(method, c("conda", "virtualenv"))
+  assert_scalar(envname, "character")
+  assert_scalar(python_version, "character")
+  assert_scalar(install_thingsvision, "logical")
+  assert_scalar(install_resmem, "logical")
+  assert_scalar(force_create, "logical")
 
   # --- Availability Checks ---
   if (method == "conda" && !.detect_conda_present(conda = conda_path)) {

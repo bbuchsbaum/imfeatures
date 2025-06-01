@@ -210,23 +210,16 @@ im_features_tv <- function(impaths, model_name, source, module_name,
                           output_dir = NULL) {
 
   # --- Input Validation and Setup ---
-  if (!is.character(impaths) || length(impaths) == 0) {
+  assert_image(impaths)
+  if (length(impaths) == 0) {
     stop("'impaths' must be a character vector of image file paths.")
   }
-  if (!all(file.exists(impaths))) {
-     missing_files <- impaths[!file.exists(impaths)]
-     stop("Some image paths do not exist: ", paste(missing_files, collapse=", "))
-  }
 
-  if (!is.character(model_name) || length(model_name) != 1 || nchar(model_name) == 0) {
-    stop("'model_name' must be a non-empty character string.")
-  }
-  if (!is.character(source) || length(source) != 1 || nchar(source) == 0) {
-    stop("'source' must be a non-empty character string.")
-  }
-  if (!is.character(module_name) || length(module_name) != 1 || nchar(module_name) == 0) {
-    stop("'module_name' must be a non-empty character string.")
-  }
+  assert_scalar(model_name, "character")
+  assert_scalar(source, "character")
+  assert_scalar(module_name, "character")
+  assert_scalar(flatten_acts, "logical")
+  assert_scalar(batch_size, "integer")
   # Infer root directory (assuming all files share the immediate parent)
   # More robust handling might be needed if paths are very diverse
   common_parent <- unique(dirname(impaths))
@@ -449,18 +442,15 @@ im_feature_sim_tv <- function(impaths, model_name, source, module_names,
                               batch_size = 32, temp_out_dir = tempdir()) {
 
   # --- Input Checks ---
-  if (!is.character(impaths) || length(impaths) < 2) {
-    stop("'impaths' must be a character vector with at least two image paths.")
+  assert_image(impaths)
+  if (length(impaths) < 2) {
+    stop("'impaths' must contain at least two image paths.")
   }
-  if (!is.character(model_name) || length(model_name) != 1 || nchar(model_name) == 0) {
-    stop("'model_name' must be a non-empty character string.")
-  }
-  if (!is.character(source) || length(source) != 1 || nchar(source) == 0) {
-    stop("'source' must be a non-empty character string.")
-  }
-  if (!is.character(module_names) || length(module_names) == 0 || any(nchar(module_names) == 0)) {
-    stop("'module_names' must be a non-empty character vector.")
-  }
+  assert_scalar(model_name, "character")
+  assert_scalar(source, "character")
+  checkmate::assert_character(module_names, min.len = 1, any.missing = FALSE)
+  assert_scalar(flatten_acts, "logical")
+  assert_scalar(batch_size, "integer")
   # Add check for metric validity using proxy?
   if (!metric %in% proxy::pr_simil_funs()) {
      warning("Metric '", metric, "' not found in proxy::pr_simil_funs. Calculation might fail.")
