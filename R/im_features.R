@@ -13,13 +13,11 @@ compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=
                            metric="cosine", lowmem=TRUE,cache_size=2048 * 2048^2,
                            subsamp_prop=1) {
 
-  if (!(all(file.exists(impaths)))) {
-    stop("not all files exist, check image paths.")
+  assert_image(impaths)
+  if (length(impaths) <= 1) {
+    stop("need at least two images to compare")
   }
-
-  assertthat::assert_that(length(impaths) > 1, msg="need at least two images to compare")
-  assertthat::assert_that(subsamp_prop <= 1, msg="subsamp_prop must be less than or equal to 1")
-  assertthat::assert_that(subsamp_prop > 0, msg="subsamp_prop must be greater than 0")
+  checkmate::assert_number(subsamp_prop, lower = 0, upper = 1, finite = TRUE)
 
   if (is.null(model)) {
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
@@ -141,6 +139,10 @@ vgg16 <- function() {
 extract_features <- function(impath, layers, model=NULL, target_size=c(224,224),
                         spatial_pooling = "none") {
 
+  assert_image(impath)
+  checkmate::assert_vector(layers, min.len = 1)
+  checkmate::assert_integerish(target_size, len = 2)
+
   # Validate spatial pooling argument. Accept 'none', 'avg', 'max' or
   # patterns of the form 'resize_HxW'
   valid_opts <- c("none", "avg", "max")
@@ -151,10 +153,6 @@ extract_features <- function(impath, layers, model=NULL, target_size=c(224,224),
 
   if (is.null(model)) {
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
-  }
-
-  if (!file.exists(impath)) {
-    stop(sprintf("Image path does not exist: %s", impath))
   }
 
   img <- image_load(impath, target_size = target_size)
@@ -236,6 +234,9 @@ im_features <- extract_features
 #' @export
 #' @importFrom dplyr top_n arrange desc
 im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
+  assert_image(impath)
+  checkmate::assert_integerish(target_size, len = 2)
+  assert_scalar(topn, "integer")
   if (is.null(model)) {
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
   }

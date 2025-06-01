@@ -26,6 +26,12 @@ clip_text_features <- function(texts,
 
   device <- match.arg(device)
 
+  checkmate::assert_character(texts, min.len = 1, any.missing = FALSE)
+  checkmate::assert_character(layers, min.len = 1, any.missing = FALSE)
+  assert_scalar(model_name, "character")
+  assert_scalar(num_text_transformer_blocks, "integer")
+  assert_scalar(text_module_prefix, "character")
+
   # Python helper function string (can be shared if in the same package)
   py_helpers <- "
 import torch

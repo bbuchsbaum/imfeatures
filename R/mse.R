@@ -15,6 +15,9 @@
 #'   \code{H}, \code{S} and \code{V} channels.
 #' @export
 image_mse <- function(im, sf=c(100, 50, 8, 4, 0), bins=16) {
+  assert_image(im)
+  checkmate::assert_integerish(sf, min.len = 1)
+  assert_scalar(bins, "integer")
   if (length(channels(im)) == 1) {
     im <- add.colour(im)
   }

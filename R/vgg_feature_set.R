@@ -33,6 +33,9 @@ extract_vgg_features <- function(impaths,
                                  model = NULL,
                                  target_size = c(224, 224),
                                  pooling = "avg") {
+  assert_image(impaths)
+  checkmate::assert_integerish(target_size, len = 2)
+  assert_scalar(pooling, "character")
   # Allow passing a directory containing images
   if (length(impaths) == 1 && dir.exists(impaths)) {
     orig_dir <- impaths

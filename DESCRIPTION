@@ -23,7 +23,9 @@ Imports:
   ggplot2,
   dplyr,
   entropy,
-  imager
+  imager,
+  checkmate
+  crayon
 Suggests:
   rgl
 RoxygenNote: 7.3.2.9000

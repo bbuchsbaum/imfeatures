@@ -11,6 +11,11 @@
 #' @rdname plot_im_scatter
 #' @export
 plot_im_scatter <- function(dframe, xvar="x", yvar="y", imagename="image") {
+  checkmate::assert_data_frame(dframe, min.rows = 1)
+  assert_scalar(xvar, "character")
+  assert_scalar(yvar, "character")
+  assert_scalar(imagename, "character")
+
   ggplot(dframe, aes_string(xvar,yvar)) + geom_image(aes_string(image=imagename)) + theme_bw()
 }
 
@@ -29,6 +34,11 @@ im_scatter <- plot_im_scatter
 #' @export
 #' @importFrom imager load.image save.image
 plot_im_scatter3d <- function(dframe, imagename="image", radius=1, width=700, height=700, bgcol="white") {
+  checkmate::assert_data_frame(dframe, min.rows = 1)
+  assert_scalar(imagename, "character")
+  assert_scalar(radius, "numeric")
+  assert_scalar(width, "integer")
+  assert_scalar(height, "integer")
   tfiles <- vector(nrow(dframe), mode="list")
   for (i in 1:nrow(dframe)) {
     tmpF <- tempfile(fileext=".png")

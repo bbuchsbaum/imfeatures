@@ -41,9 +41,7 @@ residualize_tiers <- function(feature_list, numpcs = NULL,
                               pca_method = c("stats", "irlba"),
                               svd_tol = 1e-7,
                               scale_scores = TRUE) {
-  if (!is.list(feature_list) || is.null(names(feature_list))) {
-    stop("feature_list must be a named list of matrices.")
-  }
+  checkmate::assert_list(feature_list, names = "named", min.len = 1)
   # Ensure all matrices have the same number of rows (samples)
   row_counts <- vapply(feature_list, function(x) nrow(as.matrix(x)), integer(1))
   if (length(unique(row_counts)) != 1) {
@@ -51,13 +49,8 @@ residualize_tiers <- function(feature_list, numpcs = NULL,
     stop(sprintf("All matrices in 'feature_list' must have the same number of rows (samples); got: %s", counts_str))
   }
   pca_method <- match.arg(pca_method)
-
-  if (!is.numeric(svd_tol) || svd_tol <= 0) {
-    stop("svd_tol must be a positive numeric value.")
-  }
-  if (!is.logical(scale_scores) || length(scale_scores) != 1) {
-    stop("scale_scores must be a single logical value (TRUE or FALSE).")
-  }
+  checkmate::assert_number(svd_tol, lower = 0)
+  assert_scalar(scale_scores, "logical")
 
   ntiers <- length(feature_list)
   tier_names <- names(feature_list)
