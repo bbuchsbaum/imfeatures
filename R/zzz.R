@@ -22,36 +22,9 @@ tv_core_extraction <- NULL
     return(FALSE)
   })
 }
-
-#' Install Python dependencies for imfeatures
-#'
-#' This function creates a dedicated Python environment (using Conda or venv)
-#' named "r-imfeatures" and installs the necessary Python packages required
-#' by the imfeatures R package, namely Pillow, and optionally thingsvision and resmem.
-#'
-#' @param envname The name for the Python environment. Defaults to "r-imfeatures".
-#'        If using venv, this can also be a path.
-#' @param method The method to create the environment, either "conda" or "virtualenv".
-#'        Defaults to "conda" if available, otherwise "virtualenv".
-#' @param python_version The Python version to install in the environment (e.g., "3.9").
-#'        Defaults to "3.9". Ensure this version is compatible with dependencies.
-#' @param install_thingsvision Logical. Install the 'thingsvision' library? Defaults to TRUE.
-#' @param install_resmem Logical. Install the 'resmem' library? Defaults to TRUE.
-#' @param force_create Logical. If TRUE, an existing environment with the same name
-#'        will be removed before creating the new one. Use with caution! Defaults to FALSE.
-#' @param conda_path Path to the conda executable. Defaults to reticulate's auto-detection.
-#'
-#' @details
-#' This function requires either Miniconda/Anaconda (for method="conda") or a
-#' standard Python installation (for method="virtualenv") to be available.
-#' Installation can take a significant amount of time depending on the packages selected.
-#'
-#' After successful installation, it's recommended to restart your R session.
-#' The package will attempt to automatically configure reticulate to use the
-#' "r-imfeatures" environment upon loading.
-#'
-#' @return Invisibly returns the path or name of the created environment.
+#' @describeIn imfeatures_config Deprecated alias.
 #' @export
+
 #' @import reticulate
 install_imfeatures_python <- function(envname = "r-imfeatures",
                                       method = ifelse(.detect_conda_present(), "conda", "virtualenv"),
@@ -230,145 +203,20 @@ install_imfeatures_python <- function(envname = "r-imfeatures",
 
   return(invisible(envname)) # Return the name/path used
 }
+                           
+install_imfeatures_python <- function(...) {
+  warning("install_imfeatures_python() is deprecated; use imfeatures_config().", call. = FALSE)
+  imfeatures_config(...)
+}
 
-# Also update the .onLoad check if using it
 .onLoad <- function(libname, pkgname) {
-  # Define the default environment name
-  .imf_env_name <- "r-imfeatures"
-  env_configured <- FALSE
-  env_path_msg <- .imf_env_name # For messages
-  final_status_msg <- ""
-
-  # Determine expected paths first
-  expected_conda_path <- tryCatch(reticulate::conda_python(.imf_env_name, conda = "auto"), error = function(e) NULL)
-  expected_venv_path_base <- tryCatch(reticulate:::virtualenv_path(.imf_env_name), error = function(e) NULL)
-  expected_venv_path <- NULL
-  if (!is.null(expected_venv_path_base)) {
-      py_suffix <- ifelse(.Platform$OS.type == "windows", "python.exe", "python")
-      py_bin <- ifelse(.Platform$OS.type == "windows", "Scripts", "bin")
-      expected_venv_path <- file.path(expected_venv_path_base, py_bin, py_suffix)
-      # Double check venv path actually exists
-      if (!file.exists(expected_venv_path)) expected_venv_path <- NULL
-  }
-  if (!is.null(expected_conda_path) && !file.exists(expected_conda_path)) expected_conda_path <- NULL
-
-  # 1. Check RETICULATE_PYTHON environment variable
-  reticulate_python_env <- Sys.getenv("RETICULATE_PYTHON")
-  if (nzchar(reticulate_python_env)) {
-      is_expected_env <- FALSE
-      if (!is.null(expected_conda_path) && reticulate_python_env == expected_conda_path) is_expected_env <- TRUE
-      if (!is_expected_env && !is.null(expected_venv_path) && reticulate_python_env == expected_venv_path) is_expected_env <- TRUE
-
-      if (is_expected_env) {
-          final_status_msg <- paste("Reticulate already configured via RETICULATE_PYTHON to use:", reticulate_python_env)
-          env_configured <- TRUE
-          env_path_msg <- reticulate_python_env
-      } else {
-          final_status_msg <- paste(
-              "RETICULATE_PYTHON is set to:", reticulate_python_env, "\n",
-              "This does not match the expected 'r-imfeatures' environment path.\n",
-              "imfeatures will not attempt automatic configuration."
-          )
-          # Do not proceed with auto-detection if RETICULATE_PYTHON is set but wrong
-      }
-  }
-
-  # 2. If RETICULATE_PYTHON didn't configure it, check if reticulate is already initialized
-  if (!env_configured && !nzchar(Sys.getenv("RETICULATE_PYTHON"))) { # Only proceed if RETICULATE_PYTHON was not set
-      if (reticulate::py_available(initialize = FALSE)) {
-          # Reticulate is already initialized - check if it's the right one
-          current_config <- reticulate::py_config()
-          current_python <- current_config$python
-
-          is_expected_env <- FALSE
-          if (!is.null(expected_conda_path) && current_python == expected_conda_path) is_expected_env <- TRUE
-          if (!is_expected_env && !is.null(expected_venv_path) && current_python == expected_venv_path) is_expected_env <- TRUE
-
-          if (is_expected_env) {
-              final_status_msg <- paste("Reticulate already initialized with the expected 'r-imfeatures' environment:", current_python)
-              env_configured <- TRUE
-              env_path_msg <- current_python
-          } else {
-              final_status_msg <- paste(
-                  "Reticulate is already initialized with a different Python environment:\n",
-                  current_python, "\n",
-                  "Cannot automatically switch to 'r-imfeatures'.\n",
-                  "Please restart R and ensure 'imfeatures' is loaded before other packages using reticulate,",
-                  "or manually use reticulate::use_python('[path_to_r-imfeatures_python]') in a clean session."
-              )
-              env_configured <- FALSE # Explicitly mark as not configured for imfeatures
-          }
-      } else {
-          # 3. Reticulate is not initialized - try to initialize it with r-imfeatures using use_python()
-          initialized_successfully <- FALSE
-          # Try Conda path first if available
-          if (!is.null(expected_conda_path)) {
-              tryCatch({
-                  reticulate::use_python(expected_conda_path, required = TRUE)
-                  final_status_msg <- paste("Successfully configured reticulate to use Conda environment 'r-imfeatures':", expected_conda_path)
-                  env_configured <- TRUE
-                  env_path_msg <- expected_conda_path
-                  initialized_successfully <- TRUE
-              }, error = function(e) {
-                  warning("Attempted to initialize reticulate with conda 'r-imfeatures' (", expected_conda_path, ") but failed: ", e$message)
-              })
-          }
-
-          # If Conda failed or wasn't found, try Venv path if available
-          if (!initialized_successfully && !is.null(expected_venv_path)) {
-               tryCatch({
-                  reticulate::use_python(expected_venv_path, required = TRUE)
-                  final_status_msg <- paste("Successfully configured reticulate to use virtualenv 'r-imfeatures':", expected_venv_path)
-                  env_configured <- TRUE
-                  env_path_msg <- expected_venv_path
-                  initialized_successfully <- TRUE
-               }, error = function(e) {
-                  warning("Attempted to initialize reticulate with virtualenv 'r-imfeatures' (", expected_venv_path, ") but failed: ", e$message)
-               })
-          }
-
-          if (!initialized_successfully && final_status_msg == "") { # If neither worked and no message set yet
-              final_status_msg <- paste("Default '", .imf_env_name, "' Python environment (conda or venv) not found or inaccessible.")
-          }
-      }
-  }
-
-  # Print the final status message determined above
-  if (nzchar(final_status_msg)) {
-      packageStartupMessage(final_status_msg)
-  }
-
-  # Attempt to import modules only if environment configuration seems successful
-  if (env_configured) {
-    import_error <- NULL
-    tryCatch({
-      PIL <<- reticulate::import("PIL", delay_load = TRUE)
-      resmem <<- reticulate::import("resmem", delay_load = TRUE)
-      tv <<- reticulate::import("thingsvision", delay_load = TRUE)
-      tv_data <<- reticulate::import("thingsvision.utils.data", delay_load = TRUE)
-      tv_utils_storing <<- reticulate::import("thingsvision.utils.storing", delay_load = TRUE)
-      tv_core_extraction <<- reticulate::import("thingsvision.core.extraction", delay_load = TRUE)
-      packageStartupMessage(
-        "imfeatures: PIL, resmem, thingsvision modules queued for delayed loading from: ",
-        env_path_msg
-      )
-    }, error = function(e) {
-      import_error <<- e
-    })
-
-    if (!is.null(import_error)) {
-       warning("Python environment ('", env_path_msg, "') configured, but failed to import required modules.\n",
-              "Error: ", import_error$message, "\nCheck package installation (Pillow, resmem, thingsvision) in this environment.\n",
-              "Python features may fail. Consider running install_imfeatures_python() and restarting R.")
-       PIL <<- NULL; resmem <<- NULL; tv <<- NULL; tv_data <<- NULL; tv_utils_storing <<- NULL; tv_core_extraction <<- NULL
-    }
-  } else {
-    # Environment not configured - print guidance if not already printed
-    if (!nzchar(final_status_msg) || (!grepl("Cannot automatically switch", final_status_msg) && !grepl("not found or inaccessible", final_status_msg))) { # Avoid redundant message
-        packageStartupMessage("Python features of 'imfeatures' require the '", .imf_env_name, "' environment.")
-        packageStartupMessage("Please run install_imfeatures_python() to create/update it, then restart R.")
-    }
-    # Assign NULL placeholders
-    PIL <<- NULL; resmem <<- NULL; tv <<- NULL; tv_data <<- NULL; tv_utils_storing <<- NULL; tv_core_extraction <<- NULL
+  imfeatures_config()
+  if (reticulate::py_module_available("PIL")) PIL <<- reticulate::import("PIL", delay_load = TRUE)
+  if (reticulate::py_module_available("resmem")) resmem <<- reticulate::import("resmem", delay_load = TRUE)
+  if (reticulate::py_module_available("thingsvision")) {
+    tv <<- reticulate::import("thingsvision", delay_load = TRUE)
+    tv_data <<- reticulate::import("thingsvision.utils.data", delay_load = TRUE)
+    tv_utils_storing <<- reticulate::import("thingsvision.utils.storing", delay_load = TRUE)
+    tv_core_extraction <<- reticulate::import("thingsvision.core.extraction", delay_load = TRUE)
   }
 }

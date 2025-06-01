@@ -25,6 +25,7 @@ Imports:
   entropy,
   imager,
   checkmate
+  crayon
 Suggests:
   rgl
 RoxygenNote: 7.3.2.9000
