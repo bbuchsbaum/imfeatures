@@ -4,20 +4,22 @@
 # imfeatures
 
 <!-- badges: start -->
+[![R-CMD-check](https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml)
+[![Codecov coverage](https://codecov.io/gh/bbuchsbaum/imfeatures/branch/main/graph/badge.svg)](https://app.codecov.io/gh/bbuchsbaum/imfeatures)
 <!-- badges: end -->
 
 The goal of imfeatures is to …
 
-## Installation
+## Get started
 
-And the development version from [GitHub](https://github.com/) with:
+Install the development version from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
 devtools::install_github("bbuchsbaum/imfeatures")
 ```
 
-## Example
+## Cookbook
 
 This is a basic example which shows you how to solve a common problem:
 

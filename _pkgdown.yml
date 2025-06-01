@@ -1,0 +1,18 @@
+template:
+  bootstrap: 5
+
+home:
+  title: imfeatures
+  sidebar: false
+
+navbar:
+  structure:
+  - home
+  - reference
+  - articles
+
+articles:
+- title: Get started
+  contents: README
+- title: Cookbook
+  contents: README
