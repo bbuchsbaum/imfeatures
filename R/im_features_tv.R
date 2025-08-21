@@ -279,11 +279,20 @@ extract_features_tv <- function(impaths, model_name, source = "torchvision", mod
     # Assuming tv_create_dataset and tv_create_dataloader now accept the R extractor object
     message("Creating dataset and dataloader...")
 
+    # Get relative paths from the root for the dataset
+    image_relpaths <- sapply(impaths, function(p) {
+      if (startsWith(p, image_root)) {
+        sub(paste0("^", image_root, "/"), "", p)
+      } else {
+        basename(p)
+      }
+    })
+    
     dataset <- tv_create_dataset(
        root = image_root,
        out_path = temp_out_dir, 
        extractor = extractor, # Pass the R object
-       file_names = image_fnames 
+       file_names = image_relpaths 
     )
     # Assuming tv_create_dataloader also takes the R extractor object
     dataloader <- tv_create_dataloader(dataset, batch_size, extractor)
