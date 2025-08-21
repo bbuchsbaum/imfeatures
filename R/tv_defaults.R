@@ -200,3 +200,85 @@ get_recommended_layers <- function(model_name, source = "torchvision", level = "
   # For unknown models or when in doubt, return the default
   return(get_default_module_name(model_name, source))
 }
+
+#' List available module names for a model
+#'
+#' @description
+#' Convenience function to discover available layer/module names for feature
+#' extraction from a given model. This is useful for finding which layers
+#' you can extract features from.
+#'
+#' @param model_name Character string. The name of the model architecture.
+#' @param source Character string. The source library of the model.
+#'   Defaults to "torchvision".
+#' @param device Character string. The compute device ("cpu", "cuda", "cuda:0").
+#'   Defaults to "cpu" for quick inspection.
+#' @param pretrained Logical. Use pretrained model weights? Defaults to TRUE.
+#' @param model_parameters Named list (optional). Additional parameters for 
+#'   specific models (e.g., list(variant = "ViT-B/32") for CLIP).
+#'
+#' @return Invisibly returns the extractor object. The module architecture
+#'   is printed to the console, showing all available module names.
+#'
+#' @details
+#' This function creates a model extractor and displays its architecture,
+#' allowing you to see all available module/layer names that can be used
+#' with functions like `extract_features_tv()` and `compute_feature_similarity_tv()`.
+#'
+#' The output shows the model's hierarchical structure with module names
+#' that can be used for feature extraction. Look for layers like:
+#' - Conv2d layers for early visual features
+#' - BatchNorm layers (often paired with conv layers)
+#' - ReLU/GELU activation layers
+#' - Pooling layers (MaxPool, AvgPool)
+#' - Linear/Dense layers for high-level features
+#' - Special layers like "avgpool", "features", "classifier"
+#'
+#' @examples
+#' \dontrun{
+#' # Show available layers for ResNet50
+#' list_module_names("resnet50")
+#'
+#' # Show layers for a CLIP model
+#' list_module_names("clip", model_parameters = list(variant = "ViT-B/32"))
+#'
+#' # Show layers for a Vision Transformer from timm
+#' list_module_names("vit_base_patch16_224", source = "timm")
+#' }
+#'
+#' @seealso
+#' \code{\link{get_default_module_name}}, \code{\link{get_recommended_layers}},
+#' \code{\link{tv_get_extractor}}, \code{\link{show_model}}
+#'
+#' @export
+list_module_names <- function(model_name, 
+                             source = "torchvision",
+                             device = "cpu",
+                             pretrained = TRUE,
+                             model_parameters = NULL) {
+  
+  # Get the extractor
+  extractor <- tv_get_extractor(
+    model_name = model_name,
+    source = source,
+    device = device,
+    pretrained = pretrained,
+    model_parameters = model_parameters
+  )
+  
+  cat("Available module names for", model_name, "from", source, ":\n")
+  cat("=" , rep("=", 60), "\n", sep = "")
+  
+  # Show the model architecture
+  show_model(extractor)
+  
+  cat("\n", "=" , rep("=", 60), "\n", sep = "")
+  cat("Tips:\n")
+  cat("- Default module for this model: '", 
+      get_default_module_name(model_name, source), "'\n", sep = "")
+  cat("- Use any of the module names shown above with extract_features_tv()\n")
+  cat("- Deeper layers (e.g., 'avgpool', 'classifier') give more semantic features\n")
+  cat("- Earlier layers (e.g., 'conv1', 'features.0') give more visual/texture features\n")
+  
+  invisible(extractor)
+}
