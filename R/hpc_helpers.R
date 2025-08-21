@@ -308,15 +308,32 @@ install_thingsvision_hpc <- function(python_cmd = "python3", user = TRUE) {
   
   # Step 3: Handle tensorflow requirement (create dummy if needed)
   message("\n3. Handling tensorflow requirement...")
-  tf_check <- paste(python_cmd, "-c \"import tensorflow\"", "2>/dev/null")
+  tf_check <- paste(python_cmd, "-c \"import tensorflow.keras.applications\"", "2>/dev/null")
   if (system(tf_check, ignore.stdout = TRUE, ignore.stderr = TRUE) != 0) {
     message("TensorFlow not found. Creating dummy module to satisfy import...")
-    # Create a minimal dummy tensorflow module
-    tf_dir <- paste0("~/.local/lib/python3.10/site-packages/tensorflow")
-    system(paste("mkdir -p", tf_dir), ignore.stderr = TRUE)
-    system(paste0("echo '__version__ = \"2.0.0\"' > ", tf_dir, "/__init__.py"), ignore.stderr = TRUE)
-    system(paste0("echo 'class keras: pass' >> ", tf_dir, "/__init__.py"), ignore.stderr = TRUE)
-    message("Dummy tensorflow module created.")
+    
+    # Use the Python script to create dummy tensorflow
+    script_path <- system.file("python", "create_dummy_tensorflow.py", package = "imfeatures")
+    if (file.exists(script_path)) {
+      result <- system(paste(python_cmd, script_path))
+      if (result != 0) {
+        message("Warning: Failed to create dummy tensorflow module automatically.")
+        message("You may need to install tensorflow-cpu or create it manually.")
+      }
+    } else {
+      # Fallback to inline creation
+      message("Creating dummy tensorflow module manually...")
+      system(paste(python_cmd, "-c \"",
+        "import os, sys, site;",
+        "tf_path = os.path.join(site.getusersitepackages(), 'tensorflow');",
+        "os.makedirs(tf_path, exist_ok=True);",
+        "os.makedirs(os.path.join(tf_path, 'keras'), exist_ok=True);",
+        "open(os.path.join(tf_path, '__init__.py'), 'w').write('__version__=\\\"2.0.0\\\"\\nclass keras:\\n    class applications: pass\\n');",
+        "open(os.path.join(tf_path, 'keras', '__init__.py'), 'w').write('applications = None\\n');",
+        "open(os.path.join(tf_path, 'keras', 'applications.py'), 'w').write('');",
+        "print('Dummy tensorflow created')",
+        "\""), ignore.stderr = TRUE)
+    }
   }
   
   # Step 4: Verify installation
