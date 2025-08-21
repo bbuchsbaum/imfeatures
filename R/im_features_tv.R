@@ -339,8 +339,8 @@ im_features_tv <- extract_features_tv
 #'        at least one non-empty string. Use
 #'        `tv_show_model(tv_get_extractor(model_name, source))` to find valid names.
 #' @param metric Character string. The similarity metric to use. Defaults to "cosine".
-#'        Common options include "cosine", "correlation". See `proxy::pr_simil_funs`
-#'        for available metrics supported by the `proxy` package.
+#'        Common options include "cosine", "correlation", "Euclidean", "Manhattan".
+#'        Use `proxy::pr_DB$get_entry_names()` to see all available metrics.
 #' @param flatten_acts Logical. Should activations from the specified `module_names`
 #'        be flattened into vectors before calculating similarity? This is almost
 #'        always required for standard similarity metrics like cosine or correlation.
@@ -473,9 +473,16 @@ compute_feature_similarity_tv <- function(impaths, model_name, source, module_na
   }
   assert_scalar(flatten_acts, "logical")
   assert_scalar(batch_size, "integer")
-  # Add check for metric validity using proxy?
-  if (!metric %in% proxy::pr_simil_funs()) {
-     warning("Metric '", metric, "' not found in proxy::pr_simil_funs. Calculation might fail.")
+  # Add check for metric validity using proxy
+  available_metrics <- tryCatch({
+    proxy::pr_DB$get_entry_names()
+  }, error = function(e) {
+    # Fallback to common metrics if pr_DB fails
+    c("cosine", "correlation", "Euclidean", "Manhattan", "Jaccard", "Dice")
+  })
+  
+  if (!metric %in% available_metrics) {
+     warning("Metric '", metric, "' not found in available proxy metrics. Calculation might fail.")
   }
 
   # --- Feature Extraction and Similarity Calculation ---

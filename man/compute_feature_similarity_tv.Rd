@@ -51,8 +51,8 @@ at least one non-empty string. Use
 `tv_show_model(tv_get_extractor(model_name, source))` to find valid names.}
 
 \item{metric}{Character string. The similarity metric to use. Defaults to "cosine".
-Common options include "cosine", "correlation". See `proxy::pr_simil_funs`
-for available metrics supported by the `proxy` package.}
+Common options include "cosine", "correlation", "Euclidean", "Manhattan".
+Use `proxy::pr_DB$get_entry_names()` to see all available metrics.}
 
 \item{flatten_acts}{Logical. Should activations from the specified `module_names`
 be flattened into vectors before calculating similarity? This is almost
