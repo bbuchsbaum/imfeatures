@@ -125,10 +125,27 @@ configure_hpc_python <- function(module_cmd = NULL,
     if (reticulate::py_module_available("thingsvision")) {
       # Import to package namespace so tv_get_extractor can find it
       pkg_env <- asNamespace("imfeatures")
-      assign("tv", reticulate::import("thingsvision", delay_load = TRUE), envir = pkg_env)
-      assign("tv_data", reticulate::import("thingsvision.utils.data", delay_load = TRUE), envir = pkg_env)
-      assign("tv_utils_storing", reticulate::import("thingsvision.utils.storing", delay_load = TRUE), envir = pkg_env)
-      assign("tv_core_extraction", reticulate::import("thingsvision.core.extraction", delay_load = TRUE), envir = pkg_env)
+      
+      # Unlock and update bindings
+      tryCatch({
+        unlockBinding("tv", pkg_env)
+        assign("tv", reticulate::import("thingsvision", delay_load = TRUE), envir = pkg_env)
+        lockBinding("tv", pkg_env)
+        
+        unlockBinding("tv_data", pkg_env)
+        assign("tv_data", reticulate::import("thingsvision.utils.data", delay_load = TRUE), envir = pkg_env)
+        lockBinding("tv_data", pkg_env)
+        
+        unlockBinding("tv_utils_storing", pkg_env)
+        assign("tv_utils_storing", reticulate::import("thingsvision.utils.storing", delay_load = TRUE), envir = pkg_env)
+        lockBinding("tv_utils_storing", pkg_env)
+        
+        unlockBinding("tv_core_extraction", pkg_env)
+        assign("tv_core_extraction", reticulate::import("thingsvision.core.extraction", delay_load = TRUE), envir = pkg_env)
+        lockBinding("tv_core_extraction", pkg_env)
+      }, error = function(e) {
+        # Ignore binding errors
+      })
     }
     message("\n✓ Python configured successfully for imfeatures")
   }, error = function(e) {

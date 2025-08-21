@@ -263,10 +263,32 @@ use_existing_python <- function(python_path = NULL, check_modules = TRUE, force 
     if (reticulate::py_module_available("thingsvision")) {
       # Import to package namespace so tv_get_extractor can find it
       pkg_env <- asNamespace("imfeatures")
-      assign("tv", reticulate::import("thingsvision", delay_load = TRUE), envir = pkg_env)
-      assign("tv_data", reticulate::import("thingsvision.utils.data", delay_load = TRUE), envir = pkg_env)
-      assign("tv_utils_storing", reticulate::import("thingsvision.utils.storing", delay_load = TRUE), envir = pkg_env)
-      assign("tv_core_extraction", reticulate::import("thingsvision.core.extraction", delay_load = TRUE), envir = pkg_env)
+      
+      # Check if tv already exists and is valid
+      if (!exists("tv", envir = pkg_env) || is.null(get("tv", envir = pkg_env))) {
+        # Only assign if it doesn't exist or is NULL
+        unlockBinding("tv", pkg_env)
+        assign("tv", reticulate::import("thingsvision", delay_load = TRUE), envir = pkg_env)
+        lockBinding("tv", pkg_env)
+      }
+      
+      if (!exists("tv_data", envir = pkg_env) || is.null(get("tv_data", envir = pkg_env))) {
+        unlockBinding("tv_data", pkg_env)
+        assign("tv_data", reticulate::import("thingsvision.utils.data", delay_load = TRUE), envir = pkg_env)
+        lockBinding("tv_data", pkg_env)
+      }
+      
+      if (!exists("tv_utils_storing", envir = pkg_env) || is.null(get("tv_utils_storing", envir = pkg_env))) {
+        unlockBinding("tv_utils_storing", pkg_env)
+        assign("tv_utils_storing", reticulate::import("thingsvision.utils.storing", delay_load = TRUE), envir = pkg_env)
+        lockBinding("tv_utils_storing", pkg_env)
+      }
+      
+      if (!exists("tv_core_extraction", envir = pkg_env) || is.null(get("tv_core_extraction", envir = pkg_env))) {
+        unlockBinding("tv_core_extraction", pkg_env)
+        assign("tv_core_extraction", reticulate::import("thingsvision.core.extraction", delay_load = TRUE), envir = pkg_env)
+        lockBinding("tv_core_extraction", pkg_env)
+      }
     }
   }, error = function(e) {
     message("Note: Some Python modules could not be imported: ", e$message)
