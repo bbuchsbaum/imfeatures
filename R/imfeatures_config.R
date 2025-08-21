@@ -117,6 +117,8 @@ imfeatures_config <- local({
 #'   current reticulate Python configuration.
 #' @param check_modules Whether to check for required Python modules and
 #'   provide informative messages about missing dependencies.
+#' @param force If TRUE, prioritize system Python over any existing virtualenvs.
+#'   Useful on HPC systems where module-loaded Python should be used.
 #'
 #' @return Invisible path to the configured Python binary.
 #'
@@ -140,7 +142,7 @@ imfeatures_config <- local({
 #' }
 #'
 #' @export
-use_existing_python <- function(python_path = NULL, check_modules = TRUE) {
+use_existing_python <- function(python_path = NULL, check_modules = TRUE, force = FALSE) {
   if (!is.null(python_path)) {
     if (!file.exists(python_path)) {
       stop("Python executable not found at: ", python_path)
@@ -157,6 +159,25 @@ use_existing_python <- function(python_path = NULL, check_modules = TRUE) {
         return(list(python = env_python))
       }
       
+      # If force=TRUE or no Python configured yet, prioritize system Python
+      if (force || !reticulate::py_available()) {
+        # Look for system Python first (module-loaded or system-wide)
+        python_candidates <- c(
+          Sys.which("python3"),
+          Sys.which("python"),
+          "/usr/bin/python3",
+          "/usr/bin/python",
+          "/usr/local/bin/python3",
+          "/usr/local/bin/python"
+        )
+        python_candidates <- python_candidates[nzchar(python_candidates) & file.exists(python_candidates)]
+        
+        if (length(python_candidates) > 0) {
+          reticulate::use_python(python_candidates[1], required = TRUE)
+          return(list(python = python_candidates[1]))
+        }
+      }
+      
       # Try py_config, but suppress broken virtualenv errors
       suppressWarnings({
         reticulate::py_config()
@@ -168,10 +189,8 @@ use_existing_python <- function(python_path = NULL, check_modules = TRUE) {
         Sys.which("python"),
         "/usr/bin/python3",
         "/usr/bin/python",
-        # Add common HPC paths
-        "/cvmfs/soft.computecanada.ca/easybuild/software/2023/x86-64-v4/Compiler/gcccore/python/3.10.13/bin/python3",
-        "/apps/python/3.10/bin/python3",
-        "/apps/python/3.9/bin/python3"
+        "/usr/local/bin/python3",
+        "/usr/local/bin/python"
       )
       python_candidates <- python_candidates[nzchar(python_candidates) & file.exists(python_candidates)]
       
