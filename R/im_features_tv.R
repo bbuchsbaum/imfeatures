@@ -16,12 +16,13 @@
 #'        `"resnet50"`, `"clip"`, `"dino-vit-base-p16"`). Must be a non-empty
 #'        string. See the Details section of \code{\link{tv_get_extractor}} for
 #'        available models.
-#' @param source Character string. The source library of the model (e.g.,
-#'        `"torchvision"`, `"timm"`, `"ssl"`, `"custom"`). Must be a non-empty
-#'        string. See the Details section of \code{\link{tv_get_extractor}} for
+#' @param source Character string. The source library of the model. Defaults to
+#'        `"torchvision"`. Other options include `"timm"`, `"ssl"`, `"custom"`.
+#'        See the Details section of \code{\link{tv_get_extractor}} for available
 #'        sources.
 #' @param module_name Character string. The specific layer or module within the
-#'        model from which to extract activations. Must be a non-empty string. Use
+#'        model from which to extract activations. If NULL (default), automatically
+#'        selects an appropriate layer based on the model architecture. Use
 #'        `tv_show_model(tv_get_extractor(model_name, source))` to list available
 #'        module names for a given model. Common examples include final layers
 #'        like `"avgpool"` or `"fc"` (in ResNets), `"classifier.6"` (in VGG/AlexNet),
@@ -141,17 +142,22 @@
 #' png(file.path(image_dir, "img2.png")); plot(rnorm(100)); dev.off()
 #' image_paths <- list.files(image_dir, full.names = TRUE, pattern = "\\.png$")
 #'
-#' # Example 1: Extract ResNet-18 'avgpool' features (flattened by default layer shape)
+#' # Example 1: Extract ResNet-18 features using defaults
 #' features_rn18 <- im_features_tv(
 #'   impaths = image_paths,
-#'   model_name = "resnet18",
-#'   source = "torchvision",
-#'   module_name = "avgpool",
+#'   model_name = "resnet18"  # Uses source="torchvision" and module_name="avgpool" by default
 #'   flatten_acts = TRUE, # Explicitly flatten (though avgpool often is already flat)
 #'   device = "cpu" # Use CPU for this example if no GPU
 #' )
 #' print(dim(features_rn18)) # Should be n_images x 512
 #' print(rownames(features_rn18))
+#'
+#' # Example 1b: Manually specify layer (overriding default)
+#' features_custom <- im_features_tv(
+#'   impaths = image_paths,
+#'   model_name = "resnet18",
+#'   module_name = "layer4"  # Override default to get earlier layer
+#' )
 #'
 #' # Example 2: Extract CLIP 'visual' features (ViT-B/32 variant)
 #' # Note: Requires pip install git+https://github.com/openai/CLIP.git in the env
@@ -205,7 +211,7 @@
 #' unlink(image_dir, recursive = TRUE)
 #' unlink(low_mem_dir, recursive = TRUE)
 #' }
-extract_features_tv <- function(impaths, model_name, source, module_name,
+extract_features_tv <- function(impaths, model_name, source = "torchvision", module_name = NULL,
                           device = "cuda", pretrained = TRUE, model_parameters = NULL,
                           flatten_acts = FALSE, batch_size = 32L, temp_out_dir = tempdir(),
                           output_dir = NULL) {
@@ -224,6 +230,13 @@ extract_features_tv <- function(impaths, model_name, source, module_name,
   if (!nzchar(source)) {
     stop("'source' must be a non-empty character string.")
   }
+  
+  # Auto-determine module_name if not provided
+  if (is.null(module_name)) {
+    module_name <- get_default_module_name(model_name, source)
+    message("Using default module: '", module_name, "'")
+  }
+  
   assert_scalar(module_name, "character")
   if (!nzchar(module_name)) {
     stop("'module_name' must be a non-empty character string.")
@@ -332,11 +345,12 @@ im_features_tv <- extract_features_tv
 #'        relative to their computed common root.
 #' @param model_name Character string. The name of the `thingsvision` model architecture
 #'        (e.g., `"resnet50"`, `"clip"`). Must be a non-empty string.
-#' @param source Character string. The source library of the model
-#'        (e.g., `"torchvision"`, `"custom"`). Must be a non-empty string.
+#' @param source Character string. The source library of the model. Defaults to
+#'        `"torchvision"`. Other options include `"timm"`, `"ssl"`, `"custom"`.
 #' @param module_names Character vector. The specific layer/module names within the
-#'        model from which to extract features for similarity calculation. Must contain
-#'        at least one non-empty string. Use
+#'        model from which to extract features for similarity calculation. If NULL
+#'        (default), automatically selects an appropriate layer based on the model
+#'        architecture. Use
 #'        `tv_show_model(tv_get_extractor(model_name, source))` to find valid names.
 #' @param metric Character string. The similarity metric to use. Defaults to "cosine".
 #'        Common options include "cosine", "correlation", "Euclidean", "Manhattan".
@@ -448,7 +462,7 @@ im_features_tv <- extract_features_tv
 #' # Clean up
 #' unlink(image_dir, recursive = TRUE)
 #' }
-compute_feature_similarity_tv <- function(impaths, model_name, source, module_names,
+compute_feature_similarity_tv <- function(impaths, model_name, source = "torchvision", module_names = NULL,
                               metric = "cosine",
                               flatten_acts = TRUE,
                               device = "cuda", pretrained = TRUE, model_parameters = NULL,
@@ -467,6 +481,13 @@ compute_feature_similarity_tv <- function(impaths, model_name, source, module_na
   if (!nzchar(source)) {
     stop("'source' must be a non-empty character string.")
   }
+  
+  # Auto-determine module_names if not provided
+  if (is.null(module_names)) {
+    module_names <- get_default_module_name(model_name, source)
+    message("Using default module: '", module_names, "'")
+  }
+  
   checkmate::assert_character(module_names, min.len = 1, any.missing = FALSE)
   if (any(!nzchar(module_names))) {
     stop("All elements in 'module_names' must be non-empty character strings.")

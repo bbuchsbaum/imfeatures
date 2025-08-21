@@ -7,8 +7,8 @@
 extract_features_tv(
   impaths,
   model_name,
-  source,
-  module_name,
+  source = "torchvision",
+  module_name = NULL,
   device = "cuda",
   pretrained = TRUE,
   model_parameters = NULL,
@@ -31,13 +31,14 @@ Python dataset relative to that root.}
 string. See the Details section of \code{\link{tv_get_extractor}} for
 available models.}
 
-\item{source}{Character string. The source library of the model (e.g.,
-`"torchvision"`, `"timm"`, `"ssl"`, `"custom"`). Must be a non-empty
-string. See the Details section of \code{\link{tv_get_extractor}} for
+\item{source}{Character string. The source library of the model. Defaults to
+`"torchvision"`. Other options include `"timm"`, `"ssl"`, `"custom"`.
+See the Details section of \code{\link{tv_get_extractor}} for available
 sources.}
 
 \item{module_name}{Character string. The specific layer or module within the
-model from which to extract activations. Must be a non-empty string. Use
+model from which to extract activations. If NULL (default), automatically
+selects an appropriate layer based on the model architecture. Use
 `tv_show_model(tv_get_extractor(model_name, source))` to list available
 module names for a given model. Common examples include final layers
 like `"avgpool"` or `"fc"` (in ResNets), `"classifier.6"` (in VGG/AlexNet),
@@ -168,17 +169,22 @@ png(file.path(image_dir, "img1.png")); plot(1:10); dev.off()
 png(file.path(image_dir, "img2.png")); plot(rnorm(100)); dev.off()
 image_paths <- list.files(image_dir, full.names = TRUE, pattern = "\\\\.png$")
 
-# Example 1: Extract ResNet-18 'avgpool' features (flattened by default layer shape)
+# Example 1: Extract ResNet-18 features using defaults
 features_rn18 <- im_features_tv(
   impaths = image_paths,
-  model_name = "resnet18",
-  source = "torchvision",
-  module_name = "avgpool",
+  model_name = "resnet18"  # Uses source="torchvision" and module_name="avgpool" by default
   flatten_acts = TRUE, # Explicitly flatten (though avgpool often is already flat)
   device = "cpu" # Use CPU for this example if no GPU
 )
 print(dim(features_rn18)) # Should be n_images x 512
 print(rownames(features_rn18))
+
+# Example 1b: Manually specify layer (overriding default)
+features_custom <- im_features_tv(
+  impaths = image_paths,
+  model_name = "resnet18",
+  module_name = "layer4"  # Override default to get earlier layer
+)
 
 # Example 2: Extract CLIP 'visual' features (ViT-B/32 variant)
 # Note: Requires pip install git+https://github.com/openai/CLIP.git in the env

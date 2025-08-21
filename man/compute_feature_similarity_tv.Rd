@@ -8,8 +8,8 @@
 compute_feature_similarity_tv(
   impaths,
   model_name,
-  source,
-  module_names,
+  source = "torchvision",
+  module_names = NULL,
   metric = "cosine",
   flatten_acts = TRUE,
   device = "cuda",
@@ -22,8 +22,8 @@ compute_feature_similarity_tv(
 im_feature_sim_tv(
   impaths,
   model_name,
-  source,
-  module_names,
+  source = "torchvision",
+  module_names = NULL,
   metric = "cosine",
   flatten_acts = TRUE,
   device = "cuda",
@@ -42,12 +42,13 @@ relative to their computed common root.}
 \item{model_name}{Character string. The name of the `thingsvision` model architecture
 (e.g., `"resnet50"`, `"clip"`). Must be a non-empty string.}
 
-\item{source}{Character string. The source library of the model
-(e.g., `"torchvision"`, `"custom"`). Must be a non-empty string.}
+\item{source}{Character string. The source library of the model. Defaults to
+`"torchvision"`. Other options include `"timm"`, `"ssl"`, `"custom"`.}
 
 \item{module_names}{Character vector. The specific layer/module names within the
-model from which to extract features for similarity calculation. Must contain
-at least one non-empty string. Use
+model from which to extract features for similarity calculation. If NULL
+(default), automatically selects an appropriate layer based on the model
+architecture. Use
 `tv_show_model(tv_get_extractor(model_name, source))` to find valid names.}
 
 \item{metric}{Character string. The similarity metric to use. Defaults to "cosine".
