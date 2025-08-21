@@ -119,7 +119,7 @@ test_that("error when NA values are present", {
   )
   expect_error(
     residualize_tiers(feature_list_bad, numpcs = 1),
-    "non-finite values.*tier1"
+    "Tier 'tier1' contains non-finite values \\(NA/Inf\\)\\."
   )
 })
 
@@ -130,7 +130,7 @@ test_that("error when Inf values are present", {
   )
   expect_error(
     residualize_tiers(feature_list_bad, numpcs = 1),
-    "non-finite values.*tier1"
+    "Tier 'tier1' contains non-finite values \\(NA/Inf\\)\\."
   )
 })
 

@@ -8,6 +8,7 @@
 }
 \arguments{
 \item{x}{A \code{vgg_feature_set} object.}
+
 \item{...}{Additional arguments (ignored).}
 }
 \description{

@@ -7,7 +7,9 @@
 residualize_tiers(
   feature_list,
   numpcs = NULL,
-  pca_method = c("stats", "irlba")
+  pca_method = c("stats", "irlba"),
+  svd_tol = 1e-07,
+  scale_scores = TRUE
 )
 }
 \arguments{
@@ -15,36 +17,43 @@ residualize_tiers(
 
 \item{numpcs}{Integer scalar or numeric vector, or NULL. If NULL (default), uses up to 50 PCs per tier (or fewer, if a tier has <50 features).}
 
-\item{pca_method}{Character string, one of "stats" (default, uses \code{stats::prcomp}) or "irlba" (uses \code{irlba::prcomp_irlba}).
-"irlba" can be faster for matrices where N_samples < N_features, especially if only a small number of PCs are requested.
-If "irlba" is chosen and the package is not installed, a warning is issued and it falls back to "stats".}
+\item{pca_method}{Character string, one of "stats" (default, uses \code{stats::prcomp}) or "irlba" (uses \code{irlba::prcomp_irlba}).}
+
+\item{svd_tol}{Numeric tolerance factor used in determining effective rank via SVD for sequential residualization. 
+Singular values \code{s_i} are considered non-zero if \code{s_i > svd_tol * max(dim(H)) * s[1]},
+where \code{H} is the matrix being decomposed and \code{s[1]} is its largest singular value.
+Default is 1e-7.}
+
+\item{scale_scores}{Logical. If TRUE (default), PC scores for each tier are z-scored (scaled to unit standard deviation, no centering as PCA already centers) 
+before residualization. SDs for scaling in \code{predict} are taken from the training data.}
 }
 \value{
 An object of class \code{residualized_tiers}, a list with components:
 \describe{
-  \item{pca}{Named list of PCA objects (from \code{stats::prcomp} or \code{irlba::prcomp_irlba}) for each tier.}
-  \item{pc_scores}{Named list of PC score matrices (N_samples × numpcs[i]).}
-  \item{residuals}{Named list of residualized PC matrices after regressing out previous tiers.}
-  \item{projection_bases}{Named list. For each tier (except the first, which is NULL), stores the orthonormal basis matrix Q (from QR decomposition) of the cumulative *non-residualized* PC scores from all *preceding* tiers observed during training. This Q was used to project and then residualize the current tier\'s PC scores *during the training phase*. This component is primarily for diagnostic/inspection purposes and is *not* used by the \code{predict.residualized_tiers} method (which recomputes bases from new data).}
+  \item{pca}{Named list of PCA objects. If \code{scale_scores = TRUE}, this will also contain \code{sds_for_scaling} for each tier.}
+  \item{pc_scores_raw}{Named list of raw PC score matrices (N_samples × numpcs[i]) before residualization (but after optional scaling if \code{scale_scores=TRUE}).}
+  \item{residuals}{Named list of final residualized PC matrices.}
+  \item{projection_bases}{Named list. For each tier (except the first), stores the orthonormal basis matrix Q (from SVD of preceding tiers' cumulative non-residualized PC scores, truncated by rank), or NULL.}
   \item{numpcs}{Integer vector of number of PCs per tier.}
-  \item{tiers}{Character vector of tier names (names of \code{feature_list}).}
+  \item{tiers}{Character vector of tier names.}
+  \item{svd_tol_info}{List containing the \code{svd_tol} value used and a description of the tolerance formula.}
+  \item{scale_scores}{Logical value of the \code{scale_scores} argument used.}
 }
+An attribute \code{total_rank_kept} (sum of \code{numpcs}) is also attached.
 }
 \description{
 Given a named list of feature matrices (e.g., low-, mid-, high-tier features),
 perform PCA within each tier to reduce to a specified number of components,
-then sequentially residualize each tier's PCs against all previous tiers.
+then sequentially residualize each tier's PCs against all previous tiers using
+an SVD-based rank-aware approach. Optionally, PC scores can be z-scored.
 }
 \details{
-The process for each tier is as follows:
-1. The raw feature matrix for the tier is centered, scaled, and PCA is performed using the specified \code{pca_method}.
-2. The top \code{numpcs} for that tier are selected.
-3. These selected PC scores are then residualized against the cumulative set of *non-residualized* PC scores from all preceding tiers.
-   This ensures that \code{residuals[[tier_i]]} is orthogonal to \code{residuals[[tier_j]]} for i != j, 
-   and also orthogonal to the non-residualized scores of preceding tiers.
-
-To apply this full transformation (PCA and sequential residualization) to a new dataset, use the S3 method
-\code{predict(object, newdata)}, where \code{object} is the result of \code{residualize_tiers} and \code{newdata}
-is a named list of feature matrices matching the structure of the original \code{feature_list}.
-All matrices in \code{feature_list} must contain only finite numeric values; the function stops if any NA or Inf values are detected.
+Initial PCA is performed on each tier. If \code{scale_scores = TRUE}, the resulting PC scores are then z-scored (column-wise, per tier).
+These (optionally scaled) PC scores are then sequentially residualized.
+The orthogonalization uses SVD to form a rank-aware basis of the preceding tiers' cumulative scores 
+to ensure numerical stability, using the \code{svd_tol} parameter in a LAPACK-style manner.
+Note: For applications like fMRI analysis where data might be processed in folds (e.g., for cross-validation),
+z-scoring should ideally be performed based on training fold statistics and then applied to test folds.
+This function, when applied to a whole dataset, uses statistics from the entire input for z-scoring.
+All matrices must contain only finite values; the function stops if any NA or Inf values are detected.
 }

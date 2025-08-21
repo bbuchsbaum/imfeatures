@@ -20,7 +20,7 @@ make_color <- function(pixels) {
 
 test_that("grayscale images return numeric vector of length 3", {
   img <- make_gray(c(0, 0, 1, 1))
-  res <- image_mse(img, sf = 0, bins = 2)
+  res <- image_mse(img, sf = 0, bins = 2L)
   expect_type(res, "double")
   expect_length(res, 3)
   expect_true(!anyNA(res))
@@ -34,7 +34,7 @@ test_that("color images return numeric vector of length 3", {
   # Red, green, blue, yellow pixels
   pix <- c(1,0,0, 0,1,0, 0,0,1, 1,1,0)
   img <- make_color(pix)
-  res <- image_mse(img, sf = 0, bins = 2)
+  res <- image_mse(img, sf = 0, bins = 2L)
   expect_type(res, "double")
   expect_length(res, 3)
   expect_true(!anyNA(res))
@@ -46,7 +46,7 @@ test_that("color images return numeric vector of length 3", {
 
 test_that("NA values lead to NA entropy without warnings", {
   img <- make_gray(c(1, NA, 0, 1))
-  expect_warning(res <- image_mse(img, sf = 0, bins = 2), regexp = NA)
+  expect_warning(res <- image_mse(img, sf = 0, bins = 2L), regexp = NA)
   expect_true(anyNA(res))
 })
 

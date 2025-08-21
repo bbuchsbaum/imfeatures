@@ -14,7 +14,7 @@
 #' @return A named numeric vector with the mean multiscale entropy for the
 #'   \code{H}, \code{S} and \code{V} channels.
 #' @export
-image_mse <- function(im, sf=c(100, 50, 8, 4, 0), bins=16) {
+image_mse <- function(im, sf=c(100, 50, 8, 4, 0), bins=16L) {
   assert_image(im)
   checkmate::assert_integerish(sf, min.len = 1)
   assert_scalar(bins, "integer")

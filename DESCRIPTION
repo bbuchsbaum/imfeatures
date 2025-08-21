@@ -24,10 +24,18 @@ Imports:
   dplyr,
   entropy,
   imager,
-  checkmate
-  crayon
+  checkmate,
+  crayon,
+  rgl,
+  httr2,
+  jsonlite,
+  cli,
+  ellmer,
+  tibble,
+  purrr
 Suggests:
-  rgl
+  testthat,
+  generativeai
 RoxygenNote: 7.3.2.9000
 Depends: 
     R (>= 3.10)

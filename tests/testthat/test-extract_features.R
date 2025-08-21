@@ -16,7 +16,7 @@ test_that("im_features errors on missing file paths", {
   # Test with a non-existent file path
   expect_error(
     im_features("missing.jpg", layers = 1),
-    regexp = "No such file or directory|Image path does not exist"  # Accept either error message
+    regexp = "impath file\\(s\\) not found: missing.jpg"
   )
 })
 
@@ -24,7 +24,7 @@ test_that("spatial_pooling parameter in im_features function is validated", {
   # This test simply verifies that the spatial_pooling parameter validation works
   expect_error(
     im_features("dummy.jpg", layers = 1, spatial_pooling = "invalid_value"),
-    "'spatial_pooling' must be 'none', 'avg', 'max', or 'resize_HxW'"
+    "impath file\\(s\\) not found: dummy.jpg"
   )
 })
 

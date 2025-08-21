@@ -21,7 +21,7 @@ extract_vgg_features(
 
 \item{target_size}{Numeric vector of length 2 specifying image resize dimensions (width, height).}
 
-\item{pooling}{Character string specifying spatial pooling; passed to the \code{spatial_pooling} argument of \code{im_features}.
+\item{pooling}{Character string specifying spatial pooling; passed to the \code{spatial_pooling} argument of \code{im_features}. 
 Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7".}
 }
 \value{
@@ -32,7 +32,7 @@ An S3 object of class \code{vgg_feature_set}, a list with components:
   \item{tier}{The tier name.}
   \item{pooling}{Pooling type used.}
   \item{layer_indices}{Numeric indices of the selected layers (derived from \code{layer_names}).}
-  \item{layer_names}{Character names of VGG-16 layers.}
+  \item{layer_names}{Character names of VGG-16 layers used.}
   \item{model_name}{Character, set to "vgg16".}
   \item{target_size}{Numeric vector of image resize dimensions.}
 }

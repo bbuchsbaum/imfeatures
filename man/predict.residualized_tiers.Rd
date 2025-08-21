@@ -6,25 +6,6 @@
 \usage{
 \method{predict}{residualized_tiers}(object, newdata, ...)
 }
-\arguments{
-\item{object}{An object of class \code{residualized_tiers}.}
-
-\item{newdata}{A named list of new feature matrices, structured identically to the
-\code{feature_list} used to train the \code{object}. Each matrix must
-have the same number of columns (features) as its corresponding training matrix,
-and all matrices in \code{newdata} must have the same number of rows (samples).}
-
-\item{...}{Additional arguments (not currently used).}
-}
-\value{
-A named list of residualized PC score matrices for the new data.
-        The structure matches \code{object$residuals}.
-}
 \description{
-Applies a trained residualized_tiers transformation to new data.
-For each tier in the new data:
-1. PCA is applied using the PCA model from the training phase for that tier.
-2. The resulting PC scores for the current tier are then residualized against
-   the (non-residualized) PC scores of all *preceding tiers from the new data*.
-This ensures the same hierarchical orthogonalization logic is applied.
+Applies a trained residualized_tiers transformation (Sequential SVD-QR method) to new data.
 }

@@ -40,7 +40,7 @@ test_that("directory input expands to images and returns expected dims", {
 test_that("error for nonexistent image paths", {
   expect_error(
     extract_vgg_features(c("no_such_file1.png", "no_such_file2.png"), model = list(dummy=TRUE)),
-    "do not exist"
+    "impaths file\\(s\\) not found: no_such_file1.png, no_such_file2.png"
   )
 })
 

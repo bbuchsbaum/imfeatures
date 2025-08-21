@@ -34,8 +34,7 @@ entropy <- function(a) {
 
   s <- sum(a) # sum() works correctly for numeric(0) (returns 0) and logical(0) (returns 0)
   if (s == 0) {
-    # No warning for zero sum, as this is handled by returning NA_real_ 
-    # and managed by na.rm=TRUE in downstream calculations.
+    warning("Sum of probabilities is zero")
     return(NA_real_) 
   }
 
@@ -444,8 +443,8 @@ do_statistics <- function(counts, bins_vec, verbose = FALSE) {
 #' @name compute_edge_entropy
 #' @rdname compute_edge_entropy
 #' @export
-compute_edge_entropy <- function(image, max_pixels=300*400, maxdiag=500, gabor_bins=24,
-                         filter_length=31, circ_bins=48,
+compute_edge_entropy <- function(image, max_pixels=120000L, maxdiag=500L, gabor_bins=24L,
+                         filter_length=31L, circ_bins=48L,
                          ranges=list(c(20,80), c(80, 160), c(160,240)),
                          use_cpp=TRUE, verbose = FALSE) {
 

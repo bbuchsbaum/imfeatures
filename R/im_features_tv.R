@@ -1,7 +1,6 @@
-#' @name extract_features_tv
-#' @rdname extract_features_tv
 #' Extract Deep Learning Features using thingsvision
 #'
+#' @description
 #' This is the primary user-facing function to extract features from images
 #' using a wide variety of models available through the Python `thingsvision` library.
 #' It handles model loading, data preparation, feature extraction, and returns
@@ -208,7 +207,7 @@
 #' }
 extract_features_tv <- function(impaths, model_name, source, module_name,
                           device = "cuda", pretrained = TRUE, model_parameters = NULL,
-                          flatten_acts = FALSE, batch_size = 32, temp_out_dir = tempdir(),
+                          flatten_acts = FALSE, batch_size = 32L, temp_out_dir = tempdir(),
                           output_dir = NULL) {
 
   # --- Input Validation and Setup ---
@@ -218,8 +217,17 @@ extract_features_tv <- function(impaths, model_name, source, module_name,
   }
 
   assert_scalar(model_name, "character")
+  if (!nzchar(model_name)) {
+    stop("'model_name' must be a non-empty character string.")
+  }
   assert_scalar(source, "character")
+  if (!nzchar(source)) {
+    stop("'source' must be a non-empty character string.")
+  }
   assert_scalar(module_name, "character")
+  if (!nzchar(module_name)) {
+    stop("'module_name' must be a non-empty character string.")
+  }
   assert_scalar(flatten_acts, "logical")
   assert_scalar(batch_size, "integer")
   # Infer root directory (assuming all files share the immediate parent)
@@ -307,7 +315,6 @@ extract_features_tv <- function(impaths, model_name, source, module_name,
 
 }
 
-#' @rdname extract_features_tv
 #' @export
 im_features_tv <- extract_features_tv
 
@@ -414,8 +421,6 @@ im_features_tv <- extract_features_tv
 #' image_paths <- list.files(image_dir, full.names = TRUE, pattern = "\\.png$")
 #'
 #' # Calculate similarity based on ResNet-18 avgpool and layer4 features
-#' @name compute_feature_similarity_tv
-#' @rdname compute_feature_similarity_tv
 #' sim_results <- im_feature_sim_tv(
 #'   impaths = image_paths,
 #'   model_name = "resnet18",
@@ -447,7 +452,7 @@ compute_feature_similarity_tv <- function(impaths, model_name, source, module_na
                               metric = "cosine",
                               flatten_acts = TRUE,
                               device = "cuda", pretrained = TRUE, model_parameters = NULL,
-                              batch_size = 32, temp_out_dir = tempdir()) {
+                              batch_size = 32L, temp_out_dir = tempdir()) {
 
   # --- Input Checks ---
   assert_image(impaths)
@@ -455,8 +460,17 @@ compute_feature_similarity_tv <- function(impaths, model_name, source, module_na
     stop("'impaths' must contain at least two image paths.")
   }
   assert_scalar(model_name, "character")
+  if (!nzchar(model_name)) {
+    stop("'model_name' must be a non-empty character string.")
+  }
   assert_scalar(source, "character")
+  if (!nzchar(source)) {
+    stop("'source' must be a non-empty character string.")
+  }
   checkmate::assert_character(module_names, min.len = 1, any.missing = FALSE)
+  if (any(!nzchar(module_names))) {
+    stop("All elements in 'module_names' must be non-empty character strings.")
+  }
   assert_scalar(flatten_acts, "logical")
   assert_scalar(batch_size, "integer")
   # Add check for metric validity using proxy?
