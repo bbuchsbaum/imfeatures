@@ -145,6 +145,7 @@ configure_hpc_python <- function(module_cmd = NULL,
 #' @param user Whether to use --user flag (default: TRUE for HPC)
 #' @param optional Whether to install optional packages (default: FALSE)
 #' @param upgrade Whether to upgrade existing packages (default: FALSE)
+#' @param no_deps Whether to use --no-deps flag to avoid dependency conflicts (default: FALSE)
 #'
 #' @examples
 #' \dontrun{
@@ -162,7 +163,8 @@ configure_hpc_python <- function(module_cmd = NULL,
 install_python_deps <- function(python_cmd = "python3",
                                user = TRUE,
                                optional = FALSE,
-                               upgrade = FALSE) {
+                               upgrade = FALSE,
+                               no_deps = FALSE) {
   
   # Find Python
   if (!file.exists(python_cmd)) {
@@ -184,6 +186,7 @@ install_python_deps <- function(python_cmd = "python3",
   pip_args <- character()
   if (user) pip_args <- c(pip_args, "--user")
   if (upgrade) pip_args <- c(pip_args, "--upgrade")
+  if (no_deps) pip_args <- c(pip_args, "--no-deps")
   
   pip_cmd <- paste(python_cmd, "-m pip install",
                   paste(pip_args, collapse = " "),
@@ -202,4 +205,123 @@ install_python_deps <- function(python_cmd = "python3",
   }
   
   invisible(result)
+}
+
+#' Install thingsvision on HPC systems with problematic dependencies
+#'
+#' Special installer for HPC systems (like Compute Canada) where certain
+#' dependency wheels may be corrupted or incompatible. This function installs
+#' thingsvision without dependencies, then selectively installs only the
+#' required dependencies.
+#'
+#' @param python_cmd Python command or path (default: "python3")
+#' @param user Whether to use --user flag (default: TRUE for HPC)
+#'
+#' @details
+#' This function is specifically designed for HPC systems where:
+#' - TensorFlow wheels may be corrupted (e.g., Compute Canada)
+#' - System-wide installations of PyTorch are preferred
+#' - Dependencies need to be carefully managed
+#'
+#' The function will:
+#' 1. Install thingsvision without dependencies
+#' 2. Install only the PyTorch-related dependencies we actually need
+#' 3. Skip problematic packages like tensorflow
+#'
+#' @examples
+#' \dontrun{
+#' # On Compute Canada / HPC system
+#' install_thingsvision_hpc()
+#' 
+#' # Then configure Python
+#' use_existing_python()
+#' }
+#'
+#' @export
+install_thingsvision_hpc <- function(python_cmd = "python3", user = TRUE) {
+  
+  # Find Python
+  if (!file.exists(python_cmd)) {
+    python_cmd <- Sys.which(python_cmd)
+    if (!nzchar(python_cmd)) {
+      stop("Python executable not found. Please specify the full path or ensure Python is in PATH.")
+    }
+  }
+  
+  message("Using Python: ", python_cmd)
+  message("\nInstalling thingsvision for HPC (avoiding problematic dependencies)...")
+  
+  user_flag <- if (user) "--user" else ""
+  
+  # Step 1: Install thingsvision without dependencies
+  message("\n1. Installing thingsvision without dependencies...")
+  cmd1 <- paste(python_cmd, "-m pip install", user_flag, "--no-deps thingsvision")
+  message("Running: ", cmd1)
+  result1 <- system(cmd1)
+  
+  if (result1 != 0) {
+    stop("Failed to install thingsvision. Please check your Python environment.")
+  }
+  
+  # Step 2: Install core dependencies (avoiding tensorflow)
+  message("\n2. Installing core dependencies...")
+  core_deps <- c(
+    "torch",
+    "torchvision", 
+    "numpy",
+    "Pillow",
+    "scipy",
+    "scikit-learn",
+    "pandas",
+    "matplotlib",
+    "h5py",
+    "open-clip-torch",
+    "ftfy",
+    "regex",
+    "safetensors"
+  )
+  
+  # Check which are already installed
+  missing_deps <- character()
+  for (dep in core_deps) {
+    check_cmd <- paste(python_cmd, "-c \"import", gsub("-", "_", dep), "\"", "2>/dev/null")
+    if (system(check_cmd, ignore.stdout = TRUE, ignore.stderr = TRUE) != 0) {
+      missing_deps <- c(missing_deps, dep)
+    }
+  }
+  
+  if (length(missing_deps) > 0) {
+    message("Installing missing dependencies: ", paste(missing_deps, collapse = ", "))
+    cmd2 <- paste(python_cmd, "-m pip install", user_flag, paste(missing_deps, collapse = " "))
+    message("Running: ", cmd2)
+    result2 <- system(cmd2)
+    
+    if (result2 != 0) {
+      message("\nSome dependencies may have failed to install.")
+      message("This is often OK on HPC systems where packages are pre-installed.")
+      message("Continuing...")
+    }
+  } else {
+    message("All core dependencies are already installed.")
+  }
+  
+  # Step 3: Verify installation
+  message("\n3. Verifying installation...")
+  verify_cmd <- paste(python_cmd, "-c \"import thingsvision; print('thingsvision version:', thingsvision.__version__)\"")
+  result3 <- system(verify_cmd)
+  
+  if (result3 == 0) {
+    message("\n✓ thingsvision installed successfully!")
+    message("\nYou can now use:")
+    message("  library(imfeatures)")
+    message("  use_existing_python()")
+    message("  list_module_names('resnet50')")
+  } else {
+    message("\n⚠ thingsvision import failed. You may need to install additional dependencies manually.")
+    message("Try running:")
+    message("  ", python_cmd, " -c \"import thingsvision\"")
+    message("to see what dependencies are missing.")
+  }
+  
+  invisible(result3 == 0)
 }
