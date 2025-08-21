@@ -486,12 +486,12 @@ tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...)
 }
 
 
-#' Create a thingsvision ImageDataLoader
+#' Create a thingsvision DataLoader
 #' @param dataset A thingsvision ImageDataset object
 #' @param batch_size Integer batch size
 #' @param extractor An R object of class `thingsvision_extractor`
-#' @param ... Additional arguments for ImageDataLoader (e.g., shuffle, num_workers)
-#' @return A reticulate Python object reference to the ImageDataLoader
+#' @param ... Additional arguments for DataLoader (e.g., shuffle, num_workers)
+#' @return A reticulate Python object reference to the DataLoader
 #' @export
 tv_create_dataloader <- function(dataset, batch_size, extractor, ...) {
   assert_scalar(batch_size, "integer")
@@ -508,7 +508,7 @@ tv_create_dataloader <- function(dataset, batch_size, extractor, ...) {
   }
 
 
-  dl <- tv_data$ImageDataLoader(
+  dl <- tv_data$DataLoader(
     dataset = dataset,
     batch_size = as.integer(batch_size),
     backend = py_extractor$get_backend(),
