@@ -268,6 +268,7 @@ install_thingsvision_hpc <- function(python_cmd = "python3", user = TRUE) {
   core_deps <- c(
     "torch",
     "torchvision", 
+    "torchtyping",  # Required by thingsvision
     "numpy",
     "Pillow",
     "scipy",
