@@ -148,10 +148,29 @@ use_existing_python <- function(python_path = NULL, check_modules = TRUE) {
     reticulate::use_python(python_path, required = TRUE)
     message("Configured to use Python at: ", python_path)
   } else {
-    # Use current Python configuration
-    cfg <- reticulate::py_config()
-    if (is.null(cfg$python)) {
-      stop("No Python configuration found. Please specify python_path or configure Python first.")
+    # Try to get current Python configuration, handling errors gracefully
+    cfg <- tryCatch({
+      reticulate::py_config()
+    }, error = function(e) {
+      # If py_config fails, try to find Python on the system
+      python_candidates <- c(
+        Sys.which("python3"),
+        Sys.which("python"),
+        "/usr/bin/python3",
+        "/usr/bin/python"
+      )
+      python_candidates <- python_candidates[nzchar(python_candidates) & file.exists(python_candidates)]
+      
+      if (length(python_candidates) > 0) {
+        reticulate::use_python(python_candidates[1], required = FALSE)
+        list(python = python_candidates[1])
+      } else {
+        NULL
+      }
+    })
+    
+    if (is.null(cfg) || is.null(cfg$python)) {
+      stop("No Python configuration found. Please specify python_path or ensure Python is available in PATH.")
     }
     message("Using existing Python configuration: ", cfg$python)
   }

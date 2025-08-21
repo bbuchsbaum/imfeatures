@@ -2,7 +2,7 @@
 
 This guide explains how to install and configure the `imfeatures` R package on HPC (High Performance Computing) systems where automatic Python environment creation may fail or be restricted.
 
-## Quick Start
+## Quick Start (Recommended for HPC)
 
 ### 1. Install the R package with Python setup disabled
 
@@ -16,35 +16,39 @@ R -e "install.packages('imfeatures_0.1.0.tar.gz', repos = NULL, type = 'source')
 
 ### 2. Configure Python after installation
 
-After the R package is installed, you can configure Python in several ways:
+After the R package is installed, use the HPC-specific helper functions:
 
-#### Option A: Use HPC module system
+#### Option A: Automatic HPC configuration (RECOMMENDED)
 ```r
-# In R, after loading your HPC Python module
 library(imfeatures)
 
-# If your HPC provides Python via modules
-system("module load python/3.9")  # Example - adjust for your HPC
+# Configure with module load command
+configure_hpc_python("module load python/3.9")
 
-# Configure imfeatures to use the loaded Python
-use_existing_python()
+# Or auto-install missing dependencies
+configure_hpc_python("module load python/3.9", install_deps = TRUE)
 ```
 
-#### Option B: Specify custom Python path
+#### Option B: Use existing Python directly
 ```r
 library(imfeatures)
 
-# Point to your Python installation
-use_existing_python("/path/to/your/python3")
+# Find and use whatever Python is available
+use_existing_python()
+
+# Or specify a path
+use_existing_python("/apps/python/3.9/bin/python3")
 ```
 
-#### Option C: Use existing conda environment
+#### Option C: Install dependencies separately
 ```r
 library(imfeatures)
 
-# If you have a conda environment already set up
-reticulate::use_condaenv("your-env-name")
-use_existing_python()
+# Install required Python packages
+install_python_deps()
+
+# Install all packages including optional ones
+install_python_deps(optional = TRUE)
 ```
 
 ## Environment Variables
