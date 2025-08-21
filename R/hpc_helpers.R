@@ -123,10 +123,12 @@ configure_hpc_python <- function(module_cmd = NULL,
       assign("resmem", reticulate::import("resmem", delay_load = TRUE), envir = .GlobalEnv)
     }
     if (reticulate::py_module_available("thingsvision")) {
-      assign("tv", reticulate::import("thingsvision", delay_load = TRUE), envir = .GlobalEnv)
-      assign("tv_data", reticulate::import("thingsvision.utils.data", delay_load = TRUE), envir = .GlobalEnv)
-      assign("tv_utils_storing", reticulate::import("thingsvision.utils.storing", delay_load = TRUE), envir = .GlobalEnv)
-      assign("tv_core_extraction", reticulate::import("thingsvision.core.extraction", delay_load = TRUE), envir = .GlobalEnv)
+      # Import to package namespace so tv_get_extractor can find it
+      pkg_env <- asNamespace("imfeatures")
+      assign("tv", reticulate::import("thingsvision", delay_load = TRUE), envir = pkg_env)
+      assign("tv_data", reticulate::import("thingsvision.utils.data", delay_load = TRUE), envir = pkg_env)
+      assign("tv_utils_storing", reticulate::import("thingsvision.utils.storing", delay_load = TRUE), envir = pkg_env)
+      assign("tv_core_extraction", reticulate::import("thingsvision.core.extraction", delay_load = TRUE), envir = pkg_env)
     }
     message("\n✓ Python configured successfully for imfeatures")
   }, error = function(e) {

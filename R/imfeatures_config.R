@@ -261,10 +261,12 @@ use_existing_python <- function(python_path = NULL, check_modules = TRUE, force 
       assign("resmem", reticulate::import("resmem", delay_load = TRUE), envir = parent.frame())
     }
     if (reticulate::py_module_available("thingsvision")) {
-      assign("tv", reticulate::import("thingsvision", delay_load = TRUE), envir = parent.frame())
-      assign("tv_data", reticulate::import("thingsvision.utils.data", delay_load = TRUE), envir = parent.frame())
-      assign("tv_utils_storing", reticulate::import("thingsvision.utils.storing", delay_load = TRUE), envir = parent.frame())
-      assign("tv_core_extraction", reticulate::import("thingsvision.core.extraction", delay_load = TRUE), envir = parent.frame())
+      # Import to package namespace so tv_get_extractor can find it
+      pkg_env <- asNamespace("imfeatures")
+      assign("tv", reticulate::import("thingsvision", delay_load = TRUE), envir = pkg_env)
+      assign("tv_data", reticulate::import("thingsvision.utils.data", delay_load = TRUE), envir = pkg_env)
+      assign("tv_utils_storing", reticulate::import("thingsvision.utils.storing", delay_load = TRUE), envir = pkg_env)
+      assign("tv_core_extraction", reticulate::import("thingsvision.core.extraction", delay_load = TRUE), envir = pkg_env)
     }
   }, error = function(e) {
     message("Note: Some Python modules could not be imported: ", e$message)
