@@ -61,7 +61,7 @@
 #'       \item OpenCLIP: `model_name = "OpenCLIP"`. Requires `model_parameters = list(variant = "ViT-B-32", dataset = "laion2b_s34b_b79k")`, etc. Check OpenCLIP repo for available variant/dataset pairs.
 #'       \item CORnet: `model_name = "cornet_s"`, `"cornet_r"`, `"cornet_rt"`, `"cornet_z"`. Recurrent vision models.
 #'       \item Ecoset Trained Models: `model_name = "Alexnet_ecoset"`, `"VGG16_ecoset"`, `"Resnet50_ecoset"`, `"Inception_ecoset"`. Trained on Ecoset dataset.
-#'       \item Harmonization Models: `model_name = "Harmonization"`. Requires `model_parameters = list(variant = "ViT_B16")` or `"ResNet50"`, etc. Needs extra installation steps (see `install_thingsvision()` docs or thingsvision README).
+#'       \item Harmonization Models: `model_name = "Harmonization"`. Requires `model_parameters = list(variant = "ViT_B16")` or `"ResNet50"`, etc. Needs extra installation steps (see thingsvision README).
 #'       \item DreamSim Models: `model_name = "DreamSim"`. Requires `model_parameters = list(variant = "open_clip_vitb32")` or `"clip_vitb32"`, etc. Needs `pip install dreamsim==0.1.2` in the Python env.
 #'       \item Segment Anything (SAM): `model_name = "SegmentAnything"`. Requires `model_parameters = list(variant = "vit_h")` or `"vit_l"`, `"vit_b"`.
 #'       \item Kakaobrain ALIGN: `model_name = "Kakaobrain_Align"`.
@@ -88,10 +88,10 @@
 #'
 #' @return A reticulate Python object reference to the configured thingsvision extractor.
 #' @export
-#' @seealso \code{\link{install_thingsvision}}, \code{\link{tv_extract_features}}, \code{\link{tv_show_model}}
+#' @seealso \code{\link{imfeatures_config}}, \code{\link{tv_extract_features}}, \code{\link{tv_show_model}}
 #' @examples
 #' \dontrun{
-#' # Ensure Python env is configured first, e.g. after install_thingsvision()
+#' # Ensure Python env is configured first, e.g. after imfeatures_config()
 #' # reticulate::use_condaenv("r-thingsvision", required = TRUE)
 #'
 #' # Example 1: ResNet-18 from Torchvision
@@ -140,7 +140,7 @@
 #'
 #' @return An R object of class `thingsvision_extractor`.
 #' @export
-#' @seealso \code{\link{install_thingsvision}}, \code{\link{extract.thingsvision_extractor}}, \code{\link{print.thingsvision_extractor}}, \code{\link{align.thingsvision_extractor}}
+#' @seealso \code{\link{imfeatures_config}}, \code{\link{extract.thingsvision_extractor}}, \code{\link{print.thingsvision_extractor}}, \code{\link{align.thingsvision_extractor}}
 #' @examples
 #' \dontrun{
 #' # reticulate::use_condaenv("r-thingsvision", required = TRUE)
@@ -154,7 +154,7 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
   assert_scalar(pretrained, "logical")
   # Ensure tv (main thingsvision module) is loaded via reticulate
   if (is.null(tv) || reticulate::py_is_null_xptr(tv)) {
-     stop("Python 'thingsvision' module not imported. Did you run configure_thingsvision_python() or install_thingsvision() and configure reticulate (e.g., use_condaenv)?")
+     stop("Python 'thingsvision' module not imported. Did you run imfeatures_config() or configure reticulate (e.g., use_condaenv)?")
   }
 
   source <- match.arg(source, c("torchvision", "timm", "keras", "ssl", "custom"))

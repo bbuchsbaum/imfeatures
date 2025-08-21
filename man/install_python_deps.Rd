@@ -8,8 +8,7 @@ install_python_deps(
   python_cmd = "python3",
   user = TRUE,
   optional = FALSE,
-  upgrade = FALSE,
-  no_deps = FALSE
+  upgrade = FALSE
 )
 }
 \arguments{
@@ -20,8 +19,6 @@ install_python_deps(
 \item{optional}{Whether to install optional packages (default: FALSE)}
 
 \item{upgrade}{Whether to upgrade existing packages (default: FALSE)}
-
-\item{no_deps}{Whether to use --no-deps flag to avoid dependency conflicts (default: FALSE)}
 }
 \description{
 Convenience function to install required and optional Python packages

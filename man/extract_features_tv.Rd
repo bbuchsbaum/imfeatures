@@ -140,7 +140,7 @@ You would need to load and combine these files manually after the function compl
 
 \strong{Prerequisites:}
 Requires a correctly configured Python environment with `thingsvision` and its
-dependencies installed. Use \code{\link{install_thingsvision}} to set this up
+dependencies installed. Use \code{\link{imfeatures_config}} to set this up
 and configure `reticulate` (e.g., `reticulate::use_condaenv("r-thingsvision")`)
 before calling this function.
 }
@@ -148,7 +148,7 @@ before calling this function.
 \dontrun{
 # --- Prerequisites ---
 # 1. Install thingsvision Python environment (only needs to be done once)
-# install_thingsvision()
+# imfeatures_config()
 
 # 2. Load library and configure reticulate for the current session
 library(imfeatures)
@@ -158,7 +158,7 @@ tryCatch({
   tv <- import("thingsvision") # Ensure it's loaded
 }, error = function(e) {
   message("Python environment 'r-thingsvision' not found or reticulate setup failed.")
-  message("Make sure you ran install_thingsvision() and reticulate is configured.")
+  message("Make sure you ran imfeatures_config() and reticulate is configured.")
 })
 
 # --- Example Usage ---
@@ -240,5 +240,5 @@ unlink(low_mem_dir, recursive = TRUE)
 }
 }
 \seealso{
-\code{\link{install_thingsvision}}, \code{\link{tv_get_extractor}}, \code{\link{tv_show_model}}, \code{\link{tv_extract_features}}, \code{\link{tv_create_dataset}}, \code{\link{tv_create_dataloader}}
+\code{\link{imfeatures_config}}, \code{\link{tv_get_extractor}}, \code{\link{tv_show_model}}, \code{\link{tv_extract_features}}, \code{\link{tv_create_dataset}}, \code{\link{tv_create_dataloader}}
 }

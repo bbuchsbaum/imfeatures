@@ -117,12 +117,12 @@ in memory during extraction.
 
 \strong{Prerequisites:}
 Requires a correctly configured Python environment with `thingsvision` installed.
-Use \code{\link{install_thingsvision}} and configure `reticulate` before use.
+Use \code{\link{imfeatures_config}} and configure `reticulate` before use.
 }
 \examples{
 \dontrun{
 # --- Prerequisites ---
-# install_thingsvision()
+# imfeatures_config()
 library(imfeatures)
 library(reticulate)
 tryCatch({
@@ -169,5 +169,5 @@ unlink(image_dir, recursive = TRUE)
 }
 }
 \seealso{
-\code{\link{im_features_tv}}, \code{\link{install_thingsvision}}, \code{\link{tv_get_extractor}}
+\code{\link{im_features_tv}}, \code{\link{imfeatures_config}}, \code{\link{tv_get_extractor}}
 }

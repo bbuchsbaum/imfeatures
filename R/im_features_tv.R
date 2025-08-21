@@ -105,7 +105,7 @@
 #'
 #' \strong{Prerequisites:}
 #' Requires a correctly configured Python environment with `thingsvision` and its
-#' dependencies installed. Use \code{\link{install_thingsvision}} to set this up
+#' dependencies installed. Use \code{\link{imfeatures_config}} to set this up
 #' and configure `reticulate` (e.g., `reticulate::use_condaenv("r-thingsvision")`)
 #' before calling this function.
 #'
@@ -116,12 +116,12 @@
 #'
 #' @importFrom tools file_path_sans_ext
 #' @export
-#' @seealso \code{\link{install_thingsvision}}, \code{\link{tv_get_extractor}}, \code{\link{tv_show_model}}, \code{\link{tv_extract_features}}, \code{\link{tv_create_dataset}}, \code{\link{tv_create_dataloader}}
+#' @seealso \code{\link{imfeatures_config}}, \code{\link{tv_get_extractor}}, \code{\link{tv_show_model}}, \code{\link{tv_extract_features}}, \code{\link{tv_create_dataset}}, \code{\link{tv_create_dataloader}}
 #' @examples
 #' \dontrun{
 #' # --- Prerequisites ---
 #' # 1. Install thingsvision Python environment (only needs to be done once)
-#' # install_thingsvision()
+#' # imfeatures_config()
 #'
 #' # 2. Load library and configure reticulate for the current session
 #' library(imfeatures)
@@ -131,7 +131,7 @@
 #'   tv <- import("thingsvision") # Ensure it's loaded
 #' }, error = function(e) {
 #'   message("Python environment 'r-thingsvision' not found or reticulate setup failed.")
-#'   message("Make sure you ran install_thingsvision() and reticulate is configured.")
+#'   message("Make sure you ran imfeatures_config() and reticulate is configured.")
 #' })
 #'
 #' # --- Example Usage ---
@@ -402,7 +402,7 @@ im_features_tv <- extract_features_tv
 #'
 #' \strong{Prerequisites:}
 #' Requires a correctly configured Python environment with `thingsvision` installed.
-#' Use \code{\link{install_thingsvision}} and configure `reticulate` before use.
+#' Use \code{\link{imfeatures_config}} and configure `reticulate` before use.
 #'
 #' @return A named list of similarity matrices. Elements are named according to
 #'         the provided `module_names`. If a name is repeated, a numeric suffix
@@ -413,11 +413,11 @@ im_features_tv <- extract_features_tv
 #' @importFrom tools file_path_sans_ext
 # @importFrom coop tcosine # Optional: uncomment if using coop specifically
 #' @export
-#' @seealso \code{\link{im_features_tv}}, \code{\link{install_thingsvision}}, \code{\link{tv_get_extractor}}
+#' @seealso \code{\link{im_features_tv}}, \code{\link{imfeatures_config}}, \code{\link{tv_get_extractor}}
 #' @examples
 #' \dontrun{
 #' # --- Prerequisites ---
-#' # install_thingsvision()
+#' # imfeatures_config()
 #' library(imfeatures)
 #' library(reticulate)
 #' tryCatch({
