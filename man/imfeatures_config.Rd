@@ -7,8 +7,9 @@
 \usage{
 imfeatures_config(
   envname = "r-imfeatures",
-  method = c("auto", "conda", "virtualenv"),
-  reset = FALSE
+  method = c("auto", "conda", "virtualenv", "existing"),
+  reset = FALSE,
+  create = TRUE
 )
 
 install_imfeatures_python(...)
@@ -17,10 +18,13 @@ install_imfeatures_python(...)
 \item{envname}{Name of the environment to create/use. Defaults to
 "r-imfeatures".}
 
-\item{method}{Installation method passed to `reticulate::py_install`.
-Use "auto", "conda" or "virtualenv".}
+\item{method}{Installation method. Options: "auto", "conda", "virtualenv", 
+or "existing" (to use current Python without modification).}
 
 \item{reset}{Force reinstallation of the environment.}
+
+\item{create}{Whether to create the environment if it doesn't exist.
+Set to FALSE on HPC systems where you want to use a pre-configured environment.}
 }
 \value{
 Invisible path to the configured Python binary.

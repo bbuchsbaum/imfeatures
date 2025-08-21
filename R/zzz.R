@@ -210,13 +210,45 @@ install_imfeatures_python <- function(...) {
 }
 
 .onLoad <- function(libname, pkgname) {
-  imfeatures_config()
-  if (reticulate::py_module_available("PIL")) PIL <<- reticulate::import("PIL", delay_load = TRUE)
-  if (reticulate::py_module_available("resmem")) resmem <<- reticulate::import("resmem", delay_load = TRUE)
-  if (reticulate::py_module_available("thingsvision")) {
-    tv <<- reticulate::import("thingsvision", delay_load = TRUE)
-    tv_data <<- reticulate::import("thingsvision.utils.data", delay_load = TRUE)
-    tv_utils_storing <<- reticulate::import("thingsvision.utils.storing", delay_load = TRUE)
-    tv_core_extraction <<- reticulate::import("thingsvision.core.extraction", delay_load = TRUE)
+  # Check if user wants to skip Python setup (e.g., on HPC systems)
+  skip_python <- Sys.getenv("IMFEATURES_SKIP_PYTHON", "FALSE")
+  skip_python <- toupper(skip_python) %in% c("TRUE", "1", "YES")
+  
+  if (skip_python) {
+    message("Python setup skipped (IMFEATURES_SKIP_PYTHON=TRUE). ",
+            "Python-dependent features will not be available until manually configured.")
+    return(invisible(NULL))
   }
+  
+  # Try to configure Python environment, but don't fail package loading
+  tryCatch({
+    # Check if user specified a custom Python path
+    custom_python <- Sys.getenv("IMFEATURES_PYTHON_PATH", "")
+    if (nzchar(custom_python)) {
+      reticulate::use_python(custom_python, required = FALSE)
+      message("Using custom Python: ", custom_python)
+    } else {
+      # Only try auto-configuration if no custom path specified
+      imfeatures_config()
+    }
+    
+    # Try to import Python modules, but don't fail if unavailable
+    if (reticulate::py_module_available("PIL")) {
+      PIL <<- reticulate::import("PIL", delay_load = TRUE)
+    }
+    if (reticulate::py_module_available("resmem")) {
+      resmem <<- reticulate::import("resmem", delay_load = TRUE)
+    }
+    if (reticulate::py_module_available("thingsvision")) {
+      tv <<- reticulate::import("thingsvision", delay_load = TRUE)
+      tv_data <<- reticulate::import("thingsvision.utils.data", delay_load = TRUE)
+      tv_utils_storing <<- reticulate::import("thingsvision.utils.storing", delay_load = TRUE)
+      tv_core_extraction <<- reticulate::import("thingsvision.core.extraction", delay_load = TRUE)
+    }
+  }, error = function(e) {
+    message("Note: Python configuration failed during package loading. ",
+            "This is normal on some systems (e.g., HPC). ",
+            "Python features can be configured later using imfeatures_config() or use_existing_python().")
+    message("To suppress this message, set environment variable: IMFEATURES_SKIP_PYTHON=TRUE")
+  })
 }
