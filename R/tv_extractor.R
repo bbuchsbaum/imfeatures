@@ -358,20 +358,37 @@ tv_extract.thingsvision_extractor <- function(object, dataloader, module_name, f
       }
       py_step_size <- as.integer(step_size)
    } else {
-      py_step_size <- NULL
+      py_step_size <- reticulate::py_none()
    }
 
    features_py <- tryCatch({
-      object$py_obj$extract_features(
-        batches = dataloader,
-        module_name = module_name,
-        flatten_acts = flatten_acts,
-        output_type = output_type,
-        output_dir = output_dir,
-        step_size = py_step_size
-      )
+      if (is.null(output_dir) && is.null(step_size)) {
+        # Most common case - no output_dir or step_size
+        object$py_obj$extract_features(
+          batches = dataloader,
+          module_name = module_name,
+          flatten_acts = flatten_acts,
+          output_type = output_type
+        )
+      } else {
+        # Full call with all parameters
+        object$py_obj$extract_features(
+          batches = dataloader,
+          module_name = module_name,
+          flatten_acts = flatten_acts,
+          output_type = output_type,
+          output_dir = if(is.null(output_dir)) reticulate::py_none() else output_dir,
+          step_size = py_step_size
+        )
+      }
    }, error = function(e) {
-      stop("Python feature extraction failed for module '", module_name, "':\n", e$message)
+      # Try to get more detail about the error
+      if (grepl("Expected a python object, received", e$message)) {
+        # This error might be from internal thingsvision processing
+        stop("Error during thingsvision feature extraction: \n", e$message)
+      } else {
+        stop("Python feature extraction failed for module '", module_name, "':\n", e$message)
+      }
    })
 
 
@@ -381,13 +398,26 @@ tv_extract.thingsvision_extractor <- function(object, dataloader, module_name, f
      return(invisible(NULL))
    }
 
-   # Convert Python result back to R
+   # Check if features_py is already an R object (automatic conversion by reticulate)
+   if (is.matrix(features_py) || is.array(features_py)) {
+      return(features_py)
+   }
+   
+   # Convert Python result back to R if needed
    if (reticulate::py_is_null_xptr(features_py)) {
         warning("Python extraction returned NULL features for module '", module_name, "'.")
         return(NULL)
    }
 
-   features_r <- reticulate::py_to_r(features_py)
+   features_r <- tryCatch({
+      reticulate::py_to_r(features_py)
+   }, error = function(e) {
+      # Debug what type of Python object we got
+      py_type <- class(features_py)
+      message("Failed to convert Python features to R. Python object type: ", paste(py_type, collapse=", "))
+      message("Error: ", e$message)
+      stop("Failed to convert extracted features from Python to R: ", e$message)
+   })
 
    if (!is.matrix(features_r) && !is.array(features_r)) {
         warning("Conversion from Python resulted in a non-matrix/array R object. Check output.")
@@ -475,13 +505,26 @@ tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...)
     transforms <- py_extractor$get_transformations() # Call method on Python object
   }
 
-  dataset <- tv_data$ImageDataset(
-    root = root,
-    out_path = out_path,
-    backend = py_extractor$get_backend(), # Call method on Python object
-    transforms = transforms,
-    ...
-  )
+  # Get any additional arguments
+  extra_args <- list(...)
+  
+  # Call the Python function directly with explicit arguments
+  if ("file_names" %in% names(extra_args)) {
+    dataset <- tv_data$ImageDataset(
+      root = root,
+      out_path = out_path,
+      file_names = extra_args$file_names,
+      backend = py_extractor$get_backend(), # Call method on Python object
+      transforms = transforms
+    )
+  } else {
+    dataset <- tv_data$ImageDataset(
+      root = root,
+      out_path = out_path,
+      backend = py_extractor$get_backend(), # Call method on Python object
+      transforms = transforms
+    )
+  }
   return(dataset)
 }
 
