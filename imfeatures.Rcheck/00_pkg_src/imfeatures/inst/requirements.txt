@@ -1,0 +1,24 @@
+# Core dependencies for imfeatures Python functionality
+# Install with: pip install -r requirements.txt
+
+# Basic image processing
+Pillow>=9.0.0
+numpy>=1.20.0
+
+# Optional: Deep learning feature extraction (thingsvision)
+# Uncomment the following lines if you want to use thingsvision features
+# thingsvision>=2.0.0
+# torch>=1.10.0
+# torchvision>=0.11.0
+
+# Optional: Memory-based image features (resmem)
+# Uncomment if you want to use resmem features
+# resmem
+
+# Optional: CLIP model support
+# Uncomment for CLIP features
+# git+https://github.com/openai/CLIP.git
+
+# Optional: DreamSim support
+# Uncomment for DreamSim features
+# dreamsim
