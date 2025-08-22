@@ -269,8 +269,19 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48, verbose = FALSE) {
 
 
 
-  cutoff = sort(as.vector(resp_val), decreasing=TRUE)[10000] # get 10000th highest response for cutting of beneath
-  if (verbose) message("[R] do_counting: Calculated cutoff (k-th=10000): ", cutoff)
+  # Get cutoff, but handle cases where there are fewer than 10000 values
+  sorted_vals <- sort(as.vector(resp_val), decreasing=TRUE)
+  n_vals <- length(sorted_vals)
+  if (n_vals >= 10000) {
+    cutoff <- sorted_vals[10000]
+  } else if (n_vals > 0) {
+    # Use a reasonable cutoff for small images (e.g., keep top 10% of values)
+    cutoff_idx <- max(1, ceiling(n_vals * 0.1))
+    cutoff <- sorted_vals[cutoff_idx]
+  } else {
+    cutoff <- 0
+  }
+  if (verbose) message("[R] do_counting: Calculated cutoff (k-th=", min(10000, n_vals), "): ", cutoff)
   resp_val[resp_val<cutoff] = 0
   if (verbose) {
     message("[R] do_counting: Range resp_val (after cutoff): [",
@@ -287,6 +298,13 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48, verbose = FALSE) {
 
   dist = t(sqrt(xx^2+yy^2))
   ecds <- which(resp_val != 0, arr.ind=TRUE)
+  
+  # Handle case where no edges are found
+  if (nrow(ecds) == 0) {
+    if (verbose) message("[R] do_counting: No edges found after thresholding")
+    counts <- array(0, c(maxdiag, circ_bins, length(fres$fbank$bins_vec)))
+    return(list(counts=counts, complex_before=complex_before))
+  }
 
   ex <- ecds[,1]
   ey <- ecds[,2]
@@ -296,7 +314,7 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48, verbose = FALSE) {
   counts = array(0, c(maxdiag, circ_bins, length(fres$fbank$bins_vec)))
   gabor_bins <- length(fres$fbank$bins_vec)
   #print "Counting", filter_img.image_name, filter_img.image_size(), "comparing", ex.size
-  for (cp in 1:length(ex)) {
+  for (cp in seq_along(ex)) {
     #print(cp)
 
     orientations_rel = orientations - orientations[cp]
@@ -457,6 +475,11 @@ compute_edge_entropy <- function(image, max_pixels=120000L, maxdiag=500L, gabor_
   checkmate::assert_list(ranges, types = "numeric", min.len = 1)
   assert_scalar(use_cpp, "logical")
   assert_scalar(verbose, "logical")
+  
+  # Validate filter_length is positive and odd (to match C++ validation)
+  if (filter_length <= 0 || filter_length %% 2 == 0) {
+    stop("'filter_length' must be a positive odd integer")
+  }
   
   # Check if image is a file path or a matrix
   if (is.character(image) && length(image) == 1) {
