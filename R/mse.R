@@ -3,8 +3,8 @@
 #' Compute the entropy of the Hue, Saturation and Value components of an image
 #' across multiple blur scales.
 #'
-#' @import imager
-#' @import entropy
+#' @importFrom imager RGBtoHSV imsplit isoblur add.colour channels
+#' @importFrom entropy discretize freqs entropy
 #' @param im image of type `cimg` from `imager` package. The function expects an
 #'   image with three colour channels. If a single-channel image is supplied it
 #'   will be converted with \code{add.colour()}, and an error is thrown if the

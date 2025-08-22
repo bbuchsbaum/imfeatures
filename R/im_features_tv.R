@@ -23,7 +23,7 @@
 #' @param module_name Character string. The specific layer or module within the
 #'        model from which to extract activations. If NULL (default), automatically
 #'        selects an appropriate layer based on the model architecture. Use
-#'        `tv_show_model(tv_get_extractor(model_name, source))` to list available
+#'        `show_model(tv_get_extractor(model_name, source))` to list available
 #'        module names for a given model. Common examples include final layers
 #'        like `"avgpool"` or `"fc"` (in ResNets), `"classifier.6"` (in VGG/AlexNet),
 #'        `"visual"` (in CLIP), or intermediate layers like `"features.10"` (in VGG).
@@ -73,7 +73,7 @@
 #' The `module_name` is critical. To find valid names for your chosen `model_name` and `source`:
 #' \preformatted{
 #'   extractor <- tv_get_extractor("resnet50", "torchvision")
-#'   tv_show_model(extractor) # Prints the model structure
+#'   show_model(extractor) # Prints the model structure
 #' }
 #' Look for meaningful layer names in the output (e.g., `avgpool`, `layer4`, `fc` for ResNet).
 #'
@@ -92,7 +92,7 @@
 #'
 #' \strong{Low-Memory Extraction (`output_dir`):}
 #' When `output_dir` is specified, features for each batch (or group of batches,
-#' controlled by `step_size` in `tv_extract_features`, which this function doesn't expose
+#' controlled by `step_size` in `tv_extract`, which this function doesn't expose
 #' directly but uses a default) are saved as separate `.npy` files (e.g., `features_0-32.npy`,
 #' `features_32-64.npy`, ...) in the specified directory. The main R function then returns `NULL`.
 #' You would need to load and combine these files manually after the function completes, e.g., using:
@@ -116,7 +116,7 @@
 #'
 #' @importFrom tools file_path_sans_ext
 #' @export
-#' @seealso \code{\link{imfeatures_config}}, \code{\link{tv_get_extractor}}, \code{\link{tv_show_model}}, \code{\link{tv_extract_features}}, \code{\link{tv_create_dataset}}, \code{\link{tv_create_dataloader}}
+#' @seealso \code{\link{imfeatures_config}}, \code{\link{tv_get_extractor}}, \code{\link{show_model}}, \code{\link{tv_extract}}, \code{\link{tv_create_dataset}}, \code{\link{tv_create_dataloader}}
 #' @examples
 #' \dontrun{
 #' # --- Prerequisites ---
@@ -360,7 +360,7 @@ im_features_tv <- extract_features_tv
 #'        model from which to extract features for similarity calculation. If NULL
 #'        (default), automatically selects an appropriate layer based on the model
 #'        architecture. Use
-#'        `tv_show_model(tv_get_extractor(model_name, source))` to find valid names.
+#'        `show_model(tv_get_extractor(model_name, source))` to find valid names.
 #' @param metric Character string. The similarity metric to use. Defaults to "cosine".
 #'        Common options include "cosine", "correlation", "Euclidean", "Manhattan".
 #'        Use `proxy::pr_DB$get_entry_names()` to see all available metrics.

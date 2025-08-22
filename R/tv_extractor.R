@@ -88,7 +88,7 @@
 #'
 #' @return A reticulate Python object reference to the configured thingsvision extractor.
 #' @export
-#' @seealso \code{\link{imfeatures_config}}, \code{\link{tv_extract_features}}, \code{\link{tv_show_model}}
+#' @seealso \code{\link{imfeatures_config}}, \code{\link{tv_extract}}, \code{\link{show_model}}
 #' @examples
 #' \dontrun{
 #' # Ensure Python env is configured first, e.g. after imfeatures_config()
@@ -140,7 +140,7 @@
 #'
 #' @return An R object of class `thingsvision_extractor`.
 #' @export
-#' @seealso \code{\link{imfeatures_config}}, \code{\link{extract.thingsvision_extractor}}, \code{\link{print.thingsvision_extractor}}, \code{\link{align.thingsvision_extractor}}
+#' @seealso \code{\link{imfeatures_config}}, \code{\link{tv_extract.thingsvision_extractor}}, \code{\link{print.thingsvision_extractor}}, \code{\link{tv_align.thingsvision_extractor}}
 #' @examples
 #' \dontrun{
 #' # reticulate::use_condaenv("r-thingsvision", required = TRUE)

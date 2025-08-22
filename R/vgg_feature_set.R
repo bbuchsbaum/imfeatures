@@ -27,7 +27,7 @@
 #'   \item{target_size}{Numeric vector of image resize dimensions.}
 #' }
 #' @export
-#' @import keras
+#' @importFrom keras application_vgg16
 extract_vgg_features <- function(impaths,
                                  tier = c("low", "mid", "high", "semantic"),
                                  model = NULL,

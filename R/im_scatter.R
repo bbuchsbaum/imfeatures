@@ -1,8 +1,8 @@
 
 #' a 2D scatterplot with images displayed at each location
 #'
-#' @import ggimage
-#' @import ggplot2
+#' @importFrom ggimage geom_image
+#' @importFrom ggplot2 ggplot aes_string theme_bw
 #' @param dframe a `data.frame` containing x and y coordinates and path to image file.
 #' @param xvar the name of the variable containing the x coordinates
 #' @param yvar the name of the variable containing the y coordinates
@@ -25,7 +25,7 @@ im_scatter <- plot_im_scatter
 
 #' a 3D scatterplot with images displayed at each location
 #'
-#' @import rgl
+#' @importFrom rgl rgl.open rgl.bg par3d rgl.sprites plot3d
 #' @param dframe a `data.frame` containing x, y, z coordinates and path to image file.
 #' @param imagename the name of the image variable in `dframe`
 #' @param radius the radius of the image sprite

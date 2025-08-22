@@ -24,8 +24,7 @@ tv_core_extraction <- NULL
 }
 #' @describeIn imfeatures_config Deprecated alias.
 #' @export
-
-#' @import reticulate
+#' @importFrom reticulate conda_create conda_install py_install virtualenv_create virtualenv_install use_condaenv use_virtualenv
 install_imfeatures_python <- function(envname = "r-imfeatures",
                                       method = ifelse(.detect_conda_present(), "conda", "virtualenv"),
                                       python_version = "3.9",

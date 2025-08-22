@@ -49,7 +49,7 @@ relative to their computed common root.}
 model from which to extract features for similarity calculation. If NULL
 (default), automatically selects an appropriate layer based on the model
 architecture. Use
-`tv_show_model(tv_get_extractor(model_name, source))` to find valid names.}
+`show_model(tv_get_extractor(model_name, source))` to find valid names.}
 
 \item{metric}{Character string. The similarity metric to use. Defaults to "cosine".
 Common options include "cosine", "correlation", "Euclidean", "Manhattan".

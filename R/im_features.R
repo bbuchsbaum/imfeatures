@@ -2,7 +2,9 @@
 #'
 #' @name compute_feature_similarity
 #' @rdname compute_feature_similarity
-#' @import furrr proxy
+#' @importFrom furrr future_map
+#' @importFrom proxy simil
+#' @importFrom coop tcosine
 #' @param impaths paths to image files (vector of file paths)
 #' @param layers the layer indices
 #' @param model the Keras model
@@ -13,8 +15,9 @@
 #' @param cache_size maximum cache size in bytes for memoization (default: 2048 * 2048^2)
 #' @param subsamp_prop proportion of features to subsample (0 to 1, default: 1 for no subsampling)
 #' @return A list of similarity matrices, one for each layer
-#' @import memoise
-#' @import progress
+#' @importFrom memoise memoise
+#' @importFrom cachem cache_mem
+#' @importFrom progress progress_bar
 #' @export
 compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=c(224,224),
                            spatial_pooling = "none",
@@ -138,7 +141,7 @@ vgg16 <- function() {
 #'        }
 #'        This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
 #'        this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.
-#' @import keras
+#' @importFrom keras application_vgg16 image_load image_to_array imagenet_preprocess_input keras_model get_layer
 #' @return A tibble with columns \code{image}, \code{layer} and a list-column \code{feature}.
 #'   The tibble inherits class \code{imfeatures_feature_tbl} for dplyr compatibility.
 #' @name extract_features
@@ -242,6 +245,7 @@ im_features <- extract_features
 #' @param topn number of top predictions to return (default: 12)
 #' @export
 #' @importFrom dplyr top_n arrange desc
+#' @importFrom keras imagenet_decode_predictions
 im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   assert_image(impath)
   checkmate::assert_integerish(target_size, len = 2)
