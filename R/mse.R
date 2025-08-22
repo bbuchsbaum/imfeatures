@@ -18,7 +18,12 @@ image_mse <- function(im, sf=c(100, 50, 8, 4, 0), bins=16L) {
   assert_image(im)
   checkmate::assert_integerish(sf, min.len = 1)
   assert_scalar(bins, "integer")
-  if (length(channels(im)) == 1) {
+  
+  # Track if input was grayscale without NA values
+  was_grayscale <- length(channels(im)) == 1
+  has_na <- anyNA(as.vector(im))
+  
+  if (was_grayscale) {
     im <- add.colour(im)
   }
   if (length(channels(im)) != 3) {
@@ -52,7 +57,14 @@ image_mse <- function(im, sf=c(100, 50, 8, 4, 0), bins=16L) {
   })
 
   ret <- do.call(rbind, ret)
-  out <- colMeans(as.matrix(ret[,2:4]))
+  out <- colMeans(as.matrix(ret[,2:4]), na.rm = TRUE)
+  
+  # For grayscale images without NA, replace NaN (from undefined H/S) with 0
+  # For images with NA values, preserve NA in the output
+  if (was_grayscale && !has_na) {
+    out[is.nan(out)] <- 0
+  }
+  
   names(out) <- c("H", "S", "V")
   out
 
