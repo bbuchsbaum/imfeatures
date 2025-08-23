@@ -83,12 +83,54 @@ It automatically converts the ranges list to the required format for the C++ fun
 }
 \examples{
 \donttest{
-# Using a file path
-
-
-# Using a matrix
+# Example 1: Using a matrix with default parameters
 img_matrix <- matrix(runif(100*100), nrow=100)
-result <- edge_entropy(img_matrix)
+result <- compute_edge_entropy(img_matrix)
+print(result$H1)  # First-order entropy
+print(result$H2)  # Second-order (pairwise) entropy
+
+# Example 2: Load and process an image file
+library(imager)
+img <- load.example("coins")
+gray_img <- grayscale(img)
+img_array <- as.array(gray_img)[,,1,1]
+
+# Compute edge entropy with custom parameters
+result_custom <- compute_edge_entropy(
+  image = img_array,
+  gabor_bins = 32L,  # More orientation bins
+  filter_length = 41L,  # Larger filter for coarser features
+  circ_bins = 64L,  # More angular bins
+  use_cpp = TRUE  # Use fast C++ implementation
+)
+
+# Example 3: Compare R and C++ implementations
+small_img <- matrix(runif(50*50), nrow=50)
+result_r <- compute_edge_entropy(small_img, use_cpp = FALSE, verbose = TRUE)
+result_cpp <- compute_edge_entropy(small_img, use_cpp = TRUE, verbose = FALSE)
+
+# Results should be very similar
+all.equal(result_r$H1, result_cpp$H1, tolerance = 1e-10)
+
+# Example 4: Process with different distance ranges
+result_ranges <- compute_edge_entropy(
+  image = img_array,
+  ranges = list(c(10,50), c(50,100), c(100,200), c(200,400)),
+  maxdiag = 600L  # Increase to accommodate larger ranges
+)
+
+# Example 5: Batch process multiple images
+img_files <- list.files("path/to/images", pattern = "\\\\.jpg$", full.names = TRUE)
+entropy_results <- lapply(img_files[1:5], function(f) {
+  img <- load.image(f)
+  gray <- grayscale(img)
+  arr <- as.array(gray)[,,1,1]
+  compute_edge_entropy(arr, max_pixels = 100000L)
+})
+
+# Extract H1 and H2 values
+h1_values <- sapply(entropy_results, function(x) x$H1)
+h2_values <- sapply(entropy_results, function(x) x$H2)
 }
 
 }

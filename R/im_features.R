@@ -18,6 +18,45 @@
 #' @importFrom memoise memoise
 #' @importFrom cachem cache_mem
 #' @importFrom progress progress_bar
+#' @examples
+#' \dontrun{
+#' # Create a vector of image paths
+#' img_dir <- system.file("extdata", package = "imfeatures")
+#' img_paths <- list.files(img_dir, pattern = "\\.jpg$", full.names = TRUE)
+#' 
+#' # Compute similarity matrix using features from specific layers
+#' sim_matrix <- compute_feature_similarity(
+#'   impaths = img_paths,
+#'   layers = c(10, 15),  # Two VGG16 layers
+#'   model = NULL,  # Use default VGG16
+#'   target_size = c(224, 224),
+#'   metric = "cosine"
+#' )
+#' 
+#' # Access similarity matrices for each layer
+#' layer10_sim <- sim_matrix$layer_10
+#' layer15_sim <- sim_matrix$layer_15
+#' 
+#' # Compute similarity with spatial pooling for efficiency
+#' sim_pooled <- compute_feature_similarity(
+#'   impaths = img_paths,
+#'   layers = c(12),
+#'   spatial_pooling = "avg",  # Average pool spatial dimensions
+#'   metric = "cosine",
+#'   lowmem = TRUE  # Memory-efficient computation
+#' )
+#' 
+#' # Use subsampling for very large feature vectors
+#' sim_subsampled <- compute_feature_similarity(
+#'   impaths = img_paths,
+#'   layers = c(10),
+#'   subsamp_prop = 0.5,  # Use 50% of features
+#'   metric = "euclidean"
+#' )
+#' 
+#' # Visualize similarity matrix
+#' heatmap(sim_matrix$layer_10, symm = TRUE)
+#' }
 #' @export
 compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=c(224,224),
                            spatial_pooling = "none",
@@ -146,6 +185,37 @@ vgg16 <- function() {
 #'   The tibble inherits class \code{imfeatures_feature_tbl} for dplyr compatibility.
 #' @name extract_features
 #' @rdname extract_features
+#' @examples
+#' \dontrun{
+#' # Extract features from a single image using default VGG16 model
+#' img_path <- system.file("extdata", "example.jpg", package = "imfeatures")
+#' 
+#' # Extract features from multiple layers
+#' features <- extract_features(
+#'   impath = img_path,
+#'   layers = c(3, 5, 7),  # conv1_2, conv2_1, conv2_2
+#'   model = NULL,  # Uses default VGG16
+#'   target_size = c(224, 224)
+#' )
+#' 
+#' # Extract features with spatial pooling
+#' features_pooled <- extract_features(
+#'   impath = img_path,
+#'   layers = c(10, 12),  # Later convolutional layers
+#'   spatial_pooling = "avg"  # Global average pooling
+#' )
+#' 
+#' # Extract features with spatial resizing
+#' features_resized <- extract_features(
+#'   impath = img_path,
+#'   layers = c(10),
+#'   spatial_pooling = "resize_7x7"  # Resize spatial dimensions to 7x7
+#' )
+#' 
+#' # Access the extracted features
+#' layer3_features <- features$feature[[1]]  # Features from layer 3
+#' dim(layer3_features)  # Check dimensions
+#' }
 #' @export
 extract_features <- function(impath, layers, model=NULL, target_size=c(224,224),
                         spatial_pooling = "none") {
@@ -243,6 +313,34 @@ im_features <- extract_features
 #'
 #' @inheritParams im_features
 #' @param topn number of top predictions to return (default: 12)
+#' @examples
+#' \dontrun{
+#' # Predict class of a single image
+#' img_path <- system.file("extdata", "dog.jpg", package = "imfeatures")
+#' 
+#' # Use default VGG16 model trained on ImageNet
+#' predictions <- im_predict(img_path, topn = 5)
+#' print(predictions)  # Top 5 predicted classes with scores
+#' 
+#' # Use a custom pre-loaded model
+#' library(keras)
+#' resnet_model <- application_resnet50(weights = 'imagenet')
+#' predictions_resnet <- im_predict(
+#'   impath = img_path,
+#'   model = resnet_model,
+#'   target_size = c(224, 224),
+#'   topn = 10
+#' )
+#' 
+#' # Predict using VGG16-Places365 for scene recognition
+#' places_model <- load_vgg16_places()
+#' scene_predictions <- im_predict(
+#'   impath = "path/to/landscape.jpg",
+#'   model = places_model,
+#'   topn = 3
+#' )
+#' # Will return scene categories like "mountain", "forest", etc.
+#' }
 #' @export
 #' @importFrom dplyr top_n arrange desc
 #' @importFrom keras imagenet_decode_predictions

@@ -48,3 +48,35 @@ A tibble with columns \code{image}, \code{layer} and a list-column \code{feature
 \description{
 extract features from intermediate layers
 }
+\examples{
+\dontrun{
+# Extract features from a single image using default VGG16 model
+img_path <- system.file("extdata", "example.jpg", package = "imfeatures")
+
+# Extract features from multiple layers
+features <- extract_features(
+  impath = img_path,
+  layers = c(3, 5, 7),  # conv1_2, conv2_1, conv2_2
+  model = NULL,  # Uses default VGG16
+  target_size = c(224, 224)
+)
+
+# Extract features with spatial pooling
+features_pooled <- extract_features(
+  impath = img_path,
+  layers = c(10, 12),  # Later convolutional layers
+  spatial_pooling = "avg"  # Global average pooling
+)
+
+# Extract features with spatial resizing
+features_resized <- extract_features(
+  impath = img_path,
+  layers = c(10),
+  spatial_pooling = "resize_7x7"  # Resize spatial dimensions to 7x7
+)
+
+# Access the extracted features
+layer3_features <- features$feature[[1]]  # Features from layer 3
+dim(layer3_features)  # Check dimensions
+}
+}
