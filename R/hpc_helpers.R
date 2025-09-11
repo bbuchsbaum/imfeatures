@@ -6,7 +6,8 @@
 #' @param module_cmd Optional module load command to run (e.g., "module load python/3.9")
 #' @param python_cmd Python command to use (default: "python3")
 #' @param install_deps Whether to attempt installing missing dependencies
-#' @param pip_user Whether to use --user flag for pip installs
+#' @param pip_user Whether to use --user flag for pip installs. Automatically
+#'   disabled when targeting a virtualenv/venv, where --user is not allowed.
 #'
 #' @return Invisible path to configured Python
 #'
@@ -62,6 +63,19 @@ configure_hpc_python <- function(module_cmd = NULL,
   # Configure Python
   message("Configuring Python: ", python_path)
   reticulate::use_python(python_path, required = TRUE)
+
+  # Detect if this Python is a virtualenv/venv; in that case, --user installs are invalid
+  in_venv <- FALSE
+  in_venv <- tryCatch({
+    reticulate::py_eval(
+      "import sys; (getattr(sys, 'real_prefix', None) is not None) or (getattr(sys, 'base_prefix', sys.prefix) != sys.prefix)",
+      convert = TRUE
+    )
+  }, error = function(e) FALSE)
+  if (!isTRUE(in_venv)) {
+    venv_root <- normalizePath(file.path(dirname(python_path), ".."), mustWork = FALSE)
+    in_venv <- file.exists(file.path(venv_root, "pyvenv.cfg"))
+  }
   
   # Check modules
   required <- c("Pillow", "numpy")
@@ -89,16 +103,18 @@ configure_hpc_python <- function(module_cmd = NULL,
     
     if (install_deps) {
       message("Installing required packages...")
+      use_user <- isTRUE(pip_user) && !isTRUE(in_venv)
       pip_cmd <- paste0(python_path, " -m pip install ",
-                       if (pip_user) "--user " else "",
-                       paste(missing_required, collapse = " "))
+                        if (use_user) "--user " else "",
+                        paste(missing_required, collapse = " "))
       message("Running: ", pip_cmd)
       system(pip_cmd)
     } else {
       message("To install, run:")
+      use_user <- isTRUE(pip_user) && !isTRUE(in_venv)
       message("  ", python_path, " -m pip install ",
-             if (pip_user) "--user " else "",
-             paste(missing_required, collapse = " "))
+              if (use_user) "--user " else "",
+              paste(missing_required, collapse = " "))
     }
   } else {
     message("✓ All required packages are installed")
@@ -108,9 +124,10 @@ configure_hpc_python <- function(module_cmd = NULL,
     message("\nOptional packages not found: ", paste(missing_optional, collapse = ", "))
     if (install_deps && length(missing_required) == 0) {
       message("To install optional packages, run:")
+      use_user <- isTRUE(pip_user) && !isTRUE(in_venv)
       message("  ", python_path, " -m pip install ",
-             if (pip_user) "--user " else "",
-             paste(missing_optional, collapse = " "))
+              if (use_user) "--user " else "",
+              paste(missing_optional, collapse = " "))
     }
   }
   
@@ -158,10 +175,13 @@ configure_hpc_python <- function(module_cmd = NULL,
 #' Install Python dependencies for imfeatures
 #'
 #' Convenience function to install required and optional Python packages
-#' for imfeatures using pip.
+#' for imfeatures using pip. If the target `python_cmd` belongs to a
+#' virtualenv/venv, the `--user` flag is automatically disabled as it is
+#' not supported inside virtual environments.
 #'
 #' @param python_cmd Python command or path (default: "python3")
-#' @param user Whether to use --user flag (default: TRUE for HPC)
+#' @param user Whether to use --user flag (default: TRUE for HPC). Ignored when
+#'   `python_cmd` is a virtualenv/venv.
 #' @param optional Whether to install optional packages (default: FALSE)
 #' @param upgrade Whether to upgrade existing packages (default: FALSE)
 #'
@@ -192,6 +212,11 @@ install_python_deps <- function(python_cmd = "python3",
   }
   
   message("Using Python: ", python_cmd)
+
+  # Detect if this Python is a virtualenv/venv; in that case, --user installs are invalid
+  in_venv <- FALSE
+  venv_root <- normalizePath(file.path(dirname(python_cmd), ".."), mustWork = FALSE)
+  if (file.exists(file.path(venv_root, "pyvenv.cfg"))) in_venv <- TRUE
   
   # Build package list
   packages <- c("Pillow", "numpy")
@@ -214,7 +239,8 @@ install_python_deps <- function(python_cmd = "python3",
   
   # Build pip command
   pip_args <- character()
-  if (user) pip_args <- c(pip_args, "--user")
+  use_user <- isTRUE(user) && !isTRUE(in_venv)
+  if (use_user) pip_args <- c(pip_args, "--user")
   if (upgrade) pip_args <- c(pip_args, "--upgrade")
   
   pip_cmd <- paste(python_cmd, "-m pip install",
@@ -235,4 +261,3 @@ install_python_deps <- function(python_cmd = "python3",
   
   invisible(result)
 }
-
