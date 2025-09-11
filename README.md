@@ -63,7 +63,7 @@ To make this permanent, add `IMFEATURES_SKIP_PYTHON=TRUE` to `~/.Renviron`.
 
 ``` bash
 # Example using your cluster's Python module
-module load python/3.9              # if applicable
+module load python/3.10             # if applicable (3.9/3.10 recommended)
 python -m venv $WORK/venvs/imfeatures
 source $WORK/venvs/imfeatures/bin/activate
 pip install --upgrade pip wheel setuptools
@@ -79,6 +79,10 @@ pip install thingsvision resmem open-clip-torch
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 # or CUDA-specific (example):
 # pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+Note on Python versions: some optional packages (e.g., thingsvision via numba)
+currently do not support Python 3.11+. Prefer Python 3.9 or 3.10 when you plan
+to use these features.
 ```
 
 3. Tell imfeatures to use that Python:

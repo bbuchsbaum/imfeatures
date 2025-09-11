@@ -96,6 +96,24 @@ configure_hpc_python <- function(module_cmd = NULL,
       missing_optional <- c(missing_optional, pkg)
     }
   }
+
+  # Detect Python version and provide guidance for known incompatibilities
+  py_ver <- tryCatch({
+    reticulate::py_eval("import sys; f'{sys.version_info[0]}.{sys.version_info[1]}'", convert = TRUE)
+  }, error = function(e) NA_character_)
+  if (is.character(py_ver) && nzchar(py_ver)) {
+    parts <- strsplit(py_ver, "\\.")[[1]]
+    if (length(parts) >= 2) {
+      maj <- suppressWarnings(as.integer(parts[1]))
+      min <- suppressWarnings(as.integer(parts[2]))
+      if (!is.na(maj) && !is.na(min) && (maj > 3 || (maj == 3 && min >= 11))) {
+        if ("thingsvision" %in% missing_optional) {
+          message("\nNote: Python ", py_ver, " detected. The 'thingsvision' package currently pins 'numba' to a version that ",
+                  "does not support Python 3.11+. Prefer Python 3.9 or 3.10 when installing 'thingsvision'.")
+        }
+      }
+    }
+  }
   
   # Report status
   if (length(missing_required) > 0) {
