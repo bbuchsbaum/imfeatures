@@ -46,3 +46,62 @@ im2 = "testdata/1_B_1.jpeg"
 im_feature_sim(c(im1,im2), layers=c(1,2,3))
 ```
 
+## HPC Quickstart (single recommended path)
+
+On HPC systems, avoid automatic Conda setup and use an existing Python instead.
+
+1. Disable auto Python setup during load (recommended on HPC):
+
+```r
+Sys.setenv(IMFEATURES_SKIP_PYTHON = "TRUE")
+```
+
+To make this permanent, add `IMFEATURES_SKIP_PYTHON=TRUE` to `~/.Renviron`.
+
+2. Create or choose a Python environment (module + venv is typical):
+
+```bash
+# Example using your cluster's Python module
+module load python/3.9              # if applicable
+python -m venv $WORK/venvs/imfeatures
+source $WORK/venvs/imfeatures/bin/activate
+pip install --upgrade pip wheel setuptools
+
+# Minimal required packages
+pip install Pillow numpy
+
+# Optional packages for full functionality
+pip install thingsvision resmem open-clip-torch
+
+# PyTorch: use your cluster's module if available, otherwise pick one index
+# CPU only:
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# or CUDA-specific (example):
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+```
+
+3. Tell imfeatures to use that Python:
+
+```r
+library(imfeatures)
+use_existing_python("$WORK/venvs/imfeatures/bin/python")
+```
+
+Alternatively, set once in `~/.Renviron` and it will be auto-detected:
+
+```
+RETICULATE_PYTHON=$WORK/venvs/imfeatures/bin/python
+IMFEATURES_SKIP_PYTHON=TRUE
+```
+
+4. Verify:
+
+```r
+reticulate::py_config()
+```
+
+Troubleshooting:
+
+- If you see a Conda error like “bad interpreter” during `library(imfeatures)`, it’s usually a broken R-miniconda on shared filesystems. Use the HPC Quickstart above or set `IMFEATURES_SKIP_PYTHON=TRUE` and call `use_existing_python()`.
+- To force `virtualenv` instead of Conda during `imfeatures_config()`, set `IMFEATURES_METHOD=virtualenv` before calling it.
+

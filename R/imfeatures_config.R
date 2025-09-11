@@ -4,6 +4,14 @@
 #' The environment is detected once per R session and cached.  Users can
 #' force a reinstall with `reset = TRUE`.
 #'
+#' @section HPC recommendation:
+#' On HPC systems, prefer using an existing Python (module + virtualenv) and
+#' avoid auto environment creation. Set `IMFEATURES_SKIP_PYTHON=TRUE` to skip
+#' auto-configuration on package load and call [use_existing_python()] to point
+#' to your Python. You can also set `RETICULATE_PYTHON` in `~/.Renviron` so it is
+#' used automatically. If you do use `imfeatures_config()` on HPC, set
+#' `IMFEATURES_METHOD=virtualenv` to avoid Conda.
+#'
 #' @param envname Name of the environment to create/use. Defaults to
 #'   "r-imfeatures".
 #' @param method Installation method. Options: "auto", "conda", "virtualenv", 
@@ -25,6 +33,11 @@ imfeatures_config <- local({
       return(invisible(cached))
     }
     method <- match.arg(method)
+    # Allow environment variable override for method (useful on HPC)
+    method_env <- tolower(Sys.getenv("IMFEATURES_METHOD", ""))
+    if (nzchar(method_env) && method_env %in% c("auto", "conda", "virtualenv", "existing")) {
+      method <- method_env
+    }
     
     # Handle existing Python environment
     if (method == "existing") {
@@ -58,6 +71,7 @@ imfeatures_config <- local({
     }
     if (!exists && create) {
       message(crayon::yellow(paste0("Creating Python env '", envname, "'")))
+      # Use packaged requirements if available (inst/requirements.txt)
       req_file <- system.file("requirements.txt", package = "imfeatures")
       if (!file.exists(req_file)) {
         # If requirements.txt doesn't exist, install basic packages

@@ -14,9 +14,16 @@ tv_core_extraction <- NULL
 .detect_conda_present <- function(conda = "auto") {
   tryCatch({
     conda_exe <- reticulate::conda_binary(conda = conda)
-    # Check if a path was returned and if that path actually exists
-    # conda_binary itself might error if conda='auto' and none is found.
-    return(!is.null(conda_exe) && nzchar(conda_exe) && file.exists(conda_exe))
+    if (is.null(conda_exe) || !nzchar(conda_exe) || !file.exists(conda_exe)) {
+      return(FALSE)
+    }
+    # Verify the conda executable actually runs (guards against broken shebangs)
+    ok <- FALSE
+    try({
+      res <- suppressWarnings(system2(conda_exe, "--version", stdout = TRUE, stderr = TRUE))
+      ok <- length(res) > 0
+    }, silent = TRUE)
+    return(isTRUE(ok))
   }, error = function(e) {
     # If conda_binary throws an error (e.g., conda not found), return FALSE
     return(FALSE)
@@ -46,9 +53,18 @@ install_imfeatures_python <- function(...) {
   tryCatch({
     # Check if user specified a custom Python path
     custom_python <- Sys.getenv("IMFEATURES_PYTHON_PATH", "")
+    reticulate_python <- Sys.getenv("RETICULATE_PYTHON", "")
     if (nzchar(custom_python)) {
       reticulate::use_python(custom_python, required = FALSE)
       message("Using custom Python: ", custom_python)
+    } else if (nzchar(reticulate_python)) {
+      # Respect RETICULATE_PYTHON if provided (common on HPC)
+      if (file.exists(reticulate_python)) {
+        reticulate::use_python(reticulate_python, required = FALSE)
+        message("Using RETICULATE_PYTHON: ", reticulate_python)
+      } else {
+        message("RETICULATE_PYTHON set but path not found: ", reticulate_python)
+      }
     } else {
       # Only try auto-configuration if no custom path specified
       imfeatures_config()
