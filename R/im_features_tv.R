@@ -62,7 +62,7 @@
 #'  \item Creates a `thingsvision` `ImageDataset` and `DataLoader` to handle image loading,
 #'        preprocessing (using transforms from the extractor), and batching. It writes a
 #'        `file_names.txt` in `temp_out_dir` to preserve order.
-#'  \item Calls \code{\link{tv_extract_features}} to perform the batched feature extraction
+#'  \item Calls \code{\link{tv_extract}} to perform the batched feature extraction
 #'        from the specified `module_name`.
 #'  \item Converts the extracted features (typically NumPy arrays from Python) into
 #'        an R matrix or array.
@@ -115,6 +115,7 @@
 #'         attempted to be set. Returns `NULL` invisibly if `output_dir` is specified.
 #'
 #' @importFrom tools file_path_sans_ext
+#' @aliases im_features_tv
 #' @export
 #' @seealso \code{\link{imfeatures_config}}, \code{\link{tv_get_extractor}}, \code{\link{show_model}}, \code{\link{tv_extract}}, \code{\link{tv_create_dataset}}, \code{\link{tv_create_dataloader}}
 #' @examples
@@ -337,6 +338,8 @@ extract_features_tv <- function(impaths, model_name, source = "torchvision", mod
 
 }
 
+#' @export
+#' @rdname extract_features_tv
 #' @export
 im_features_tv <- extract_features_tv
 
@@ -610,4 +613,3 @@ im_feature_sim_tv <- compute_feature_similarity_tv
   }
   features
 }
-

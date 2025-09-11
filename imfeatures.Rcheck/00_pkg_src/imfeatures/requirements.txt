@@ -1,4 +1,0 @@
-Pillow==9.5.0
-thingsvision==0.2.3
-resmem==1.0.0
-torch==2.0.0

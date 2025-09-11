@@ -3,12 +3,22 @@
 \name{plot_im_scatter}
 \alias{plot_im_scatter}
 \alias{im_scatter}
+\alias{plot_im_scatter3d}
 \alias{im_scatter3d}
 \title{a 2D scatterplot with images displayed at each location}
 \usage{
 plot_im_scatter(dframe, xvar = "x", yvar = "y", imagename = "image")
 
 im_scatter(dframe, xvar = "x", yvar = "y", imagename = "image")
+
+plot_im_scatter3d(
+  dframe,
+  imagename = "image",
+  radius = 1,
+  width = 700,
+  height = 700,
+  bgcol = "white"
+)
 
 im_scatter3d(
   dframe,
@@ -20,14 +30,24 @@ im_scatter3d(
 )
 }
 \arguments{
-\item{dframe}{a `data.frame` containing x and y coordinates and path to image file.}
+\item{dframe}{a `data.frame` containing x, y, z coordinates and path to image file.}
 
 \item{xvar}{the name of the variable containing the x coordinates}
 
 \item{yvar}{the name of the variable containing the y coordinates}
 
 \item{imagename}{the name of the image variable in `dframe`}
+
+\item{radius}{the radius of the image sprite}
+
+\item{width}{width of device in pixels}
+
+\item{height}{height of device in pixels}
+
+\item{bgcol}{background color for the 3D plot (default: "white")}
 }
 \description{
 a 2D scatterplot with images displayed at each location
+
+a 3D scatterplot with images displayed at each location
 }

@@ -193,6 +193,11 @@ print.residualized_tiers <- function(x, ...) {
 #' Predict method for residualized_tiers
 #'
 #' Applies a trained residualized_tiers transformation (Sequential SVD-QR method) to new data.
+#'
+#' @param object An object of class \code{residualized_tiers} produced by \code{residualize_tiers()}.
+#' @param newdata Named list of matrices with the same tier names and feature columns as the training data.
+#' @param ... Additional arguments (currently ignored).
+#' @return Named list of residualized PC matrices for each tier in \code{newdata}.
 #' @method predict residualized_tiers
 #' @export
 predict.residualized_tiers <- function(object, newdata, ...) {

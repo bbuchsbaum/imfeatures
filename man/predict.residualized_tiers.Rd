@@ -6,6 +6,16 @@
 \usage{
 \method{predict}{residualized_tiers}(object, newdata, ...)
 }
+\arguments{
+\item{object}{An object of class \code{residualized_tiers} produced by \code{residualize_tiers()}.}
+
+\item{newdata}{Named list of matrices with the same tier names and feature columns as the training data.}
+
+\item{...}{Additional arguments (currently ignored).}
+}
+\value{
+Named list of residualized PC matrices for each tier in \code{newdata}.
+}
 \description{
 Applies a trained residualized_tiers transformation (Sequential SVD-QR method) to new data.
 }

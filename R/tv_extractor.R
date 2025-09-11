@@ -78,7 +78,7 @@
 #' \strong{Return Value:}
 #' The function returns a `reticulate` Python object. This object is a wrapper
 #' around the Python `thingsvision` extractor instance. You will pass this object
-#' to other functions like `tv_extract_features()` or `tv_show_model()`.
+#' to other functions like `tv_extract()` or `show_model()`.
 #'
 #' \strong{Finding Models:}
 #' For the most up-to-date and comprehensive list of models available through
@@ -206,6 +206,16 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
 #   }
 # }
 # Or use a more specific name like tv_extract to avoid conflicts
+#' Generic feature extraction
+#'
+#' Dispatches to class-specific implementations for extracting features
+#' from configured extractors.
+#'
+#' @param object An object to extract features from.
+#' @param ... Additional arguments passed to methods.
+#' @return Method-dependent; see implementations such as
+#'   \code{\link{tv_extract.thingsvision_extractor}}.
+#' @export
 tv_extract <- function(object, ...) {
   UseMethod("tv_extract")
 }

@@ -94,7 +94,7 @@ methods (`token_extraction` for DINO/MAE ViTs).
 \strong{Return Value:}
 The function returns a `reticulate` Python object. This object is a wrapper
 around the Python `thingsvision` extractor instance. You will pass this object
-to other functions like `tv_extract_features()` or `tv_show_model()`.
+to other functions like `tv_extract()` or `show_model()`.
 
 \strong{Finding Models:}
 For the most up-to-date and comprehensive list of models available through

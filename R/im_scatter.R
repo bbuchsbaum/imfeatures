@@ -32,6 +32,7 @@ im_scatter <- plot_im_scatter
 #' @param width width of device in pixels
 #' @param height height of device in pixels
 #' @param bgcol background color for the 3D plot (default: "white")
+#' @rdname plot_im_scatter
 #' @export
 #' @importFrom imager load.image save.image
 plot_im_scatter3d <- function(dframe, imagename="image", radius=1, width=700, height=700, bgcol="white") {

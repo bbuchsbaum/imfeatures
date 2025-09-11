@@ -25,6 +25,8 @@ or "existing" (to use current Python without modification).}
 
 \item{create}{Whether to create the environment if it doesn't exist.
 Set to FALSE on HPC systems where you want to use a pre-configured environment.}
+
+\item{...}{Arguments passed to imfeatures_config}
 }
 \value{
 Invisible path to the configured Python binary.
@@ -36,6 +38,6 @@ force a reinstall with `reset = TRUE`.
 }
 \section{Functions}{
 \itemize{
-\item \code{install_imfeatures_python()}: Deprecated alias.
+\item \code{install_imfeatures_python()}: Deprecated alias for imfeatures_config
 
 }}
