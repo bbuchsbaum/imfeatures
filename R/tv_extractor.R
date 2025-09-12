@@ -152,14 +152,22 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
   assert_scalar(source, "character")
   assert_scalar(device, "character")
   assert_scalar(pretrained, "logical")
-  # Ensure tv (main thingsvision module) is loaded via reticulate
-  if (is.null(tv) || reticulate::py_is_null_xptr(tv)) {
-    # Try importing on the fly if not yet imported (e.g., HPC with skip on load)
+  # Acquire thingsvision module without mutating locked package bindings
+  tv_mod <- NULL
+  # Prefer existing package binding if valid (read-only access is fine)
+  if (exists("tv", envir = asNamespace("imfeatures"), inherits = FALSE)) {
+    tv_mod <- get("tv", envir = asNamespace("imfeatures"))
+  } else if (exists("tv")) {
+    # Fallback if visible via search path
+    tv_mod <- get("tv")
+  }
+  if (is.null(tv_mod) || reticulate::py_is_null_xptr(tv_mod)) {
     if (reticulate::py_module_available("thingsvision")) {
-      tv <<- reticulate::import("thingsvision", delay_load = TRUE)
+      tv_mod <- try(reticulate::import("thingsvision", delay_load = TRUE), silent = TRUE)
+      if (inherits(tv_mod, "try-error")) tv_mod <- NULL
     }
   }
-  if (is.null(tv) || reticulate::py_is_null_xptr(tv)) {
+  if (is.null(tv_mod) || reticulate::py_is_null_xptr(tv_mod)) {
     stop("Python 'thingsvision' module not imported. Did you run imfeatures_config() or configure reticulate (e.g., use_existing_python)?")
   }
 
@@ -178,8 +186,8 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
   # submodule path (>=2.x). Try top-level, then core.extraction.
   py_extractor <- NULL
   extractor_attempts <- list()
-  if (reticulate::py_has_attr(tv, "get_extractor")) {
-    extractor_attempts[["thingsvision.get_extractor"]] <- function() tv$get_extractor(
+  if (reticulate::py_has_attr(tv_mod, "get_extractor")) {
+    extractor_attempts[["thingsvision.get_extractor"]] <- function() tv_mod$get_extractor(
       model_name = model_name,
       source = source,
       device = device,
@@ -546,7 +554,22 @@ tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...)
   if (!inherits(extractor, "thingsvision_extractor")) {
       stop("'extractor' must be an object of class 'thingsvision_extractor'.")
   }
-  if (is.null(tv_data)) { stop("thingsvision.utils.data not imported.") }
+  # Lazily acquire thingsvision.utils.data without mutating package bindings
+  tv_data_mod <- NULL
+  if (exists("tv_data", envir = asNamespace("imfeatures"), inherits = FALSE)) {
+    tv_data_mod <- get("tv_data", envir = asNamespace("imfeatures"))
+  } else if (exists("tv_data")) {
+    tv_data_mod <- get("tv_data")
+  }
+  if (is.null(tv_data_mod) || reticulate::py_is_null_xptr(tv_data_mod)) {
+    if (reticulate::py_module_available("thingsvision.utils.data")) {
+      tv_data_mod <- try(reticulate::import("thingsvision.utils.data", delay_load = TRUE), silent = TRUE)
+      if (inherits(tv_data_mod, "try-error")) tv_data_mod <- NULL
+    }
+  }
+  if (is.null(tv_data_mod) || reticulate::py_is_null_xptr(tv_data_mod)) {
+    stop("thingsvision.utils.data not available. Configure Python or install thingsvision.")
+  }
 
   # Access underlying python object for its methods
   py_extractor <- extractor$py_obj
@@ -563,7 +586,7 @@ tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...)
   
   # Call the Python function directly with explicit arguments
   if ("file_names" %in% names(extra_args)) {
-    dataset <- tv_data$ImageDataset(
+    dataset <- tv_data_mod$ImageDataset(
       root = root,
       out_path = out_path,
       file_names = extra_args$file_names,
@@ -571,7 +594,7 @@ tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...)
       transforms = transforms
     )
   } else {
-    dataset <- tv_data$ImageDataset(
+    dataset <- tv_data_mod$ImageDataset(
       root = root,
       out_path = out_path,
       backend = py_extractor$get_backend(), # Call method on Python object
@@ -594,8 +617,21 @@ tv_create_dataloader <- function(dataset, batch_size, extractor, ...) {
   if (!inherits(extractor, "thingsvision_extractor")) {
     stop("'extractor' must be an object of class 'thingsvision_extractor'.")
   }
-  if (is.null(tv_data)) {
-    stop("thingsvision.utils.data not imported.")
+  # Lazily acquire thingsvision.utils.data without mutating package bindings
+  tv_data_mod <- NULL
+  if (exists("tv_data", envir = asNamespace("imfeatures"), inherits = FALSE)) {
+    tv_data_mod <- get("tv_data", envir = asNamespace("imfeatures"))
+  } else if (exists("tv_data")) {
+    tv_data_mod <- get("tv_data")
+  }
+  if (is.null(tv_data_mod) || reticulate::py_is_null_xptr(tv_data_mod)) {
+    if (reticulate::py_module_available("thingsvision.utils.data")) {
+      tv_data_mod <- try(reticulate::import("thingsvision.utils.data", delay_load = TRUE), silent = TRUE)
+      if (inherits(tv_data_mod, "try-error")) tv_data_mod <- NULL
+    }
+  }
+  if (is.null(tv_data_mod) || reticulate::py_is_null_xptr(tv_data_mod)) {
+    stop("thingsvision.utils.data not available. Configure Python or install thingsvision.")
   }
 
   py_extractor <- extractor$py_obj
@@ -604,7 +640,7 @@ tv_create_dataloader <- function(dataset, batch_size, extractor, ...) {
   }
 
 
-  dl <- tv_data$DataLoader(
+  dl <- tv_data_mod$DataLoader(
     dataset = dataset,
     batch_size = as.integer(batch_size),
     backend = py_extractor$get_backend(),
