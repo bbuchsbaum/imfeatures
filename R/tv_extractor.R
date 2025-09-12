@@ -223,6 +223,34 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
       )
     }
   }
+  # Try extraction.get_extractor (older alt layout)
+  tv_extraction <- NULL
+  if (reticulate::py_module_available("thingsvision.extraction")) {
+    tv_extraction <- try(reticulate::import("thingsvision.extraction", delay_load = TRUE), silent = TRUE)
+    if (!inherits(tv_extraction, "try-error") && reticulate::py_has_attr(tv_extraction, "get_extractor")) {
+      extractor_attempts[["thingsvision.extraction.get_extractor"]] <- function() tv_extraction$get_extractor(
+        model_name = model_name,
+        source = source,
+        device = device,
+        pretrained = pretrained,
+        model_parameters = py_model_params
+      )
+    }
+  }
+  # Try extraction.factory.get_extractor
+  tv_extraction_factory <- NULL
+  if (reticulate::py_module_available("thingsvision.extraction.factory")) {
+    tv_extraction_factory <- try(reticulate::import("thingsvision.extraction.factory", delay_load = TRUE), silent = TRUE)
+    if (!inherits(tv_extraction_factory, "try-error") && reticulate::py_has_attr(tv_extraction_factory, "get_extractor")) {
+      extractor_attempts[["thingsvision.extraction.factory.get_extractor"]] <- function() tv_extraction_factory$get_extractor(
+        model_name = model_name,
+        source = source,
+        device = device,
+        pretrained = pretrained,
+        model_parameters = py_model_params
+      )
+    }
+  }
   # Execute first successful attempt
   last_err <- NULL
   for (nm in names(extractor_attempts)) {
