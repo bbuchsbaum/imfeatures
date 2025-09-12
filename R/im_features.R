@@ -180,7 +180,7 @@ vgg16 <- function() {
 #'        }
 #'        This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
 #'        this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.
-#' @importFrom keras application_vgg16 image_load image_to_array imagenet_preprocess_input keras_model get_layer
+#' @importFrom keras application_vgg16 image_to_array imagenet_preprocess_input keras_model get_layer
 #' @return A tibble with columns \code{image}, \code{layer} and a list-column \code{feature}.
 #'   The tibble inherits class \code{imfeatures_feature_tbl} for dplyr compatibility.
 #' @name extract_features
@@ -236,7 +236,7 @@ extract_features <- function(impath, layers, model=NULL, target_size=c(224,224),
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
   }
 
-  img <- image_load(impath, target_size = target_size)
+  img <- .image_load_compat(impath, target_size = target_size)
 
   x <- image_to_array(img)
 
@@ -352,7 +352,7 @@ im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
     model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
   }
 
-  img <- image_load(impath, target_size = target_size)
+  img <- .image_load_compat(impath, target_size = target_size)
   x <- image_to_array(img)
   #x <- array_reshape(x, c(1, unlist(x$shape)))
   x <- array_reshape(x, c(1, dim(x)))
@@ -366,6 +366,57 @@ im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   } else {
     imagenet_decode_predictions(preds,topn)
   }
+}
+
+#' @keywords internal
+#' Image loader compatible with Keras 2/3 API changes
+#'
+#' Attempts to load images using keras.utils.load_img (Keras 2/3) or
+#' keras.preprocessing.image.load_img (older), without passing deprecated
+#' grayscale argument. Falls back to PIL if Keras is unavailable.
+.image_load_compat <- function(path, target_size = NULL, color_mode = "rgb") {
+  # Try Python Keras first
+  k <- NULL
+  if (reticulate::py_module_available("keras")) {
+    k <- reticulate::import("keras", delay_load = TRUE)
+  } else if (reticulate::py_module_available("tensorflow.keras")) {
+    k <- reticulate::import("tensorflow.keras", delay_load = TRUE)
+  }
+
+  size_tuple <- NULL
+  if (!is.null(target_size)) {
+    if (length(target_size) != 2) stop("target_size must be length-2: c(height, width)")
+    size_tuple <- reticulate::tuple(as.integer(target_size))
+  }
+
+  if (!is.null(k)) {
+    # Prefer keras.utils.load_img if available
+    if (reticulate::py_has_attr(k, "utils") && reticulate::py_has_attr(k$utils, "load_img")) {
+      if (is.null(size_tuple)) return(k$utils$load_img(path, color_mode = color_mode))
+      return(k$utils$load_img(path, color_mode = color_mode, target_size = size_tuple))
+    }
+    # Fallback to legacy preprocessing path
+    if (reticulate::py_has_attr(k, "preprocessing") &&
+        reticulate::py_has_attr(k$preprocessing, "image") &&
+        reticulate::py_has_attr(k$preprocessing$image, "load_img")) {
+      if (is.null(size_tuple)) return(k$preprocessing$image$load_img(path, color_mode = color_mode))
+      return(k$preprocessing$image$load_img(path, color_mode = color_mode, target_size = size_tuple))
+    }
+  }
+
+  # Final fallback: PIL
+  if (reticulate::py_module_available("PIL.Image")) {
+    PIL_img <- reticulate::import("PIL.Image", delay_load = TRUE)
+    im <- PIL_img$open(path)
+    im <- if (identical(color_mode, "rgb")) im$convert("RGB") else im
+    if (!is.null(size_tuple)) {
+      # PIL expects (width, height)
+      im <- im$resize(reticulate::tuple(as.integer(rev(target_size))))
+    }
+    return(im)
+  }
+
+  stop("No suitable image loader available (keras/PIL not found).")
 }
 
 #p=reticulate::import("keras_models.models.pretrained.vgg16_places365")
