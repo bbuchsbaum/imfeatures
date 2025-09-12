@@ -386,7 +386,8 @@ im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   size_tuple <- NULL
   if (!is.null(target_size)) {
     if (length(target_size) != 2) stop("target_size must be length-2: c(height, width)")
-    size_tuple <- reticulate::tuple(as.integer(target_size))
+    # reticulate::tuple expects separate args, not a single vector
+    size_tuple <- reticulate::tuple(as.integer(target_size[[1]]), as.integer(target_size[[2]]))
   }
 
   if (!is.null(k)) {
