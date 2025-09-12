@@ -209,6 +209,20 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
       )
     }
   }
+  # Try core.extraction.factory.get_extractor if available (thingsvision >= 2.x)
+  tv_core_factory <- NULL
+  if (reticulate::py_module_available("thingsvision.core.extraction.factory")) {
+    tv_core_factory <- try(reticulate::import("thingsvision.core.extraction.factory", delay_load = TRUE), silent = TRUE)
+    if (!inherits(tv_core_factory, "try-error") && reticulate::py_has_attr(tv_core_factory, "get_extractor")) {
+      extractor_attempts[["thingsvision.core.extraction.factory.get_extractor"]] <- function() tv_core_factory$get_extractor(
+        model_name = model_name,
+        source = source,
+        device = device,
+        pretrained = pretrained,
+        model_parameters = py_model_params
+      )
+    }
+  }
   # Execute first successful attempt
   last_err <- NULL
   for (nm in names(extractor_attempts)) {
