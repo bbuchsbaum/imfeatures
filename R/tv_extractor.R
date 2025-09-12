@@ -208,6 +208,17 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
         model_parameters = py_model_params
       )
     }
+    # Also try helpers submodule explicitly (as per upstream layout)
+    tv_core_helpers <- try(reticulate::import("thingsvision.core.extraction.helpers", delay_load = TRUE), silent = TRUE)
+    if (!inherits(tv_core_helpers, "try-error") && reticulate::py_has_attr(tv_core_helpers, "get_extractor")) {
+      extractor_attempts[["thingsvision.core.extraction.helpers.get_extractor"]] <- function() tv_core_helpers$get_extractor(
+        model_name = model_name,
+        source = source,
+        device = device,
+        pretrained = pretrained,
+        model_parameters = py_model_params
+      )
+    }
   }
   # Try core.extraction.factory.get_extractor if available (thingsvision >= 2.x)
   tv_core_factory <- NULL
@@ -229,6 +240,17 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
     tv_extraction <- try(reticulate::import("thingsvision.extraction", delay_load = TRUE), silent = TRUE)
     if (!inherits(tv_extraction, "try-error") && reticulate::py_has_attr(tv_extraction, "get_extractor")) {
       extractor_attempts[["thingsvision.extraction.get_extractor"]] <- function() tv_extraction$get_extractor(
+        model_name = model_name,
+        source = source,
+        device = device,
+        pretrained = pretrained,
+        model_parameters = py_model_params
+      )
+    }
+    # Also try extraction.helpers.get_extractor
+    tv_extraction_helpers <- try(reticulate::import("thingsvision.extraction.helpers", delay_load = TRUE), silent = TRUE)
+    if (!inherits(tv_extraction_helpers, "try-error") && reticulate::py_has_attr(tv_extraction_helpers, "get_extractor")) {
+      extractor_attempts[["thingsvision.extraction.helpers.get_extractor"]] <- function() tv_extraction_helpers$get_extractor(
         model_name = model_name,
         source = source,
         device = device,
