@@ -154,7 +154,13 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
   assert_scalar(pretrained, "logical")
   # Ensure tv (main thingsvision module) is loaded via reticulate
   if (is.null(tv) || reticulate::py_is_null_xptr(tv)) {
-     stop("Python 'thingsvision' module not imported. Did you run imfeatures_config() or configure reticulate (e.g., use_condaenv)?")
+    # Try importing on the fly if not yet imported (e.g., HPC with skip on load)
+    if (reticulate::py_module_available("thingsvision")) {
+      tv <<- reticulate::import("thingsvision", delay_load = TRUE)
+    }
+  }
+  if (is.null(tv) || reticulate::py_is_null_xptr(tv)) {
+    stop("Python 'thingsvision' module not imported. Did you run imfeatures_config() or configure reticulate (e.g., use_existing_python)?")
   }
 
   source <- match.arg(source, c("torchvision", "timm", "keras", "ssl", "custom"))
@@ -168,17 +174,54 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
                          NULL
                        }
 
-  py_extractor <- tryCatch({
-    tv$get_extractor(
+  # Support both thingsvision APIs: top-level get_extractor (<=0.2.x) and
+  # submodule path (>=2.x). Try top-level, then core.extraction.
+  py_extractor <- NULL
+  extractor_attempts <- list()
+  if (reticulate::py_has_attr(tv, "get_extractor")) {
+    extractor_attempts[["thingsvision.get_extractor"]] <- function() tv$get_extractor(
       model_name = model_name,
       source = source,
       device = device,
       pretrained = pretrained,
       model_parameters = py_model_params
     )
-  }, error = function(e) {
-    stop("Failed to get Python thingsvision extractor for model '", model_name, "' from source '", source, "'.\nPython error: ", e$message)
-  })
+  }
+  # Try core.extraction.get_extractor if available
+  tv_core <- NULL
+  if (reticulate::py_module_available("thingsvision.core.extraction")) {
+    tv_core <- try(reticulate::import("thingsvision.core.extraction", delay_load = TRUE), silent = TRUE)
+    if (!inherits(tv_core, "try-error") && reticulate::py_has_attr(tv_core, "get_extractor")) {
+      extractor_attempts[["thingsvision.core.extraction.get_extractor"]] <- function() tv_core$get_extractor(
+        model_name = model_name,
+        source = source,
+        device = device,
+        pretrained = pretrained,
+        model_parameters = py_model_params
+      )
+    }
+  }
+  # Execute first successful attempt
+  last_err <- NULL
+  for (nm in names(extractor_attempts)) {
+    py_extractor <- try(extractor_attempts[[nm]](), silent = TRUE)
+    if (!inherits(py_extractor, "try-error") && !reticulate::py_is_null_xptr(py_extractor)) break
+    last_err <- py_extractor
+    py_extractor <- NULL
+  }
+  if (is.null(py_extractor) || reticulate::py_is_null_xptr(py_extractor)) {
+    # Provide actionable guidance about thingsvision version
+    tv_ver <- try(reticulate::py_eval("import thingsvision, pkgutil; getattr(thingsvision, '__version__', 'unknown')", convert = TRUE), silent = TRUE)
+    ver_msg <- if (!inherits(tv_ver, "try-error")) paste0(" (thingsvision version: ", tv_ver, ")") else ""
+    stop(
+      "Failed to get Python thingsvision extractor for model '", model_name, "' from source '", source, "'.\n",
+      "The installed 'thingsvision' may not expose 'get_extractor' in the expected location", ver_msg, ".\n",
+      "Options:\n",
+      "- Install compatible version: pip install 'thingsvision==0.2.3'\n",
+      "- Or keep current version and ensure get_extractor is available in thingsvision.core.extraction\n",
+      if (!is.null(last_err) && inherits(last_err, "try-error")) paste0("Python error: ", as.character(last_err)) else ""
+    )
+  }
 
   if (reticulate::py_is_null_xptr(py_extractor)) {
       stop("tv$get_extractor returned a NULL object. Check model_name, source, and parameters.")
