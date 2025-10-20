@@ -26,7 +26,7 @@ test_that("directory input expands to images and returns expected dims", {
   make_dummy_images(img_dir, 2)
   with_mock(
     `imfeatures::im_features` = mock_im_features,
-    `keras::get_layer` = mock_get_layer,
+    `keras3::get_layer` = mock_get_layer,
     {
       res <- extract_vgg_features(img_dir, tier = "low", model = list(dummy=TRUE))
       expect_s3_class(res, "vgg_feature_set")
@@ -49,7 +49,7 @@ test_that("returns correct class and dims for explicit image paths", {
   paths <- make_dummy_images(img_dir, 3)
   with_mock(
     `imfeatures::im_features` = mock_im_features,
-    `keras::get_layer` = mock_get_layer,
+    `keras3::get_layer` = mock_get_layer,
     {
       res <- extract_vgg_features(paths[1:2], tier = "low", model = list(dummy=TRUE))
       expect_s3_class(res, "vgg_feature_set")

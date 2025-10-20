@@ -106,7 +106,7 @@ if (check_caption_provider_auth("openai")) {
 # --------------------------------------------------
 
 if (check_caption_provider_auth("openai") && 
-    requireNamespace("keras", quietly = TRUE)) {
+    requireNamespace("keras3", quietly = TRUE)) {
   
   # Create test image
   test_img <- tempfile(fileext = ".jpg")

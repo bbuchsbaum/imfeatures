@@ -28,7 +28,7 @@ predictions <- im_predict(img_path, topn = 5)
 print(predictions)  # Top 5 predicted classes with scores
 
 # Use a custom pre-loaded model
-library(keras)
+library(keras3)
 resnet_model <- application_resnet50(weights = 'imagenet')
 predictions_resnet <- im_predict(
   impath = img_path,

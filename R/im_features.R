@@ -1,4 +1,4 @@
-#' Compute similarity matrix for a set of image using feature vectors from keras model
+#' Compute similarity matrix for a set of image using feature vectors from a Keras 3 model
 #'
 #' @name compute_feature_similarity
 #' @rdname compute_feature_similarity
@@ -157,7 +157,7 @@ im_feature_sim <- compute_feature_similarity
 
 vgg16 <- function() {
   if (is.null(.vgg16)) {
-    .vgg16 <<- keras::application_vgg16(weights = 'imagenet', include_top = TRUE)
+    .vgg16 <<- keras3::application_vgg16(weights = 'imagenet', include_top = TRUE)
     .vgg16
   } else {
     .vgg16
@@ -180,7 +180,7 @@ vgg16 <- function() {
 #'        }
 #'        This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
 #'        this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.
-#' @importFrom keras application_vgg16 image_to_array imagenet_preprocess_input keras_model get_layer
+#' @importFrom keras3 application_vgg16 image_load image_to_array imagenet_preprocess_input keras_model get_layer
 #' @return A tibble with columns \code{image}, \code{layer} and a list-column \code{feature}.
 #'   The tibble inherits class \code{imfeatures_feature_tbl} for dplyr compatibility.
 #' @name extract_features
@@ -323,7 +323,7 @@ im_features <- extract_features
 #' print(predictions)  # Top 5 predicted classes with scores
 #' 
 #' # Use a custom pre-loaded model
-#' library(keras)
+#' library(keras3)
 #' resnet_model <- application_resnet50(weights = 'imagenet')
 #' predictions_resnet <- im_predict(
 #'   impath = img_path,
@@ -343,7 +343,7 @@ im_features <- extract_features
 #' }
 #' @export
 #' @importFrom dplyr top_n arrange desc
-#' @importFrom keras imagenet_decode_predictions
+#' @importFrom keras3 imagenet_decode_predictions
 im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   assert_image(impath)
   checkmate::assert_integerish(target_size, len = 2)

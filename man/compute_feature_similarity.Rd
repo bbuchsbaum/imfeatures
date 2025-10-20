@@ -3,7 +3,7 @@
 \name{compute_feature_similarity}
 \alias{compute_feature_similarity}
 \alias{im_feature_sim}
-\title{Compute similarity matrix for a set of image using feature vectors from keras model}
+\title{Compute similarity matrix for a set of image using feature vectors from a Keras 3 model}
 \usage{
 compute_feature_similarity(
   impaths,
@@ -52,7 +52,7 @@ im_feature_sim(
 A list of similarity matrices, one for each layer
 }
 \description{
-Compute similarity matrix for a set of image using feature vectors from keras model
+Compute similarity matrix for a set of image using feature vectors from a Keras 3 model
 }
 \examples{
 \dontrun{

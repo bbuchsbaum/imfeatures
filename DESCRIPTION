@@ -15,7 +15,7 @@ LazyData: true
 Imports: 
   Rcpp,
   RcppArmadillo,
-  keras,
+  keras3,
   coop,
   furrr,
   proxy,

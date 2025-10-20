@@ -17,7 +17,7 @@ extract_vgg_features(
 
 \item{tier}{Character; one of "low", "mid", "high", or "semantic".}
 
-\item{model}{Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras::application_vgg16(weights = 'imagenet')}.}
+\item{model}{Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras3::application_vgg16(weights = 'imagenet')}.}
 
 \item{target_size}{Numeric vector of length 2 specifying image resize dimensions (width, height).}
 

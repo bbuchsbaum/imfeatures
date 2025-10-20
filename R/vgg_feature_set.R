@@ -11,7 +11,7 @@
 #'
 #' @param impaths Character vector of image file paths.
 #' @param tier Character; one of "low", "mid", "high", or "semantic".
-#' @param model Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras::application_vgg16(weights = 'imagenet')}. 
+#' @param model Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras3::application_vgg16(weights = 'imagenet')}. 
 #' @param target_size Numeric vector of length 2 specifying image resize dimensions (width, height). 
 #' @param pooling Character string specifying spatial pooling; passed to the \code{spatial_pooling} argument of \code{im_features}. 
 #'        Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7". 
@@ -27,7 +27,7 @@
 #'   \item{target_size}{Numeric vector of image resize dimensions.}
 #' }
 #' @export
-#' @importFrom keras application_vgg16
+#' @importFrom keras3 application_vgg16
 extract_vgg_features <- function(impaths,
                                  tier = c("low", "mid", "high", "semantic"),
                                  model = NULL,
@@ -58,7 +58,7 @@ extract_vgg_features <- function(impaths,
                        c("none", "avg", "max", "resize_3x3", "resize_5x5", "resize_7x7"))
 
   if (is.null(model)) {
-    model <- keras::application_vgg16(weights = 'imagenet', include_top = TRUE)
+    model <- keras3::application_vgg16(weights = 'imagenet', include_top = TRUE)
   }
 
   # Define layer name map for VGG-16
