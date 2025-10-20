@@ -49,24 +49,27 @@ test_that("invalid resize option returns original with warning", {
 })
 
 test_that("resize option calls tensorflow and returns flattened output", {
+  # Skip if TensorFlow is not available
+  skip_if_not_installed("tensorflow")
+  skip_if_not(reticulate::py_module_available("tensorflow"),
+              "TensorFlow Python module not available")
+
+  # Test with actual TensorFlow - no mocking needed
+  # Create a 1x4x4x1 array
   p <- array(1:16, dim = c(1, 4, 4, 1))
-  fake_tf <- list(
-    constant = function(x, dtype) x,
-    float32 = "float32",
-    image = list(
-      resize = function(images, size, method) {
-        array(seq_len(size[[1]] * size[[2]]),
-              dim = c(1, size[[1]], size[[2]], 1))
-      },
-      ResizeMethod = list(BILINEAR = "bilinear")
-    )
+
+  # Resize to 2x2 and flatten
+  out <- imfeatures:::.process_feature_map(p, "resize_2x2")
+
+  # Should return a flattened vector of length 4 (2x2x1)
+  expect_type(out, "double")
+  expect_length(out, 4)
+
+  # Test invalid resize format still works
+  p2 <- array(1:8, dim = c(1, 2, 2, 2))
+  expect_warning(
+    out2 <- imfeatures:::.process_feature_map(p2, "resize_invalid"),
+    "Invalid resize format"
   )
-  # Skip this test if reticulate is not available
-  skip_if_not_installed("reticulate")
-  
-  # Mock only requireNamespace and run the test
-  # We can't mock reticulate::import directly as it's a locked binding
-  # Instead, skip this particular test variant
-  skip("Cannot mock reticulate::import - locked binding")
-  expect_equal(out, as.vector(array(1:4, dim = c(1, 2, 2, 1))))
+  expect_identical(out2, p2)
 })
