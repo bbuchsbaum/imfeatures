@@ -18,7 +18,8 @@ configure_hpc_python(
 
 \item{install_deps}{Whether to attempt installing missing dependencies}
 
-\item{pip_user}{Whether to use --user flag for pip installs}
+\item{pip_user}{Whether to use --user flag for pip installs. Automatically
+disabled when targeting a virtualenv/venv, where --user is not allowed.}
 }
 \value{
 Invisible path to configured Python

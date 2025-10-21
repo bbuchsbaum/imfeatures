@@ -14,7 +14,8 @@ install_python_deps(
 \arguments{
 \item{python_cmd}{Python command or path (default: "python3")}
 
-\item{user}{Whether to use --user flag (default: TRUE for HPC)}
+\item{user}{Whether to use --user flag (default: TRUE for HPC). Ignored when
+`python_cmd` is a virtualenv/venv.}
 
 \item{optional}{Whether to install optional packages (default: FALSE)}
 
@@ -22,7 +23,9 @@ install_python_deps(
 }
 \description{
 Convenience function to install required and optional Python packages
-for imfeatures using pip.
+for imfeatures using pip. If the target `python_cmd` belongs to a
+virtualenv/venv, the `--user` flag is automatically disabled as it is
+not supported inside virtual environments.
 }
 \examples{
 \dontrun{

@@ -41,3 +41,13 @@ force a reinstall with `reset = TRUE`.
 \item \code{install_imfeatures_python()}: Deprecated alias for imfeatures_config
 
 }}
+\section{HPC recommendation}{
+
+On HPC systems, prefer using an existing Python (module + virtualenv) and
+avoid auto environment creation. Set `IMFEATURES_SKIP_PYTHON=TRUE` to skip
+auto-configuration on package load and call [use_existing_python()] to point
+to your Python. You can also set `RETICULATE_PYTHON` in `~/.Renviron` so it is
+used automatically. If you do use `imfeatures_config()` on HPC, set
+`IMFEATURES_METHOD=virtualenv` to avoid Conda.
+}
+
