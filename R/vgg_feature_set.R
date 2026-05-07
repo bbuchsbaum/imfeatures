@@ -97,11 +97,14 @@ extract_vgg_features <- function(impaths,
     )
   })
 
-  # Combine into matrix: N_images x total_features
+  # Combine into matrix: N_images x total_features.
+  # Pull only the numeric `feature` list-column; unlisting the whole tibble
+  # would coerce metadata (image, layer) into the matrix as character.
   features <- do.call(
     rbind,
-    lapply(feats_list, function(x) unlist(x, use.names = FALSE))
+    lapply(feats_list, function(x) unlist(x$feature, use.names = FALSE))
   )
+  storage.mode(features) <- "double"
 
   res <- list(
     features = features,
