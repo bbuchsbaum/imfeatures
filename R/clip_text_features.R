@@ -27,7 +27,6 @@ clip_text_features <- function(texts,
                                num_text_transformer_blocks = 12, # Default for ViT-B/32
                                text_module_prefix = "transformer", # e.g. model.transformer.resblocks
                                device = c("cpu", "cuda")) {
-
   device <- match.arg(device)
 
   checkmate::assert_character(texts, min.len = 1, any.missing = FALSE)
@@ -77,7 +76,7 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
   # ------------------------------------------------------------------
   # 1.  Bridge to Python open_clip
   # ------------------------------------------------------------------
-  oc    <- reticulate::import("open_clip", delay_load = TRUE)
+  oc <- reticulate::import("open_clip", delay_load = TRUE)
   torch <- reticulate::import("torch", delay_load = TRUE)
 
   # Create model and tokenizer (preprocess is for images)
@@ -87,7 +86,7 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
     device = device
   )
 
-  model     <- model_and_transforms[[1]]
+  model <- model_and_transforms[[1]]
   tokenizer <- oc$get_tokenizer(model_name) # Get tokenizer separately
   model$eval()
 
@@ -119,8 +118,10 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
         if (lyr >= 0 && lyr < num_text_transformer_blocks) {
           return(sprintf("%s.%d", text_transformer_resblocks_base, as.integer(lyr)))
         } else {
-          warning(sprintf("Integer layer index %d is out of bounds for text transformer (0-%d). Skipping.",
-                          as.integer(lyr), num_text_transformer_blocks - 1))
+          warning(sprintf(
+            "Integer layer index %d is out of bounds for text transformer (0-%d). Skipping.",
+            as.integer(lyr), num_text_transformer_blocks - 1
+          ))
           return(NA_character_)
         }
       } else if (is.character(lyr)) {
@@ -136,14 +137,17 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
 
   hook_handles <- list()
   if (length(resolved_intermediate_module_paths) > 0) {
-    message("Registering text model hooks for: ", paste(resolved_intermediate_module_paths, collapse=", "))
+    message("Registering text model hooks for: ", paste(resolved_intermediate_module_paths, collapse = ", "))
     for (module_path_str in resolved_intermediate_module_paths) {
-      tryCatch({
-        handle <- py_register_hook(model, module_path_str, captured_activations_env, module_path_str)
-        hook_handles[[module_path_str]] <- handle
-      }, error = function(e) {
-        warning(sprintf("Failed to register hook for text layer '%s'. Error: %s", module_path_str, e$message))
-      })
+      tryCatch(
+        {
+          handle <- py_register_hook(model, module_path_str, captured_activations_env, module_path_str)
+          hook_handles[[module_path_str]] <- handle
+        },
+        error = function(e) {
+          warning(sprintf("Failed to register hook for text layer '%s'. Error: %s", module_path_str, e$message))
+        }
+      )
     }
   }
 
@@ -169,21 +173,21 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
       output_key <- module_path_key # Default to the full path
       # Check if this module_path_key was derived from an integer request
       is_numeric_derived <- FALSE
-      for(orig_lyr in intermediate_layers_requested) {
-          if(is.numeric(orig_lyr)){
-              if (sprintf("%s.%d", text_transformer_resblocks_base, as.integer(orig_lyr)) == module_path_key) {
-                  # For output, use the user-friendly name if derived from an integer
-                  output_key <- sprintf("%s.%d", text_transformer_resblocks_base, as.integer(orig_lyr))
-                  is_numeric_derived <- TRUE
-                  break
-              }
+      for (orig_lyr in intermediate_layers_requested) {
+        if (is.numeric(orig_lyr)) {
+          if (sprintf("%s.%d", text_transformer_resblocks_base, as.integer(orig_lyr)) == module_path_key) {
+            # For output, use the user-friendly name if derived from an integer
+            output_key <- sprintf("%s.%d", text_transformer_resblocks_base, as.integer(orig_lyr))
+            is_numeric_derived <- TRUE
+            break
           }
+        }
       }
       # If not from numeric, and user provided a string that matches the resolved path, use that original string.
       # This ensures if a user provides "transformer.ln_final" it stays that way, not potentially
       # a transformed version if text_module_prefix was involved differently.
       if (!is_numeric_derived && module_path_key %in% intermediate_layers_requested) {
-          output_key <- module_path_key
+        output_key <- module_path_key
       }
 
       if (module_path_key %in% names(captured_activations_env)) {

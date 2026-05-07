@@ -1,5 +1,5 @@
 library(testthat)
-#library(imfeatures)
+# library(imfeatures)
 
 context("do_counting handles small images")
 
@@ -13,7 +13,7 @@ test_that("do_counting works on very small images", {
   )
   class(fimg) <- c("filtered_image", "list")
   fbank <- filter_bank(4, 3)
-  fres  <- run_filterbank(fimg, fbank)
+  fres <- run_filterbank(fimg, fbank)
   expect_silent(res <- do_counting(fres))
   expect_true(is.list(res))
   expect_true(all(c("counts", "complex_before") %in% names(res)))

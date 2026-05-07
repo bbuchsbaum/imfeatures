@@ -34,14 +34,14 @@
       if (!is.null(proj_bases)) proj_bases[[i]] <- NULL
     } else {
       num_lv <- min(nrow(H_cumulative), ncol(H_cumulative))
-      svd_H  <- svd(H_cumulative, nu = num_lv, nv = 0)
+      svd_H <- svd(H_cumulative, nu = num_lv, nv = 0)
 
       abs_rank_tol <- svd_tol * max(dim(H_cumulative)) * svd_H$d[1]
       if (svd_H$d[1] < .Machine$double.eps) {
         effective_rank <- 0
       } else {
         effective_rank <- sum(svd_H$d > abs_rank_tol &
-                              svd_H$d > .Machine$double.eps)
+          svd_H$d > .Machine$double.eps)
       }
 
       if (effective_rank > 0) {

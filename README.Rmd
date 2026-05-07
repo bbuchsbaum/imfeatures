@@ -37,13 +37,12 @@ devtools::install_github("bbuchsbaum/imfeatures")
 
 This is a basic example which shows you how to solve a common problem:
 
-```{r example}
+```{r example, eval = FALSE}
 library(imfeatures)
-## basic example code
-im1 = "testdata/1_A_1.jpeg"
-im2 = "testdata/1_B_1.jpeg"
+im1 <- "testdata/1_A_1.jpeg"
+im2 <- "testdata/1_B_1.jpeg"
 
-im_feature_sim(c(im1,im2), layers=c(1,2,3))
+im_feature_sim(c(im1, im2), layers = c(1, 2, 3))
 ```
 
 ## HPC Quickstart (single recommended path)

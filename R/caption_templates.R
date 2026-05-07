@@ -116,21 +116,21 @@ build_caption_prompt <- function(
   extra_instructions = NULL
 ) {
   template <- match.arg(template)
-  
+
   # Validate focus keywords
   unknown <- setdiff(focus, names(.caption_focus_map))
   if (length(unknown)) {
     cli::cli_warn("Ignoring unknown focus keyword(s): {.val {unknown}}")
     focus <- intersect(focus, names(.caption_focus_map))
   }
-  
+
   focus_lines <- unname(.caption_focus_map[focus])
   prompt <- .caption_templates[[template]](min_words, max_words, focus_lines, negatives)
-  
+
   if (!is.null(extra_instructions) && nzchar(extra_instructions)) {
     prompt <- paste(prompt, "\nAdditional instructions:\n", extra_instructions)
   }
-  
+
   prompt
 }
 

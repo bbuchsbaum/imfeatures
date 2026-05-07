@@ -1,9 +1,9 @@
 ---
-title: "\U1F680 Five-minute set-up"
+title: "Five-minute set-up"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{\U1F680 Five-minute set-up}
-  %\VignetteEngine{rmarkdown::html_vignette}
+  %\VignetteIndexEntry{Five-minute set-up}
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 

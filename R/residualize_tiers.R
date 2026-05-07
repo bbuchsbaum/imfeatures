@@ -8,11 +8,11 @@
 #' @param feature_list Named list of numeric matrices, each of dimension N_samples × P_i.
 #' @param numpcs Integer scalar or numeric vector, or NULL. If NULL (default), uses up to 50 PCs per tier (or fewer, if a tier has <50 features).
 #' @param pca_method Character string, one of "stats" (default, uses \code{stats::prcomp}) or "irlba" (uses \code{irlba::prcomp_irlba}).
-#' @param svd_tol Numeric tolerance factor used in determining effective rank via SVD for sequential residualization. 
+#' @param svd_tol Numeric tolerance factor used in determining effective rank via SVD for sequential residualization.
 #'        Singular values \code{s_i} are considered non-zero if \code{s_i > svd_tol * max(dim(H)) * s[1]},
 #'        where \code{H} is the matrix being decomposed and \code{s[1]} is its largest singular value.
 #'        Default is 1e-7.
-#' @param scale_scores Logical. If TRUE (default), PC scores for each tier are z-scored (scaled to unit standard deviation, no centering as PCA already centers) 
+#' @param scale_scores Logical. If TRUE (default), PC scores for each tier are z-scored (scaled to unit standard deviation, no centering as PCA already centers)
 #'        before residualization. SDs for scaling in \code{predict} are taken from the training data.
 #' @return An object of class \code{residualized_tiers}, a list with components:
 #' \describe{
@@ -29,7 +29,7 @@
 #' @details
 #' Initial PCA is performed on each tier. If \code{scale_scores = TRUE}, the resulting PC scores are then z-scored (column-wise, per tier).
 #' These (optionally scaled) PC scores are then sequentially residualized.
-#' The orthogonalization uses SVD to form a rank-aware basis of the preceding tiers' cumulative scores 
+#' The orthogonalization uses SVD to form a rank-aware basis of the preceding tiers' cumulative scores
 #' to ensure numerical stability, using the \code{svd_tol} parameter in a LAPACK-style manner.
 #' Note: For applications like fMRI analysis where data might be processed in folds (e.g., for cross-validation),
 #' z-scoring should ideally be performed based on training fold statistics and then applied to test folds.
@@ -67,10 +67,10 @@ residualize_tiers <- function(feature_list, numpcs = NULL,
   }
 
   pca_list <- vector("list", ntiers)
-  pc_scores_raw <- vector("list", ntiers) 
+  pc_scores_raw <- vector("list", ntiers)
   names(pca_list) <- tier_names
   names(pc_scores_raw) <- tier_names
-  numpcs_computed <- numpcs 
+  numpcs_computed <- numpcs
 
   for (i in seq_along(feature_list)) {
     tier_name <- tier_names[i]
@@ -86,73 +86,81 @@ residualize_tiers <- function(feature_list, numpcs = NULL,
     N_samples <- nrow(X)
 
     if (N_samples < 2 && k_requested > 0) {
-        stop(sprintf("Tier '%s': Need >=2 samples for PCA to compute positive PCs; got N_samples=%d for k_requested=%d", tier_name, N_samples, k_requested))
+      stop(sprintf("Tier '%s': Need >=2 samples for PCA to compute positive PCs; got N_samples=%d for k_requested=%d", tier_name, N_samples, k_requested))
     }
 
-    k <- min(k_requested, P, if(N_samples > 0) N_samples - 1 else 0, na.rm = TRUE)
-    
+    k <- min(k_requested, P, if (N_samples > 0) N_samples - 1 else 0, na.rm = TRUE)
+
     current_pca_method <- pca_method
 
-    if (k <= 0 && k_requested > 0) { 
+    if (k <= 0 && k_requested > 0) {
       stop(sprintf("Number of PCs to keep (k_computed=%d, from k_requested=%d) must be positive for tier '%s'. Check numpcs or data dimensions (N=%d, P=%d).", k, k_requested, tier_name, N_samples, P))
-    } else if (k <= 0 && k_requested <= 0) { 
-       if (k_requested < 0) warning(sprintf("Tier '%s': Requested k=%d PCs, will use 0 PCs.", tier_name, k_requested))
-       warning(sprintf("Tier '%s': Effective k=0 PCs. No PCA will be performed. Scores will be a 0-column matrix.", tier_name))
-       pca_obj <- list(center = if(P>0) rep(0, P) else numeric(0), 
-                       scale = if(P>0) rep(1, P) else numeric(0), 
-                       rotation = matrix(0, P, 0), 
-                       x = matrix(0, N_samples, 0))
-       if(P > 0 && !is.null(colnames(X))) { names(pca_obj$center) <- names(pca_obj$scale) <- colnames(X) }
-       k_computed_pca <- 0
-       if(scale_scores) pca_obj$sds_for_scaling <- numeric(0)
-    } else { 
-        if (current_pca_method == "irlba") {
-          if (requireNamespace("irlba", quietly = TRUE)) {
-            if (k >= min(N_samples, P) && min(N_samples,P) > 1) {
-                 warning(sprintf("Tier '%s': k=%d is close to full rank (min(N,P)=%d). Using stats::prcomp for stability/completeness instead of irlba.", 
-                                tier_name, k, min(N_samples,P)))
-                 current_pca_method <- "stats"
-            } 
-          } else {
-            warning("pca_method = 'irlba' was chosen, but 'irlba' package is not installed. Falling back to pca_method = 'stats'.")
+    } else if (k <= 0 && k_requested <= 0) {
+      if (k_requested < 0) warning(sprintf("Tier '%s': Requested k=%d PCs, will use 0 PCs.", tier_name, k_requested))
+      warning(sprintf("Tier '%s': Effective k=0 PCs. No PCA will be performed. Scores will be a 0-column matrix.", tier_name))
+      pca_obj <- list(
+        center = if (P > 0) rep(0, P) else numeric(0),
+        scale = if (P > 0) rep(1, P) else numeric(0),
+        rotation = matrix(0, P, 0),
+        x = matrix(0, N_samples, 0)
+      )
+      if (P > 0 && !is.null(colnames(X))) {
+        names(pca_obj$center) <- names(pca_obj$scale) <- colnames(X)
+      }
+      k_computed_pca <- 0
+      if (scale_scores) pca_obj$sds_for_scaling <- numeric(0)
+    } else {
+      if (current_pca_method == "irlba") {
+        if (requireNamespace("irlba", quietly = TRUE)) {
+          if (k >= min(N_samples, P) && min(N_samples, P) > 1) {
+            warning(sprintf(
+              "Tier '%s': k=%d is close to full rank (min(N,P)=%d). Using stats::prcomp for stability/completeness instead of irlba.",
+              tier_name, k, min(N_samples, P)
+            ))
             current_pca_method <- "stats"
           }
-        }
-
-        if (current_pca_method == "stats"){
-             pca_obj <- stats::prcomp(X, center = TRUE, scale. = TRUE, retx = TRUE, rank. = k) 
-        } else { 
-             pca_obj <- irlba::prcomp_irlba(X, n = k, center = TRUE, scale. = TRUE)
-        }
-        
-        if (ncol(pca_obj$x) < k) {
-            warning(sprintf("Tier '%s': Requested k=%d PCs, but PCA computed %d PCs. Using %d PCs.", 
-                            tier_name, k, ncol(pca_obj$x), ncol(pca_obj$x)))
-            k_computed_pca <- ncol(pca_obj$x)
         } else {
-            k_computed_pca <- k
+          warning("pca_method = 'irlba' was chosen, but 'irlba' package is not installed. Falling back to pca_method = 'stats'.")
+          current_pca_method <- "stats"
         }
-        
-        if (scale_scores && k_computed_pca > 0) {
-            sds_train <- apply(pca_obj$x[, seq_len(k_computed_pca), drop = FALSE], 2, stats::sd)
-            pca_obj$sds_for_scaling <- sds_train
-        }
+      }
+
+      if (current_pca_method == "stats") {
+        pca_obj <- stats::prcomp(X, center = TRUE, scale. = TRUE, retx = TRUE, rank. = k)
+      } else {
+        pca_obj <- irlba::prcomp_irlba(X, n = k, center = TRUE, scale. = TRUE)
+      }
+
+      if (ncol(pca_obj$x) < k) {
+        warning(sprintf(
+          "Tier '%s': Requested k=%d PCs, but PCA computed %d PCs. Using %d PCs.",
+          tier_name, k, ncol(pca_obj$x), ncol(pca_obj$x)
+        ))
+        k_computed_pca <- ncol(pca_obj$x)
+      } else {
+        k_computed_pca <- k
+      }
+
+      if (scale_scores && k_computed_pca > 0) {
+        sds_train <- apply(pca_obj$x[, seq_len(k_computed_pca), drop = FALSE], 2, stats::sd)
+        pca_obj$sds_for_scaling <- sds_train
+      }
     }
 
     pca_list[[tier_name]] <- pca_obj
     numpcs_computed[i] <- k_computed_pca
-    
+
     current_tier_scores <- if (k_computed_pca > 0) {
-        pca_obj$x[, seq_len(k_computed_pca), drop = FALSE]
+      pca_obj$x[, seq_len(k_computed_pca), drop = FALSE]
     } else {
-        matrix(0.0, nrow = N_samples, ncol = 0)
+      matrix(0.0, nrow = N_samples, ncol = 0)
     }
 
     if (scale_scores && k_computed_pca > 0) {
-        sds_to_use <- pca_obj$sds_for_scaling
-        pc_scores_raw[[tier_name]] <- scale(current_tier_scores, center = FALSE, scale = sds_to_use + 1e-8)
+      sds_to_use <- pca_obj$sds_for_scaling
+      pc_scores_raw[[tier_name]] <- scale(current_tier_scores, center = FALSE, scale = sds_to_use + 1e-8)
     } else {
-        pc_scores_raw[[tier_name]] <- current_tier_scores
+      pc_scores_raw[[tier_name]] <- current_tier_scores
     }
   }
   numpcs <- numpcs_computed
@@ -163,7 +171,7 @@ residualize_tiers <- function(feature_list, numpcs = NULL,
 
   result <- list(
     pca = pca_list,
-    pc_scores_raw = pc_scores_raw, 
+    pc_scores_raw = pc_scores_raw,
     residuals = residuals_final,
     projection_bases = projection_bases,
     numpcs = numpcs,
@@ -184,8 +192,10 @@ print.residualized_tiers <- function(x, ...) {
   cat("  Total rank kept: ", sum(x$numpcs), "\n")
   cat("  Scores scaled (z-scored by tier): ", x$scale_scores, "\n")
   if (!is.null(x$svd_tol_info)) {
-    cat("  SVD tolerance factor: ", x$svd_tol_info$value, 
-        " (applied as ", x$svd_tol_info$formula, ")\n")
+    cat(
+      "  SVD tolerance factor: ", x$svd_tol_info$value,
+      " (applied as ", x$svd_tol_info$formula, ")\n"
+    )
   }
   invisible(x)
 }
@@ -208,8 +218,10 @@ predict.residualized_tiers <- function(object, newdata, ...) {
     stop("'newdata' must be a named list of matrices.")
   }
   if (!identical(sort(names(newdata)), sort(object$tiers))) {
-    stop("'newdata' must contain matrices for all tiers present in the training object: ",
-         paste(object$tiers, collapse = ", "))
+    stop(
+      "'newdata' must contain matrices for all tiers present in the training object: ",
+      paste(object$tiers, collapse = ", ")
+    )
   }
   num_samples_new <- nrow(as.matrix(newdata[[object$tiers[1]]]))
   if (num_samples_new == 0) stop("'newdata' matrices cannot have zero rows.")
@@ -230,13 +242,15 @@ predict.residualized_tiers <- function(object, newdata, ...) {
     tier_name <- object$tiers[i]
     current_X_new <- as.matrix(newdata[[tier_name]])
     pca_obj_train <- object$pca[[tier_name]]
-    k_train <- object$numpcs[i] 
+    k_train <- object$numpcs[i]
 
     if (is.null(pca_obj_train$center)) {
-        if (k_train != 0) stop(sprintf("Mismatch: k_train is %d for tier '%s' but PCA object seems empty.", k_train, tier_name))
+      if (k_train != 0) stop(sprintf("Mismatch: k_train is %d for tier '%s' but PCA object seems empty.", k_train, tier_name))
     } else if (ncol(current_X_new) != length(pca_obj_train$center)) {
-      stop(sprintf("Column count mismatch for tier '%s' in 'newdata'. Expected %d, got %d.",
-                   tier_name, length(pca_obj_train$center), ncol(current_X_new)))
+      stop(sprintf(
+        "Column count mismatch for tier '%s' in 'newdata'. Expected %d, got %d.",
+        tier_name, length(pca_obj_train$center), ncol(current_X_new)
+      ))
     }
     training_colnames <- names(pca_obj_train$center)
     new_data_colnames <- colnames(current_X_new)
@@ -253,18 +267,18 @@ predict.residualized_tiers <- function(object, newdata, ...) {
     } else if (!is.null(training_colnames) && is.null(new_data_colnames)) {
       stop(sprintf("Tier '%s' training data had column names, but newdata does not. Cannot ensure correct column order.", tier_name))
     }
-    
-    current_tier_new_scores <- if (k_train == 0) { 
-        matrix(0.0, nrow = num_samples_new, ncol = 0)
+
+    current_tier_new_scores <- if (k_train == 0) {
+      matrix(0.0, nrow = num_samples_new, ncol = 0)
     } else {
-        pred_pcs <- predict(pca_obj_train, newdata = current_X_new)
-        pred_pcs[, seq_len(min(k_train, ncol(pred_pcs))), drop = FALSE]
+      pred_pcs <- predict(pca_obj_train, newdata = current_X_new)
+      pred_pcs[, seq_len(min(k_train, ncol(pred_pcs))), drop = FALSE]
     }
 
     if (scale_scores_train && k_train > 0 && !is.null(pca_obj_train$sds_for_scaling)) {
-        new_pc_scores_raw_list[[tier_name]] <- scale(current_tier_new_scores, center = FALSE, scale = pca_obj_train$sds_for_scaling + 1e-8)
+      new_pc_scores_raw_list[[tier_name]] <- scale(current_tier_new_scores, center = FALSE, scale = pca_obj_train$sds_for_scaling + 1e-8)
     } else {
-        new_pc_scores_raw_list[[tier_name]] <- current_tier_new_scores
+      new_pc_scores_raw_list[[tier_name]] <- current_tier_new_scores
     }
   }
 

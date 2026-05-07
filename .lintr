@@ -1,0 +1,8 @@
+linters: linters_with_defaults(
+    line_length_linter = line_length_linter(120)
+  )
+exclusions: list(
+    "R/RcppExports.R",
+    "tests/testthat/" = list(object_name_linter = Inf)
+  )
+encoding: "UTF-8"

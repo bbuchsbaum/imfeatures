@@ -112,25 +112,20 @@ result_cpp <- compute_edge_entropy(small_img, use_cpp = TRUE, verbose = FALSE)
 # Results should be very similar
 all.equal(result_r$H1, result_cpp$H1, tolerance = 1e-10)
 
-# Example 4: Process with different distance ranges
 result_ranges <- compute_edge_entropy(
   image = img_array,
   ranges = list(c(10,50), c(50,100), c(100,200), c(200,400)),
-  maxdiag = 600L  # Increase to accommodate larger ranges
+  maxdiag = 600L
 )
-
-# Example 5: Batch process multiple images
+}
+\dontrun{
 img_files <- list.files("path/to/images", pattern = "\\\\.jpg$", full.names = TRUE)
 entropy_results <- lapply(img_files[1:5], function(f) {
-  img <- load.image(f)
-  gray <- grayscale(img)
+  img <- imager::load.image(f)
+  gray <- imager::grayscale(img)
   arr <- as.array(gray)[,,1,1]
   compute_edge_entropy(arr, max_pixels = 100000L)
 })
-
-# Extract H1 and H2 values
-h1_values <- sapply(entropy_results, function(x) x$H1)
-h2_values <- sapply(entropy_results, function(x) x$H2)
 }
 
 }

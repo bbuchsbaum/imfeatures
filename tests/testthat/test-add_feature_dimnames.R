@@ -1,5 +1,5 @@
 library(testthat)
-#library(imfeatures)
+# library(imfeatures)
 
 context(".add_feature_dimnames helper function")
 
@@ -10,7 +10,7 @@ test_that("dimnames set for matrix", {
 })
 
 test_that("dimnames set for array", {
-  arr <- array(1:8, dim = c(2,2,2))
+  arr <- array(1:8, dim = c(2, 2, 2))
   out <- imfeatures:::.add_feature_dimnames(arr, c("img1", "img2"))
   expect_equal(dimnames(out)[[1]], c("img1", "img2"))
 })

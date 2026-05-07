@@ -13,20 +13,25 @@ tv_get_extractor(
 )
 }
 \arguments{
-\item{model_name}{Character string. The name of the model.}
+\item{model_name}{Character string. The name of the model you want to use.
+See Details for examples based on the source.}
 
-\item{source}{Character string. The source library ("torchvision", "timm", etc.).}
+\item{source}{Character string. The library or source from which the model originates.
+Must be one of "torchvision", "timm", "keras", "ssl", or "custom".}
 
-\item{device}{Character string. Compute device ("cpu", "cuda", etc.).}
+\item{device}{Character string. The compute device to use, e.g., "cpu", "cuda",
+or "cuda:0" for the first GPU. Defaults to "cuda" if available, otherwise
+reticulate might fall back to "cpu".}
 
-\item{pretrained}{Logical. Use pretrained weights?}
+\item{pretrained}{Logical. Whether to load pretrained weights for the model.
+Defaults to TRUE. Pretrained weights are typically from ImageNet or the
+dataset specified in the model's original publication (e.g., LAION for OpenCLIP).}
 
-\item{model_parameters}{Named list (optional). Model-specific parameters.}
+\item{model_parameters}{Named list (optional). Additional parameters required by
+certain models, especially those from the "custom" or "ssl" source. See Details.}
 }
 \value{
 A reticulate Python object reference to the configured thingsvision extractor.
-
-An R object of class `thingsvision_extractor`.
 }
 \description{
 This function wraps the `get_extractor` function from the Python `thingsvision`
@@ -101,14 +106,6 @@ For the most up-to-date and comprehensive list of models available through
 `torchvision`, `timm`, `keras`, and `ssl`, please refer to their respective
 documentations. For `custom` models, refer to the `thingsvision` documentation:
 \url{https://vicco-group.github.io/thingsvision/AvailableModels.html}
-
-(Keep the detailed documentation about models/sources/params as before)
-...
-
-\strong{Return Value:}
-Returns an R object of class `thingsvision_extractor`. This object encapsulates
-the underlying Python extractor and provides R methods (like `print`, `extract`,
-`align`) for interaction. Use this object with functions designed for it.
 }
 \examples{
 \dontrun{
@@ -139,20 +136,7 @@ extractor_dino <- tv_get_extractor(
 extractor_effnet <- tv_get_extractor(model_name = "efficientnet_b0", source = "timm")
 # tv_show_model(extractor_effnet)
 }
-Get a thingsvision extractor R object
-
-This function instantiates a feature extractor from the Python `thingsvision`
-library and wraps it in an R object of class `thingsvision_extractor` for
-easier use within R.
-
-\dontrun{
-# reticulate::use_condaenv("r-thingsvision", required = TRUE)
-extractor_rn18 <- tv_get_extractor(model_name = "resnet18", source = "torchvision", device="cpu")
-print(extractor_rn18)
-}
 }
 \seealso{
 \code{\link{imfeatures_config}}, \code{\link{tv_extract}}, \code{\link{show_model}}
-
-\code{\link{imfeatures_config}}, \code{\link{tv_extract.thingsvision_extractor}}, \code{\link{print.thingsvision_extractor}}, \code{\link{tv_align.thingsvision_extractor}}
 }
