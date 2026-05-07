@@ -236,20 +236,20 @@ use_existing_python <- function(python_path = NULL, check_modules = TRUE, force 
     missing_required <- character()
     for (mod in names(required_modules)) {
       if (reticulate::py_module_available(mod)) {
-        message("  ✓ ", mod, " (", required_modules[mod], ")")
+        message("  [OK] ", mod, " (", required_modules[mod], ")")
       } else {
-        message("  ✗ ", mod, " (", required_modules[mod], ") - REQUIRED")
+        message("  [X]  ", mod, " (", required_modules[mod], ") - REQUIRED")
         missing_required <- c(missing_required, required_modules[mod])
       }
     }
-    
+
     # Check optional modules
     missing_optional <- character()
     for (mod in names(optional_modules)) {
       if (reticulate::py_module_available(mod)) {
-        message("  ✓ ", mod, " (", optional_modules[mod], ")")
+        message("  [OK] ", mod, " (", optional_modules[mod], ")")
       } else {
-        message("  ○ ", mod, " (", optional_modules[mod], ") - optional")
+        message("  [-]  ", mod, " (", optional_modules[mod], ") - optional")
         missing_optional <- c(missing_optional, optional_modules[mod])
       }
     }
@@ -268,15 +268,22 @@ use_existing_python <- function(python_path = NULL, check_modules = TRUE, force 
   
   # Import available modules
   tryCatch({
+    pkg_env <- asNamespace("imfeatures")
     if (reticulate::py_module_available("PIL")) {
-      assign("PIL", reticulate::import("PIL", delay_load = TRUE), envir = parent.frame())
+      tryCatch({
+        unlockBinding("PIL", pkg_env)
+        assign("PIL", reticulate::import("PIL", delay_load = TRUE), envir = pkg_env)
+        lockBinding("PIL", pkg_env)
+      }, error = function(e) invisible(NULL))
     }
     if (reticulate::py_module_available("resmem")) {
-      assign("resmem", reticulate::import("resmem", delay_load = TRUE), envir = parent.frame())
+      tryCatch({
+        unlockBinding("resmem", pkg_env)
+        assign("resmem", reticulate::import("resmem", delay_load = TRUE), envir = pkg_env)
+        lockBinding("resmem", pkg_env)
+      }, error = function(e) invisible(NULL))
     }
     if (reticulate::py_module_available("thingsvision")) {
-      # Import to package namespace so tv_get_extractor can find it
-      pkg_env <- asNamespace("imfeatures")
       
       # Check if tv already exists and is valid
       if (!exists("tv", envir = pkg_env) || is.null(get("tv", envir = pkg_env))) {

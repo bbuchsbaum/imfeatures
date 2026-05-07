@@ -19,7 +19,6 @@ clip_features <- function(impath,
                           model_name = "ViT-B-32",
                           num_transformer_blocks = 12, # Default for ViT-B
                           device = c("cpu", "cuda")) {
-
   device <- match.arg(device)
 
   assert_image(impath)
@@ -72,8 +71,8 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
   # ------------------------------------------------------------------
   # 1.  Bridge to Python open_clip
   # ------------------------------------------------------------------
-  oc    <- reticulate::import("open_clip", delay_load = TRUE)
-  pil   <- reticulate::import("PIL.Image", delay_load = TRUE)
+  oc <- reticulate::import("open_clip", delay_load = TRUE)
+  pil <- reticulate::import("PIL.Image", delay_load = TRUE)
   torch <- reticulate::import("torch", delay_load = TRUE)
 
   # Corrected multiple assignment
@@ -82,14 +81,14 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
     pretrained = "openai", # or other pretrained weights like 'laion2b_s34b_b79k'
     device = device
   )
-  model      <- model_and_transforms[[1]]
+  model <- model_and_transforms[[1]]
   preprocess <- model_and_transforms[[2]]
   model$eval()
 
   # ------------------------------------------------------------------
   # 2.  Load & preprocess image
   # ------------------------------------------------------------------
-  img   <- pil$open(impath)$convert("RGB")
+  img <- pil$open(impath)$convert("RGB")
   img_t <- preprocess(img)$unsqueeze(0L)$to(device = device) # Use 0L for integer
 
   # Results list
@@ -109,7 +108,7 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
 
   # Generate standard block names if integer indices are used
   # Base path for vision transformer residual blocks
-  vis_transformer_resblocks_base = "visual.transformer.resblocks"
+  vis_transformer_resblocks_base <- "visual.transformer.resblocks"
 
   # Resolve all requested intermediate layers to their full module path strings
   resolved_intermediate_module_paths <- character(0)
@@ -119,8 +118,10 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
         if (lyr >= 0 && lyr < num_transformer_blocks) {
           return(sprintf("%s.%d", vis_transformer_resblocks_base, as.integer(lyr)))
         } else {
-          warning(sprintf("Integer layer index %d is out of bounds (0-%d). Skipping.",
-                          as.integer(lyr), num_transformer_blocks - 1))
+          warning(sprintf(
+            "Integer layer index %d is out of bounds (0-%d). Skipping.",
+            as.integer(lyr), num_transformer_blocks - 1
+          ))
           return(NA_character_)
         }
       } else if (is.character(lyr)) {
@@ -142,15 +143,18 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
 
   hook_handles <- list()
   if (length(resolved_intermediate_module_paths) > 0) {
-    message("Registering hooks for: ", paste(resolved_intermediate_module_paths, collapse=", "))
+    message("Registering hooks for: ", paste(resolved_intermediate_module_paths, collapse = ", "))
     for (module_path_str in resolved_intermediate_module_paths) {
-      tryCatch({
-        # The key for storing in r_hooks_env will be the module_path_str itself
-        handle <- py_register_hook(model, module_path_str, captured_activations_env, module_path_str)
-        hook_handles[[module_path_str]] <- handle
-      }, error = function(e) {
-        warning(sprintf("Failed to register hook for layer '%s'. Error: %s", module_path_str, e$message))
-      })
+      tryCatch(
+        {
+          # The key for storing in r_hooks_env will be the module_path_str itself
+          handle <- py_register_hook(model, module_path_str, captured_activations_env, module_path_str)
+          hook_handles[[module_path_str]] <- handle
+        },
+        error = function(e) {
+          warning(sprintf("Failed to register hook for layer '%s'. Error: %s", module_path_str, e$message))
+        }
+      )
     }
   }
 
@@ -172,23 +176,22 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
   # 5. Collect Intermediate Features & Clean Up Hooks
   # ------------------------------------------------------------------
   if (length(hook_handles) > 0) {
-
     # Create a map for original integer requests to their resolved block names for output naming
     for (orig_lyr_req_idx in seq_along(intermediate_layers_requested)) {
-        orig_lyr <- intermediate_layers_requested[[orig_lyr_req_idx]]
-        if (is.numeric(orig_lyr)) {
-            resolved_path <- sprintf("%s.%d", vis_transformer_resblocks_base, as.integer(orig_lyr))
-            # Use the original numeric request as the key for the output list element,
-            # but retrieve from captured_activations_env using the resolved_path
-            # For the output list, we want the "user-friendly" name if they gave an int.
-            user_friendly_key <- sprintf("%s.%d", vis_transformer_resblocks_base, as.integer(orig_lyr))
-            if (resolved_path %in% names(captured_activations_env)) {
-                 out[[user_friendly_key]] <- as.array(captured_activations_env[[resolved_path]])
-            }
-        } else if (is.character(orig_lyr) && orig_lyr %in% names(captured_activations_env)) {
-            # If user gave a string, and it was successfully hooked and captured
-            out[[orig_lyr]] <- as.array(captured_activations_env[[orig_lyr]])
+      orig_lyr <- intermediate_layers_requested[[orig_lyr_req_idx]]
+      if (is.numeric(orig_lyr)) {
+        resolved_path <- sprintf("%s.%d", vis_transformer_resblocks_base, as.integer(orig_lyr))
+        # Use the original numeric request as the key for the output list element,
+        # but retrieve from captured_activations_env using the resolved_path
+        # For the output list, we want the "user-friendly" name if they gave an int.
+        user_friendly_key <- sprintf("%s.%d", vis_transformer_resblocks_base, as.integer(orig_lyr))
+        if (resolved_path %in% names(captured_activations_env)) {
+          out[[user_friendly_key]] <- as.array(captured_activations_env[[resolved_path]])
         }
+      } else if (is.character(orig_lyr) && orig_lyr %in% names(captured_activations_env)) {
+        # If user gave a string, and it was successfully hooked and captured
+        out[[orig_lyr]] <- as.array(captured_activations_env[[orig_lyr]])
+      }
     }
 
     # Clean up hooks

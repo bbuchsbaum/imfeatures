@@ -2,8 +2,10 @@ Package: imfeatures
 Type: Package
 Title: Extract Visual Features from 2D Images
 Version: 0.1.0
-Author: Bradley Buchsbaum
-Maintainer: Bradley Buchsbaum <brad.buchsbaum@gmail.com>
+Authors@R: person(given = "Bradley",
+                  family = "Buchsbaum",
+                  role = c("aut", "cre"),
+                  email = "brad.buchsbaum@gmail.com")
 Description: Provides tools for extracting visual features from 2D images using
     deep learning models and traditional computer vision techniques. Includes
     support for VGG16, ResNet, and other pre-trained models through Python
@@ -12,15 +14,15 @@ Description: Provides tools for extracting visual features from 2D images using
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Imports: 
+Imports:
   Rcpp,
-  RcppArmadillo,
   keras3,
   coop,
   furrr,
   proxy,
   progress,
   memoise,
+  cachem,
   reticulate,
   ggimage,
   ggplot2,
@@ -31,20 +33,20 @@ Imports:
   crayon,
   rgl,
   httr2,
-  jsonlite,
   cli,
   ellmer,
   tibble,
-  purrr
+  pracma
 Suggests:
   testthat,
-  generativeai,
   knitr,
-  rmarkdown
+  rmarkdown,
+  irlba,
+  tensorflow
 VignetteBuilder: knitr
 RoxygenNote: 7.3.3
-Depends: 
-    R (>= 3.10)
+Depends:
+    R (>= 4.1.0)
 LinkingTo:
     Rcpp,
     RcppArmadillo

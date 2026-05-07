@@ -29,22 +29,22 @@
   if (!nzchar(api_key)) {
     stop("OPENAI_API_KEY not set. Please set it using Sys.setenv(OPENAI_API_KEY = 'your-key')")
   }
-  
+
   req <- httr2::request(base_url) |>
     httr2::req_url_path_append("embeddings") |>
     httr2::req_headers(Authorization = paste("Bearer", api_key))
-  
+
   body <- list(model = model, input = text)
   if (!is.null(dimensions)) {
     body$dimensions <- as.integer(dimensions)
   }
-  
+
   req <- req |> httr2::req_body_json(body, auto_unbox = TRUE)
-  
+
   if (nzchar(organization)) {
     req <- req |> httr2::req_headers("OpenAI-Organization" = organization)
   }
-  
+
   resp <- httr2::req_perform(req)
   res <- httr2::resp_body_json(resp)
   unlist(res$data[[1]]$embedding, use.names = FALSE)
@@ -72,37 +72,37 @@
   if (!nzchar(api_key)) {
     stop("GEMINI_API_KEY not set. Please set it using Sys.setenv(GEMINI_API_KEY = 'your-key')")
   }
-  
+
   url <- paste0(base_url, "/models/", model, ":embedContent")
-  
+
   body <- list(
     contents = list(list(parts = list(list(text = text)))),
     embedding_config = list()
   )
-  
+
   if (!is.null(output_dimensionality)) {
     body$embedding_config$output_dimensionality <- as.integer(output_dimensionality)
   }
-  
+
   if (!is.null(task_type)) {
     body$embedding_config$task_type <- task_type
   }
-  
+
   resp <- httr2::request(url) |>
     httr2::req_headers("x-goog-api-key" = api_key, "Content-Type" = "application/json") |>
     httr2::req_body_json(body, auto_unbox = TRUE) |>
     httr2::req_perform()
-  
+
   res <- httr2::resp_body_json(resp)
-  
+
   # Handle different response structures
   emb <- res$embedding$values
   if (is.null(emb)) {
     emb <- res$embeddings[[1]]$values
   }
-  
+
   v <- unlist(emb, use.names = FALSE)
-  
+
   # Normalize if non-3072 dimensions (per Gemini docs)
   if (!is.null(output_dimensionality) && output_dimensionality != 3072) {
     norm <- sqrt(sum(v * v))
@@ -110,7 +110,7 @@
       v <- v / norm
     }
   }
-  
+
   v
 }
 
@@ -132,9 +132,9 @@
   if (!nzchar(api_key)) {
     stop("HUGGINGFACE_API_KEY not set. Please set it using Sys.setenv(HUGGINGFACE_API_KEY = 'your-key')")
   }
-  
+
   url <- paste0(base_url, "/", model)
-  
+
   resp <- httr2::request(url) |>
     httr2::req_headers(
       Authorization = paste("Bearer", api_key),
@@ -142,9 +142,9 @@
     ) |>
     httr2::req_body_json(list(inputs = text), auto_unbox = TRUE) |>
     httr2::req_perform()
-  
+
   m <- httr2::resp_body_json(resp)
-  
+
   # HF models often return nested lists
   v <- unlist(m[[1]], use.names = FALSE)
   v
@@ -184,7 +184,7 @@ embed_text <- function(
   api_key = NULL
 ) {
   backend <- match.arg(backend)
-  
+
   # Default models per backend
   if (is.null(model)) {
     model <- switch(backend,
@@ -193,13 +193,13 @@ embed_text <- function(
       hf = "sentence-transformers/all-MiniLM-L6-v2"
     )
   }
-  
+
   # Handle multiple texts
   if (length(text) > 1) {
     embeddings <- lapply(text, function(t) {
       embed_text(
-        t, 
-        backend = backend, 
+        t,
+        backend = backend,
         model = model,
         dimensions = dimensions,
         task_type = task_type,
@@ -209,7 +209,7 @@ embed_text <- function(
     })
     return(do.call(rbind, embeddings))
   }
-  
+
   # Single text embedding
   emb <- switch(backend,
     openai = {
@@ -219,7 +219,7 @@ embed_text <- function(
     },
     gemini = {
       args <- list(
-        text = text, 
+        text = text,
         model = model,
         output_dimensionality = dimensions,
         task_type = task_type
@@ -233,7 +233,7 @@ embed_text <- function(
       do.call(.embed_hf, args)
     }
   )
-  
+
   # Optional normalization
   if (normalize) {
     norm <- sqrt(sum(emb * emb))
@@ -241,7 +241,7 @@ embed_text <- function(
       emb <- emb / norm
     }
   }
-  
+
   emb
 }
 

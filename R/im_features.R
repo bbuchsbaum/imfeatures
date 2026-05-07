@@ -23,46 +23,45 @@
 #' # Create a vector of image paths
 #' img_dir <- system.file("extdata", package = "imfeatures")
 #' img_paths <- list.files(img_dir, pattern = "\\.jpg$", full.names = TRUE)
-#' 
+#'
 #' # Compute similarity matrix using features from specific layers
 #' sim_matrix <- compute_feature_similarity(
 #'   impaths = img_paths,
-#'   layers = c(10, 15),  # Two VGG16 layers
-#'   model = NULL,  # Use default VGG16
+#'   layers = c(10, 15), # Two VGG16 layers
+#'   model = NULL, # Use default VGG16
 #'   target_size = c(224, 224),
 #'   metric = "cosine"
 #' )
-#' 
+#'
 #' # Access similarity matrices for each layer
 #' layer10_sim <- sim_matrix$layer_10
 #' layer15_sim <- sim_matrix$layer_15
-#' 
+#'
 #' # Compute similarity with spatial pooling for efficiency
 #' sim_pooled <- compute_feature_similarity(
 #'   impaths = img_paths,
 #'   layers = c(12),
-#'   spatial_pooling = "avg",  # Average pool spatial dimensions
+#'   spatial_pooling = "avg", # Average pool spatial dimensions
 #'   metric = "cosine",
-#'   lowmem = TRUE  # Memory-efficient computation
+#'   lowmem = TRUE # Memory-efficient computation
 #' )
-#' 
+#'
 #' # Use subsampling for very large feature vectors
 #' sim_subsampled <- compute_feature_similarity(
 #'   impaths = img_paths,
 #'   layers = c(10),
-#'   subsamp_prop = 0.5,  # Use 50% of features
+#'   subsamp_prop = 0.5, # Use 50% of features
 #'   metric = "euclidean"
 #' )
-#' 
+#'
 #' # Visualize similarity matrix
 #' heatmap(sim_matrix$layer_10, symm = TRUE)
 #' }
 #' @export
-compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=c(224,224),
-                           spatial_pooling = "none",
-                           metric="cosine", lowmem=TRUE,cache_size=2048 * 2048^2,
-                           subsamp_prop=1) {
-
+compute_feature_similarity <- function(impaths, layers, model = NULL, target_size = c(224, 224),
+                                       spatial_pooling = "none",
+                                       metric = "cosine", lowmem = TRUE, cache_size = 2048 * 2048^2,
+                                       subsamp_prop = 1) {
   assert_image(impaths)
   if (length(impaths) <= 1) {
     stop("need at least two images to compare")
@@ -70,7 +69,7 @@ compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=
   checkmate::assert_number(subsamp_prop, lower = 0, upper = 1, finite = TRUE)
 
   if (is.null(model)) {
-    model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
+    model <- application_vgg16(weights = "imagenet", include_top = TRUE)
   }
 
   out <- lapply(seq_along(layers), function(l) {
@@ -80,8 +79,8 @@ compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=
     m
   })
 
-  #imfeat <- memoise::memoise(extract_features, omit_args=c("model"), cache=cachem::cache_mem(max_size = 2044 * 2048^2))
-  imfeat <- memoise::memoise(extract_features, cache=cachem::cache_mem(max_size = cache_size))
+  # imfeat <- memoise::memoise(extract_features, omit_args=c("model"), cache=cachem::cache_mem(max_size = 2044 * 2048^2))
+  imfeat <- memoise::memoise(extract_features, cache = cachem::cache_mem(max_size = cache_size))
 
   pb <- progress_bar$new(total = length(impaths))
 
@@ -91,14 +90,18 @@ compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=
       pb$tick()
       for (j in 1:length(impaths)) {
         if (i < j & i != j) {
-          #print(j)
-          fi <- imfeat(impaths[i], layers=layers, model=model,
-                        spatial_pooling = spatial_pooling)
-          fj <- imfeat(impaths[j], layers=layers, model=model,
-                        spatial_pooling = spatial_pooling)
+          # print(j)
+          fi <- imfeat(impaths[i],
+            layers = layers, model = model,
+            spatial_pooling = spatial_pooling
+          )
+          fj <- imfeat(impaths[j],
+            layers = layers, model = model,
+            spatial_pooling = spatial_pooling
+          )
           for (k in 1:length(layers)) {
-            m <- proxy::simil(as.vector(fi[[k]]), as.vector(fj[[k]]), method=metric, by_rows=FALSE)
-            out[[k]][i,j] <- m[1,1]
+            m <- proxy::simil(as.vector(fi[[k]]), as.vector(fj[[k]]), method = metric, by_rows = FALSE)
+            out[[k]][i, j] <- m[1, 1]
           }
         }
       }
@@ -108,11 +111,12 @@ compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=
       m[lower.tri(m)] <- t(m)[lower.tri(m)]
       m
     })
-
-  } else{
+  } else {
     if (subsamp_prop < 1) {
-      f1 <- extract_features(impaths[1], layers=layers, model=model,
-                         spatial_pooling = spatial_pooling)$feature
+      f1 <- extract_features(impaths[1],
+        layers = layers, model = model,
+        spatial_pooling = spatial_pooling
+      )$feature
       subsamp_ind <- lapply(f1, function(feat) {
         size <- max(1L, round(length(feat) * subsamp_prop))
         sample(seq_along(feat), size)
@@ -120,8 +124,10 @@ compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=
     }
 
     featlist <- furrr::future_map(impaths, function(im) {
-      feats <- extract_features(im, layers=layers, model=model,
-                           spatial_pooling = spatial_pooling)$feature
+      feats <- extract_features(im,
+        layers = layers, model = model,
+        spatial_pooling = spatial_pooling
+      )$feature
       if (subsamp_prop < 1) {
         feats <- lapply(seq_along(feats), function(i) {
           feats[[i]][subsamp_ind[[i]]]
@@ -130,16 +136,15 @@ compute_feature_similarity <- function(impaths, layers, model=NULL, target_size=
       feats
     })
 
-    out <-  furrr::future_map(seq_along(layers), function(i) {
+    out <- furrr::future_map(seq_along(layers), function(i) {
       mat <- do.call(rbind, lapply(featlist, function(x) as.vector(x[[i]])))
 
       if (metric == "cosine") {
-          coop::tcosine(mat)
+        coop::tcosine(mat)
       } else {
-         as.matrix(proxy::simil(mat, metric))
-       }
-     })
-
+        as.matrix(proxy::simil(mat, metric))
+      }
+    })
   }
 
 
@@ -157,7 +162,7 @@ im_feature_sim <- compute_feature_similarity
 
 vgg16 <- function() {
   if (is.null(.vgg16)) {
-    .vgg16 <<- keras3::application_vgg16(weights = 'imagenet', include_top = TRUE)
+    .vgg16 <<- keras3::application_vgg16(weights = "imagenet", include_top = TRUE)
     .vgg16
   } else {
     .vgg16
@@ -189,37 +194,36 @@ vgg16 <- function() {
 #' \dontrun{
 #' # Extract features from a single image using default VGG16 model
 #' img_path <- system.file("extdata", "example.jpg", package = "imfeatures")
-#' 
+#'
 #' # Extract features from multiple layers
 #' features <- extract_features(
 #'   impath = img_path,
-#'   layers = c(3, 5, 7),  # conv1_2, conv2_1, conv2_2
-#'   model = NULL,  # Uses default VGG16
+#'   layers = c(3, 5, 7), # conv1_2, conv2_1, conv2_2
+#'   model = NULL, # Uses default VGG16
 #'   target_size = c(224, 224)
 #' )
-#' 
+#'
 #' # Extract features with spatial pooling
 #' features_pooled <- extract_features(
 #'   impath = img_path,
-#'   layers = c(10, 12),  # Later convolutional layers
-#'   spatial_pooling = "avg"  # Global average pooling
+#'   layers = c(10, 12), # Later convolutional layers
+#'   spatial_pooling = "avg" # Global average pooling
 #' )
-#' 
+#'
 #' # Extract features with spatial resizing
 #' features_resized <- extract_features(
 #'   impath = img_path,
 #'   layers = c(10),
-#'   spatial_pooling = "resize_7x7"  # Resize spatial dimensions to 7x7
+#'   spatial_pooling = "resize_7x7" # Resize spatial dimensions to 7x7
 #' )
-#' 
+#'
 #' # Access the extracted features
-#' layer3_features <- features$feature[[1]]  # Features from layer 3
-#' dim(layer3_features)  # Check dimensions
+#' layer3_features <- features$feature[[1]] # Features from layer 3
+#' dim(layer3_features) # Check dimensions
 #' }
 #' @export
-extract_features <- function(impath, layers, model=NULL, target_size=c(224,224),
-                        spatial_pooling = "none") {
-
+extract_features <- function(impath, layers, model = NULL, target_size = c(224, 224),
+                             spatial_pooling = "none") {
   assert_image(impath)
   checkmate::assert_vector(layers, min.len = 1)
   checkmate::assert_integerish(target_size, len = 2)
@@ -228,12 +232,12 @@ extract_features <- function(impath, layers, model=NULL, target_size=c(224,224),
   # patterns of the form 'resize_HxW'
   valid_opts <- c("none", "avg", "max")
   if (!(spatial_pooling %in% valid_opts ||
-        grepl("^resize_[0-9]+x[0-9]+$", spatial_pooling))) {
+    grepl("^resize_[0-9]+x[0-9]+$", spatial_pooling))) {
     stop("'spatial_pooling' must be 'none', 'avg', 'max', or 'resize_HxW'")
   }
 
   if (is.null(model)) {
-    model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
+    model <- application_vgg16(weights = "imagenet", include_top = TRUE)
   }
 
   img <- .image_load_compat(impath, target_size = target_size)
@@ -244,7 +248,7 @@ extract_features <- function(impath, layers, model=NULL, target_size=c(224,224),
   x <- array_reshape(x, c(1, dim(x)))
   x <- imagenet_preprocess_input(x)
 
-  #subsamp_indices <- vector(length(layers), mode="list")
+  # subsamp_indices <- vector(length(layers), mode="list")
 
   features <- lapply(layers, function(layer) {
     lyr <- if (is.numeric(layer)) {
@@ -252,8 +256,10 @@ extract_features <- function(impath, layers, model=NULL, target_size=c(224,224),
     } else {
       get_layer(model, name = layer)
     }
-    intermediate_layer_model <- keras_model(inputs = model$input,
-                                            outputs = lyr$output)
+    intermediate_layer_model <- keras_model(
+      inputs = model$input,
+      outputs = lyr$output
+    )
 
     p <- predict(intermediate_layer_model, x)
 
@@ -265,7 +271,7 @@ extract_features <- function(impath, layers, model=NULL, target_size=c(224,224),
     layer = layers,
     feature = features
   )
-new_feature_tbl(tbl)
+  new_feature_tbl(tbl)
 }
 
 #' @rdname extract_features
@@ -288,7 +294,12 @@ im_features <- extract_features
       }
       tf <- reticulate::import("tensorflow", delay_load = TRUE)
       dims_str <- sub("resize_", "", spatial_pooling)
-      target_dims_int <- tryCatch({ as.integer(strsplit(dims_str, "x")[[1]]) }, error = function(e) NULL)
+      target_dims_int <- tryCatch(
+        {
+          as.integer(strsplit(dims_str, "x")[[1]])
+        },
+        error = function(e) NULL
+      )
       if (!is.null(target_dims_int) && length(target_dims_int) == 2 && !any(is.na(target_dims_int)) && all(target_dims_int > 0)) {
         p_tf <- tf$constant(p, dtype = tf$float32)
         p_resized_tf <- tf$image$resize(
@@ -317,21 +328,21 @@ im_features <- extract_features
 #' \dontrun{
 #' # Predict class of a single image
 #' img_path <- system.file("extdata", "dog.jpg", package = "imfeatures")
-#' 
+#'
 #' # Use default VGG16 model trained on ImageNet
 #' predictions <- im_predict(img_path, topn = 5)
-#' print(predictions)  # Top 5 predicted classes with scores
-#' 
+#' print(predictions) # Top 5 predicted classes with scores
+#'
 #' # Use a custom pre-loaded model
 #' library(keras3)
-#' resnet_model <- application_resnet50(weights = 'imagenet')
+#' resnet_model <- application_resnet50(weights = "imagenet")
 #' predictions_resnet <- im_predict(
 #'   impath = img_path,
 #'   model = resnet_model,
 #'   target_size = c(224, 224),
 #'   topn = 10
 #' )
-#' 
+#'
 #' # Predict using VGG16-Places365 for scene recognition
 #' places_model <- load_vgg16_places()
 #' scene_predictions <- im_predict(
@@ -344,27 +355,31 @@ im_features <- extract_features
 #' @export
 #' @importFrom dplyr top_n arrange desc
 #' @importFrom keras3 imagenet_decode_predictions
-im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
+im_predict <- function(impath, model = NULL, target_size = c(224, 224), topn = 12) {
   assert_image(impath)
   checkmate::assert_integerish(target_size, len = 2)
   assert_scalar(topn, "integer")
   if (is.null(model)) {
-    model <- application_vgg16(weights = 'imagenet', include_top = TRUE)
+    model <- application_vgg16(weights = "imagenet", include_top = TRUE)
   }
 
   img <- .image_load_compat(impath, target_size = target_size)
   x <- image_to_array(img)
-  #x <- array_reshape(x, c(1, unlist(x$shape)))
+  # x <- array_reshape(x, c(1, unlist(x$shape)))
   x <- array_reshape(x, c(1, dim(x)))
   x <- imagenet_preprocess_input(x)
 
   preds <- model %>% predict(x)
 
   if (model$name == "vgg16-places365") {
-    data("places_cat365")
-    data.frame(class_name=places_cat365$category, score=preds[1,]) %>% arrange(desc(score)) %>% top_n(topn)
+    e <- new.env()
+    utils::data("places_cat365", package = "imfeatures", envir = e)
+    places_cat365 <- e$places_cat365
+    data.frame(class_name = places_cat365$category, score = preds[1, ]) %>%
+      dplyr::arrange(dplyr::desc(score)) %>%
+      dplyr::top_n(topn)
   } else {
-    imagenet_decode_predictions(preds,topn)
+    imagenet_decode_predictions(preds, topn)
   }
 }
 
@@ -393,14 +408,18 @@ im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   if (!is.null(k)) {
     # Prefer keras.utils.load_img if available
     if (reticulate::py_has_attr(k, "utils") && reticulate::py_has_attr(k$utils, "load_img")) {
-      if (is.null(size_tuple)) return(k$utils$load_img(path, color_mode = color_mode))
+      if (is.null(size_tuple)) {
+        return(k$utils$load_img(path, color_mode = color_mode))
+      }
       return(k$utils$load_img(path, color_mode = color_mode, target_size = size_tuple))
     }
     # Fallback to legacy preprocessing path
     if (reticulate::py_has_attr(k, "preprocessing") &&
-        reticulate::py_has_attr(k$preprocessing, "image") &&
-        reticulate::py_has_attr(k$preprocessing$image, "load_img")) {
-      if (is.null(size_tuple)) return(k$preprocessing$image$load_img(path, color_mode = color_mode))
+      reticulate::py_has_attr(k$preprocessing, "image") &&
+      reticulate::py_has_attr(k$preprocessing$image, "load_img")) {
+      if (is.null(size_tuple)) {
+        return(k$preprocessing$image$load_img(path, color_mode = color_mode))
+      }
       return(k$preprocessing$image$load_img(path, color_mode = color_mode, target_size = size_tuple))
     }
   }
@@ -420,9 +439,9 @@ im_predict <- function(impath, model=NULL, target_size=c(224,224), topn=12) {
   stop("No suitable image loader available (keras/PIL not found).")
 }
 
-#p=reticulate::import("keras_models.models.pretrained.vgg16_places365")
-#model=p$VGG16_Places365()
-#target_size=c(224,224)
-#intermediate_layer_model <- keras_model(inputs = model$input,
-                                       # outputs = get_layer(model, index=index)$output)
-#predict(intermediate_layer_model, x)
+# p=reticulate::import("keras_models.models.pretrained.vgg16_places365")
+# model=p$VGG16_Places365()
+# target_size=c(224,224)
+# intermediate_layer_model <- keras_model(inputs = model$input,
+# outputs = get_layer(model, index=index)$output)
+# predict(intermediate_layer_model, x)

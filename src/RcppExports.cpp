@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // edge_entropy_cpp
-DataFrame edge_entropy_cpp(const NumericMatrix& image, std::string impath, int maxdiag, int gabor_bins, int filter_length, int circ_bins, SEXP rangesSEXP);
-RcppExport SEXP _imfeatures_edge_entropy_cpp(SEXP imageSEXP, SEXP impathSEXP, SEXP maxdiagSEXP, SEXP gabor_binsSEXP, SEXP filter_lengthSEXP, SEXP circ_binsSEXP, SEXP rangesSEXPSEXP) {
+DataFrame edge_entropy_cpp(const NumericMatrix& image, std::string impath, int maxdiag, int gabor_bins, int filter_length, int circ_bins, SEXP ranges);
+RcppExport SEXP _imfeatures_edge_entropy_cpp(SEXP imageSEXP, SEXP impathSEXP, SEXP maxdiagSEXP, SEXP gabor_binsSEXP, SEXP filter_lengthSEXP, SEXP circ_binsSEXP, SEXP rangesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -23,8 +23,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type gabor_bins(gabor_binsSEXP);
     Rcpp::traits::input_parameter< int >::type filter_length(filter_lengthSEXP);
     Rcpp::traits::input_parameter< int >::type circ_bins(circ_binsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type rangesSEXP(rangesSEXPSEXP);
-    rcpp_result_gen = Rcpp::wrap(edge_entropy_cpp(image, impath, maxdiag, gabor_bins, filter_length, circ_bins, rangesSEXP));
+    Rcpp::traits::input_parameter< SEXP >::type ranges(rangesSEXP);
+    rcpp_result_gen = Rcpp::wrap(edge_entropy_cpp(image, impath, maxdiag, gabor_bins, filter_length, circ_bins, ranges));
     return rcpp_result_gen;
 END_RCPP
 }

@@ -1,5 +1,5 @@
 library(testthat)
-#library(imfeatures)
+# library(imfeatures)
 
 context("image_mse")
 
@@ -32,7 +32,7 @@ test_that("grayscale images return numeric vector of length 3", {
 
 test_that("color images return numeric vector of length 3", {
   # Red, green, blue, yellow pixels
-  pix <- c(1,0,0, 0,1,0, 0,0,1, 1,1,0)
+  pix <- c(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0)
   img <- make_color(pix)
   res <- image_mse(img, sf = 0, bins = 2L)
   expect_type(res, "double")
@@ -55,7 +55,6 @@ test_that("NA values lead to NA entropy without warnings", {
 # ---------------------------------------------------------------------
 
 test_that("images with incorrect channel counts throw an error", {
-  bad_img <- imager::as.cimg(array(runif(2*2*1*4), dim = c(2,2,1,4)))
+  bad_img <- imager::as.cimg(array(runif(2 * 2 * 1 * 4), dim = c(2, 2, 1, 4)))
   expect_error(image_mse(bad_img))
 })
-

@@ -44,18 +44,23 @@ test_that("im_feature_sim is an alias for compute_feature_similarity", {
 # Integration test that requires Keras - skip if not available
 test_that("compute_feature_similarity works end-to-end with real model", {
   skip_if_not_installed("keras3")
-  skip_if_not(reticulate::py_module_available("keras"),
-              "Keras Python module not available")
+  skip_if_not(
+    reticulate::py_module_available("keras"),
+    "Keras Python module not available"
+  )
 
   # Try to load VGG16 - skip if it fails (e.g., TensorFlow config issues)
-  skip_on_cran()  # Don't run this heavy test on CRAN
+  skip_on_cran() # Don't run this heavy test on CRAN
 
-  model_load_works <- tryCatch({
-    model <- keras3::application_vgg16(weights = 'imagenet', include_top = TRUE)
-    TRUE
-  }, error = function(e) {
-    FALSE
-  })
+  model_load_works <- tryCatch(
+    {
+      model <- keras3::application_vgg16(weights = "imagenet", include_top = TRUE)
+      TRUE
+    },
+    error = function(e) {
+      FALSE
+    }
+  )
 
   skip_if_not(model_load_works, "VGG16 model cannot be loaded")
 
@@ -66,7 +71,7 @@ test_that("compute_feature_similarity works end-to-end with real model", {
   for (i in seq_along(img_paths)) {
     png(img_paths[i], width = 224, height = 224)
     par(mar = c(0, 0, 0, 0))
-    image(matrix(runif(224*224), 224, 224), axes = FALSE, col = rainbow(10))
+    image(matrix(runif(224 * 224), 224, 224), axes = FALSE, col = rainbow(10))
     dev.off()
   }
 

@@ -4,8 +4,10 @@
 # imfeatures
 
 <!-- badges: start -->
+
 [![R-CMD-check](https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml)
-[![Codecov coverage](https://codecov.io/gh/bbuchsbaum/imfeatures/branch/main/graph/badge.svg)](https://app.codecov.io/gh/bbuchsbaum/imfeatures)
+[![Codecov
+coverage](https://codecov.io/gh/bbuchsbaum/imfeatures/branch/main/graph/badge.svg)](https://app.codecov.io/gh/bbuchsbaum/imfeatures)
 <!-- badges: end -->
 
 The goal of imfeatures is to …
@@ -25,41 +27,27 @@ This is a basic example which shows you how to solve a common problem:
 
 ``` r
 library(imfeatures)
-## basic example code
-im1 = "testdata/1_A_1.jpeg"
-im2 = "testdata/1_B_1.jpeg"
+im1 <- "testdata/1_A_1.jpeg"
+im2 <- "testdata/1_B_1.jpeg"
 
-im_feature_sim(c(im1,im2), layers=c(1,2,3))
-#> [========================================================================================] 100%
-#> $layer_1
-#>            1_A_1.jpeg 1_B_1.jpeg
-#> 1_A_1.jpeg  0.0000000  0.3326229
-#> 1_B_1.jpeg  0.3326229  0.0000000
-#> 
-#> $layer_2
-#>            1_A_1.jpeg 1_B_1.jpeg
-#> 1_A_1.jpeg    0.00000    0.37037
-#> 1_B_1.jpeg    0.37037    0.00000
-#> 
-#> $layer_3
-#>            1_A_1.jpeg 1_B_1.jpeg
-#> 1_A_1.jpeg  0.0000000  0.4695186
-#> 1_B_1.jpeg  0.4695186  0.0000000
+im_feature_sim(c(im1, im2), layers = c(1, 2, 3))
 ```
 
 ## HPC Quickstart (single recommended path)
 
-On HPC systems, avoid automatic Conda setup and use an existing Python instead.
+On HPC systems, avoid automatic Conda setup and use an existing Python
+instead.
 
-1. Disable auto Python setup during load (recommended on HPC):
+1.  Disable auto Python setup during load (recommended on HPC):
 
 ``` r
 Sys.setenv(IMFEATURES_SKIP_PYTHON = "TRUE")
 ```
 
-To make this permanent, add `IMFEATURES_SKIP_PYTHON=TRUE` to `~/.Renviron`.
+To make this permanent, add `IMFEATURES_SKIP_PYTHON=TRUE` to
+`~/.Renviron`.
 
-2. Create or choose a Python environment (module + venv is typical):
+2.  Create or choose a Python environment (module + venv is typical):
 
 ``` bash
 # Example using your cluster's Python module
@@ -79,13 +67,13 @@ pip install thingsvision resmem open-clip-torch
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 # or CUDA-specific (example):
 # pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-
+ 
 Note on Python versions: some optional packages (e.g., thingsvision via numba)
 currently do not support Python 3.11+. Prefer Python 3.9 or 3.10 when you plan
 to use these features.
 ```
 
-3. Tell imfeatures to use that Python:
+3.  Tell imfeatures to use that Python:
 
 ``` r
 library(imfeatures)
@@ -94,12 +82,10 @@ use_existing_python("$WORK/venvs/imfeatures/bin/python")
 
 Alternatively, set once in `~/.Renviron` and it will be auto-detected:
 
-```
-RETICULATE_PYTHON=$WORK/venvs/imfeatures/bin/python
-IMFEATURES_SKIP_PYTHON=TRUE
-```
+    RETICULATE_PYTHON=$WORK/venvs/imfeatures/bin/python
+    IMFEATURES_SKIP_PYTHON=TRUE
 
-4. Verify:
+4.  Verify:
 
 ``` r
 reticulate::py_config()
@@ -107,5 +93,9 @@ reticulate::py_config()
 
 Troubleshooting:
 
-- If you see a Conda error like “bad interpreter” during `library(imfeatures)`, it’s usually a broken R-miniconda on shared filesystems. Use the HPC Quickstart above or set `IMFEATURES_SKIP_PYTHON=TRUE` and call `use_existing_python()`.
-- To force `virtualenv` instead of Conda during `imfeatures_config()`, set `IMFEATURES_METHOD=virtualenv` before calling it.
+- If you see a Conda error like “bad interpreter” during
+  `library(imfeatures)`, it’s usually a broken R-miniconda on shared
+  filesystems. Use the HPC Quickstart above or set
+  `IMFEATURES_SKIP_PYTHON=TRUE` and call `use_existing_python()`.
+- To force `virtualenv` instead of Conda during `imfeatures_config()`,
+  set `IMFEATURES_METHOD=virtualenv` before calling it.

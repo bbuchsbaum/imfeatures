@@ -313,13 +313,17 @@ List do_counting_cpp(const IntegerMatrix &resp_bin,
   std::vector<double> allresp;
   allresp.reserve(size);
   for (int i = 0; i < size; i++)
-      allresp.push_back(resp_val[i]);
-      int k_element = 10000;
-      int actual_k = std::min(k_element, (int)allresp.size()); 
+    allresp.push_back(resp_val[i]);
+  int k_element = 10000;
+  int actual_k = std::min(k_element, (int)allresp.size());
   double cutoff = 0.0;
-  if (actual_k > 0) {
-      std::partial_sort(allresp.begin(), allresp.begin() + actual_k, allresp.end(), std::greater<double>());
+  if ((int)allresp.size() >= k_element) {
+    std::partial_sort(allresp.begin(), allresp.begin() + actual_k, allresp.end(), std::greater<double>());
     cutoff = allresp[actual_k - 1];
+  } else if (!allresp.empty()) {
+    std::sort(allresp.begin(), allresp.end(), std::greater<double>());
+    int cutoff_idx = std::max(1, (int)std::ceil((double)allresp.size() * 0.1));
+    cutoff = allresp[cutoff_idx - 1];
   }
   Rcpp::Rcout << "[C++] do_counting: Calculated cutoff (k-th=" << k_element << "): " << cutoff << "\n";
 
@@ -372,12 +376,12 @@ List do_counting_cpp(const IntegerMatrix &resp_bin,
       int dx = x - xcp;
       int dy = y - ycp;
       double dd = std::sqrt((double)(dx*dx + dy*dy));
-      int disti = static_cast<int>(std::round(dd));
+      int disti = static_cast<int>(std::nearbyint(dd));
       if (disti < 0) disti = 0;
       if (disti >= maxdiag) disti = maxdiag - 1;
       double angle = std::atan2((double)dy, (double)dx);
       double ddir  = angle * angle_scale + shift;
-      int dir = static_cast<int>(std::floor(ddir + 0.5));
+      int dir = static_cast<int>(std::nearbyint(ddir));
       dir = (dir % circ_bins + circ_bins) % circ_bins;
       counts[disti + maxdiag * (dir + circ_bins * orel)] += (valcp * valp);
     }
@@ -420,7 +424,7 @@ List do_statistics_cpp(const NumericVector &counts,
       for (int g = 0; g < gabor_bins; g++) {
         s += counts[d + maxdiag * (c + circ_bins * g)];
       }
-      counts_sum[d + maxdiag * c] = s + 1.0e-9;
+      counts_sum[d + maxdiag * c] = s + 1.0e-5;
     }
   }
   
@@ -479,7 +483,7 @@ List do_statistics_cpp(const NumericVector &counts,
       circular_mean_length(d, c) = r * zar_cc;
       double e = entropyCpp(slice);
       shannon(d, c) = e;
-      double cs = counts_sum[d + maxdiag * c] - 1.0e-9;
+      double cs = counts_sum[d + maxdiag * c] - 1.0e-5;
       if (cs > 1.0)
         shannon_nan(d, c) = e;
     }
@@ -508,20 +512,19 @@ DataFrame edge_entropy_cpp(const NumericMatrix &image,
                            int gabor_bins = 24,
                            int filter_length = 31,
                            int circ_bins = 48,
-                           SEXP rangesSEXP = R_NilValue)
+                           SEXP ranges = R_NilValue)
 {
-  // Handle 'ranges' parameter.
-  List ranges;
-  if (Rf_isNull(rangesSEXP)) {
-    ranges = List::create(
+  List range_list;
+  if (Rf_isNull(ranges)) {
+    range_list = List::create(
       IntegerVector::create(20, 80),
       IntegerVector::create(80, 160),
       IntegerVector::create(160, 240)
     );
   } else {
-    if (!Rf_isNewList(rangesSEXP))
+    if (!Rf_isNewList(ranges))
         stop("Parameter 'ranges' must be a list.");
-    ranges = as<List>(rangesSEXP);
+    range_list = as<List>(ranges);
   }
 
   if (image.nrow() <= 0 || image.ncol() <= 0)
@@ -560,24 +563,29 @@ DataFrame edge_entropy_cpp(const NumericMatrix &image,
   List stats = do_statistics_cpp(cts["counts"], fbank["bins_vec"]);
 
   // 6) Summarize Shannon entropy over distance ranges.
-  NumericMatrix shannon = stats["shannon"];
-  int d = shannon.nrow();  // maxdiag
-  int a = shannon.ncol();  // circ_bins
+  NumericMatrix shannon_nan = stats["shannon_nan"];
+  int d = shannon_nan.nrow();  // maxdiag
+  int a = shannon_nan.ncol();  // circ_bins
 
   NumericVector rowmeans(d);
   if (a > 0) {
       for (int rr = 0; rr < d; rr++) {
           double sumv = 0.0;
+          int n_valid = 0;
           for (int cc = 0; cc < a; cc++) {
-              sumv += shannon(rr, cc);
+              double val = shannon_nan(rr, cc);
+              if (!NumericVector::is_na(val) && !std::isnan(val)) {
+                  sumv += val;
+                  n_valid++;
+              }
           }
-          rowmeans[rr] = sumv / (double)a;
+          rowmeans[rr] = (n_valid > 0) ? (sumv / (double)n_valid) : NA_REAL;
       }
   }
-  int nranges = ranges.size();
+  int nranges = range_list.size();
   NumericVector final_shannon(nranges, NA_REAL);
   for (int i = 0; i < nranges; i++) {
-    SEXP range_element = ranges[i];
+    SEXP range_element = range_list[i];
     if (!Rf_isInteger(range_element) || Rf_length(range_element) != 2) {
         warning("Element %d in 'ranges' list is not an integer vector of length 2. Skipping.", i + 1);
       continue;
@@ -595,8 +603,11 @@ DataFrame edge_entropy_cpp(const NumericMatrix &image,
     int count = 0;
     for (int idx = start_idx; idx <= end_idx; idx++) {
       if (idx >= 0 && idx < d) {
-        accum += rowmeans[idx];
-        count++;
+        double val = rowmeans[idx];
+        if (!NumericVector::is_na(val) && !std::isnan(val)) {
+          accum += val;
+          count++;
+        }
       }
     }
     if (count > 0)

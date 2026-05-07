@@ -31,17 +31,16 @@
 #' }
 #'
 #' @export
-configure_hpc_python <- function(module_cmd = NULL, 
-                                python_cmd = "python3",
-                                install_deps = FALSE,
-                                pip_user = TRUE) {
-  
+configure_hpc_python <- function(module_cmd = NULL,
+                                 python_cmd = "python3",
+                                 install_deps = FALSE,
+                                 pip_user = TRUE) {
   # Run module load command if provided
   if (!is.null(module_cmd) && nzchar(module_cmd)) {
     message("Running: ", module_cmd)
     system(module_cmd)
   }
-  
+
   # Find Python executable
   python_path <- Sys.which(python_cmd)
   if (!nzchar(python_path)) {
@@ -53,44 +52,49 @@ configure_hpc_python <- function(module_cmd = NULL,
       paste0("/opt/python/", python_cmd)
     )
     python_path <- hpc_paths[file.exists(hpc_paths)][1]
-    
+
     if (is.na(python_path)) {
-      stop("Python executable '", python_cmd, "' not found. ",
-           "Please load the appropriate module or specify the full path.")
+      stop(
+        "Python executable '", python_cmd, "' not found. ",
+        "Please load the appropriate module or specify the full path."
+      )
     }
   }
-  
+
   # Configure Python
   message("Configuring Python: ", python_path)
   reticulate::use_python(python_path, required = TRUE)
 
   # Detect if this Python is a virtualenv/venv; in that case, --user installs are invalid
   in_venv <- FALSE
-  in_venv <- tryCatch({
-    reticulate::py_eval(
-      "import sys; (getattr(sys, 'real_prefix', None) is not None) or (getattr(sys, 'base_prefix', sys.prefix) != sys.prefix)",
-      convert = TRUE
-    )
-  }, error = function(e) FALSE)
+  in_venv <- tryCatch(
+    {
+      reticulate::py_eval(
+        "import sys; (getattr(sys, 'real_prefix', None) is not None) or (getattr(sys, 'base_prefix', sys.prefix) != sys.prefix)",
+        convert = TRUE
+      )
+    },
+    error = function(e) FALSE
+  )
   if (!isTRUE(in_venv)) {
     venv_root <- normalizePath(file.path(dirname(python_path), ".."), mustWork = FALSE)
     in_venv <- file.exists(file.path(venv_root, "pyvenv.cfg"))
   }
-  
+
   # Check modules
   required <- c("Pillow", "numpy")
   optional <- c("thingsvision", "torch", "torchvision", "resmem")
-  
+
   missing_required <- character()
   missing_optional <- character()
-  
+
   for (pkg in required) {
     mod_name <- if (pkg == "Pillow") "PIL" else pkg
     if (!reticulate::py_module_available(mod_name)) {
       missing_required <- c(missing_required, pkg)
     }
   }
-  
+
   for (pkg in optional) {
     if (!reticulate::py_module_available(pkg)) {
       missing_optional <- c(missing_optional, pkg)
@@ -98,9 +102,12 @@ configure_hpc_python <- function(module_cmd = NULL,
   }
 
   # Detect Python version and provide guidance for known incompatibilities
-  py_ver <- tryCatch({
-    reticulate::py_eval("import sys; f'{sys.version_info[0]}.{sys.version_info[1]}'", convert = TRUE)
-  }, error = function(e) NA_character_)
+  py_ver <- tryCatch(
+    {
+      reticulate::py_eval("import sys; f'{sys.version_info[0]}.{sys.version_info[1]}'", convert = TRUE)
+    },
+    error = function(e) NA_character_
+  )
   if (is.character(py_ver) && nzchar(py_ver)) {
     parts <- strsplit(py_ver, "\\.")[[1]]
     if (length(parts) >= 2) {
@@ -108,85 +115,111 @@ configure_hpc_python <- function(module_cmd = NULL,
       min <- suppressWarnings(as.integer(parts[2]))
       if (!is.na(maj) && !is.na(min) && (maj > 3 || (maj == 3 && min >= 11))) {
         if ("thingsvision" %in% missing_optional) {
-          message("\nNote: Python ", py_ver, " detected. The 'thingsvision' package currently pins 'numba' to a version that ",
-                  "does not support Python 3.11+. Prefer Python 3.9 or 3.10 when installing 'thingsvision'.")
+          message(
+            "\nNote: Python ", py_ver, " detected. The 'thingsvision' package currently pins 'numba' to a version that ",
+            "does not support Python 3.11+. Prefer Python 3.9 or 3.10 when installing 'thingsvision'."
+          )
         }
       }
     }
   }
-  
+
   # Report status
   if (length(missing_required) > 0) {
     message("\nMissing REQUIRED packages: ", paste(missing_required, collapse = ", "))
-    
+
     if (install_deps) {
       message("Installing required packages...")
       use_user <- isTRUE(pip_user) && !isTRUE(in_venv)
-      pip_cmd <- paste0(python_path, " -m pip install ",
-                        if (use_user) "--user " else "",
-                        paste(missing_required, collapse = " "))
+      pip_cmd <- paste0(
+        python_path, " -m pip install ",
+        if (use_user) "--user " else "",
+        paste(missing_required, collapse = " ")
+      )
       message("Running: ", pip_cmd)
       system(pip_cmd)
     } else {
       message("To install, run:")
       use_user <- isTRUE(pip_user) && !isTRUE(in_venv)
-      message("  ", python_path, " -m pip install ",
-              if (use_user) "--user " else "",
-              paste(missing_required, collapse = " "))
+      message(
+        "  ", python_path, " -m pip install ",
+        if (use_user) "--user " else "",
+        paste(missing_required, collapse = " ")
+      )
     }
   } else {
-    message("✓ All required packages are installed")
+    message("[OK] All required packages are installed")
   }
-  
+
   if (length(missing_optional) > 0) {
     message("\nOptional packages not found: ", paste(missing_optional, collapse = ", "))
     if (install_deps && length(missing_required) == 0) {
       message("To install optional packages, run:")
       use_user <- isTRUE(pip_user) && !isTRUE(in_venv)
-      message("  ", python_path, " -m pip install ",
-              if (use_user) "--user " else "",
-              paste(missing_optional, collapse = " "))
+      message(
+        "  ", python_path, " -m pip install ",
+        if (use_user) "--user " else "",
+        paste(missing_optional, collapse = " ")
+      )
     }
   }
-  
+
   # Import modules
-  tryCatch({
-    if (reticulate::py_module_available("PIL")) {
-      assign("PIL", reticulate::import("PIL", delay_load = TRUE), envir = .GlobalEnv)
-    }
-    if (reticulate::py_module_available("resmem")) {
-      assign("resmem", reticulate::import("resmem", delay_load = TRUE), envir = .GlobalEnv)
-    }
-    if (reticulate::py_module_available("thingsvision")) {
-      # Import to package namespace so tv_get_extractor can find it
+  tryCatch(
+    {
       pkg_env <- asNamespace("imfeatures")
-      
-      # Unlock and update bindings
-      tryCatch({
-        unlockBinding("tv", pkg_env)
-        assign("tv", reticulate::import("thingsvision", delay_load = TRUE), envir = pkg_env)
-        lockBinding("tv", pkg_env)
-        
-        unlockBinding("tv_data", pkg_env)
-        assign("tv_data", reticulate::import("thingsvision.utils.data", delay_load = TRUE), envir = pkg_env)
-        lockBinding("tv_data", pkg_env)
-        
-        unlockBinding("tv_utils_storing", pkg_env)
-        assign("tv_utils_storing", reticulate::import("thingsvision.utils.storing", delay_load = TRUE), envir = pkg_env)
-        lockBinding("tv_utils_storing", pkg_env)
-        
-        unlockBinding("tv_core_extraction", pkg_env)
-        assign("tv_core_extraction", reticulate::import("thingsvision.core.extraction", delay_load = TRUE), envir = pkg_env)
-        lockBinding("tv_core_extraction", pkg_env)
-      }, error = function(e) {
-        # Ignore binding errors
-      })
+      if (reticulate::py_module_available("PIL")) {
+        tryCatch(
+          {
+            unlockBinding("PIL", pkg_env)
+            assign("PIL", reticulate::import("PIL", delay_load = TRUE), envir = pkg_env)
+            lockBinding("PIL", pkg_env)
+          },
+          error = function(e) invisible(NULL)
+        )
+      }
+      if (reticulate::py_module_available("resmem")) {
+        tryCatch(
+          {
+            unlockBinding("resmem", pkg_env)
+            assign("resmem", reticulate::import("resmem", delay_load = TRUE), envir = pkg_env)
+            lockBinding("resmem", pkg_env)
+          },
+          error = function(e) invisible(NULL)
+        )
+      }
+      if (reticulate::py_module_available("thingsvision")) {
+        # Unlock and update bindings
+        tryCatch(
+          {
+            unlockBinding("tv", pkg_env)
+            assign("tv", reticulate::import("thingsvision", delay_load = TRUE), envir = pkg_env)
+            lockBinding("tv", pkg_env)
+
+            unlockBinding("tv_data", pkg_env)
+            assign("tv_data", reticulate::import("thingsvision.utils.data", delay_load = TRUE), envir = pkg_env)
+            lockBinding("tv_data", pkg_env)
+
+            unlockBinding("tv_utils_storing", pkg_env)
+            assign("tv_utils_storing", reticulate::import("thingsvision.utils.storing", delay_load = TRUE), envir = pkg_env)
+            lockBinding("tv_utils_storing", pkg_env)
+
+            unlockBinding("tv_core_extraction", pkg_env)
+            assign("tv_core_extraction", reticulate::import("thingsvision.core.extraction", delay_load = TRUE), envir = pkg_env)
+            lockBinding("tv_core_extraction", pkg_env)
+          },
+          error = function(e) {
+            # Ignore binding errors
+          }
+        )
+      }
+      message("\n[OK] Python configured successfully for imfeatures")
+    },
+    error = function(e) {
+      message("\nNote: Some modules could not be imported: ", e$message)
     }
-    message("\n✓ Python configured successfully for imfeatures")
-  }, error = function(e) {
-    message("\nNote: Some modules could not be imported: ", e$message)
-  })
-  
+  )
+
   invisible(python_path)
 }
 
@@ -217,10 +250,9 @@ configure_hpc_python <- function(module_cmd = NULL,
 #'
 #' @export
 install_python_deps <- function(python_cmd = "python3",
-                               user = TRUE,
-                               optional = FALSE,
-                               upgrade = FALSE) {
-  
+                                user = TRUE,
+                                optional = FALSE,
+                                upgrade = FALSE) {
   # Find Python
   if (!file.exists(python_cmd)) {
     python_cmd <- Sys.which(python_cmd)
@@ -228,54 +260,58 @@ install_python_deps <- function(python_cmd = "python3",
       stop("Python executable not found. Please specify the full path or ensure Python is in PATH.")
     }
   }
-  
+
   message("Using Python: ", python_cmd)
 
   # Detect if this Python is a virtualenv/venv; in that case, --user installs are invalid
   in_venv <- FALSE
   venv_root <- normalizePath(file.path(dirname(python_cmd), ".."), mustWork = FALSE)
   if (file.exists(file.path(venv_root, "pyvenv.cfg"))) in_venv <- TRUE
-  
+
   # Build package list
   packages <- c("Pillow", "numpy")
   if (optional) {
     # Add all optional packages including thingsvision dependencies
-    packages <- c(packages, 
-                 "thingsvision", 
-                 "torch", 
-                 "torchvision",
-                 "tensorflow",  # or tensorflow-cpu if available
-                 "torchtyping",
-                 "scipy",
-                 "scikit-learn",
-                 "pandas",
-                 "matplotlib",
-                 "h5py",
-                 "open-clip-torch",
-                 "resmem")
+    packages <- c(
+      packages,
+      "thingsvision",
+      "torch",
+      "torchvision",
+      "tensorflow", # or tensorflow-cpu if available
+      "torchtyping",
+      "scipy",
+      "scikit-learn",
+      "pandas",
+      "matplotlib",
+      "h5py",
+      "open-clip-torch",
+      "resmem"
+    )
   }
-  
+
   # Build pip command
   pip_args <- character()
   use_user <- isTRUE(user) && !isTRUE(in_venv)
   if (use_user) pip_args <- c(pip_args, "--user")
   if (upgrade) pip_args <- c(pip_args, "--upgrade")
-  
-  pip_cmd <- paste(python_cmd, "-m pip install",
-                  paste(pip_args, collapse = " "),
-                  paste(packages, collapse = " "))
-  
+
+  pip_cmd <- paste(
+    python_cmd, "-m pip install",
+    paste(pip_args, collapse = " "),
+    paste(packages, collapse = " ")
+  )
+
   message("Installing packages with:")
   message("  ", pip_cmd)
-  
+
   result <- system(pip_cmd)
-  
+
   if (result == 0) {
-    message("\n✓ Installation completed successfully")
+    message("\n[OK] Installation completed successfully")
     message("You can now use: library(imfeatures); use_existing_python()")
   } else {
     warning("Installation may have failed. Please check the output above.")
   }
-  
+
   invisible(result)
 }

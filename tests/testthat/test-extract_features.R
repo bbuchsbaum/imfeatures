@@ -1,12 +1,12 @@
 library(testthat)
-#library(imfeatures)
+# library(imfeatures)
 
 context("im_features")
 
 # Create a simple test image file
 create_test_img <- function(filename, dir = tempdir()) {
   path <- file.path(dir, filename)
-  img <- matrix(runif(64*64), 64, 64)
+  img <- matrix(runif(64 * 64), 64, 64)
   # Write using R's internal bitmap functions
   png::writePNG(img, path)
   return(path)
@@ -27,5 +27,3 @@ test_that("spatial_pooling parameter in im_features function is validated", {
     "impath file\\(s\\) not found: dummy.jpg"
   )
 })
-
-

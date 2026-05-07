@@ -39,11 +39,11 @@ An S3 object of class \code{vgg_feature_set}, a list with components:
 }
 \description{
 Convenience wrapper around \code{im_features()} to extract VGG-16 features grouped by spatial tiers:
-\\itemize{
-  \\item{\\code{"low"}: conv1_1, conv1_2, conv2_1, conv2_2}
-  \\item{\\code{"mid"}: conv3_1–conv4_3}
-  \\item{\\code{"high"}: conv5_1–conv5_3}
-  \\item{\\code{"semantic"}: fc1 (fc6) and fc2 (fc7)}
+\itemize{
+  \item \code{"low"}: conv1_1, conv1_2, conv2_1, conv2_2
+  \item \code{"mid"}: conv3_1 through conv4_3
+  \item \code{"high"}: conv5_1 through conv5_3
+  \item \code{"semantic"}: fc1 (fc6) and fc2 (fc7)
 }
 Layers are retrieved by name (e.g., \code{"block1_conv1"}) instead of numeric indices.
 }

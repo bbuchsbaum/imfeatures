@@ -1,4 +1,3 @@
-
 #' Load VGG16 Places365 model
 #'
 #' Loads a VGG16 model pre-trained on the Places365 dataset for scene recognition.

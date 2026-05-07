@@ -74,27 +74,31 @@ caption_features <- function(
 ) {
   # Validate image paths
   assert_image(impath)
-  
+
   # Check ellmer availability
   if (!requireNamespace("ellmer", quietly = TRUE)) {
-    stop("Package 'ellmer' is required for caption generation. ",
-         "Please install it with: install.packages('ellmer')")
+    stop(
+      "Package 'ellmer' is required for caption generation. ",
+      "Please install it with: install.packages('ellmer')"
+    )
   }
-  
+
   # Use default model if not specified
   if (is.null(caption_model)) {
     caption_model <- get_default_caption_model(caption_provider)
   }
-  
+
   # Check authentication
   if (!check_caption_provider_auth(caption_provider)) {
-    stop("API key not configured for provider '", caption_provider, "'. ",
-         "Please set the appropriate environment variable.")
+    stop(
+      "API key not configured for provider '", caption_provider, "'. ",
+      "Please set the appropriate environment variable."
+    )
   }
-  
+
   # System prompt for caption generation
   system_prompt <- "You are a careful vision assistant. Be precise, concrete, and avoid speculation."
-  
+
   # Build caption prompt
   prompt <- build_caption_prompt(
     template = template,
@@ -103,7 +107,7 @@ caption_features <- function(
     max_words = max_words,
     extra_instructions = extra_instructions
   )
-  
+
   # Configure chat provider
   chat <- .select_chat(
     provider = caption_provider,
@@ -114,76 +118,79 @@ caption_features <- function(
     seed = seed,
     echo = echo
   )
-  
+
   # Process each image
   results <- lapply(impath, function(img) {
-    tryCatch({
-      # Generate caption
-      caption <- chat$chat(
-        ellmer::content_image_file(img),
-        prompt
-      )
-      
-      # Compute embedding if requested
-      if (compute_embedding) {
-        embedding <- embed_text(
-          caption,
-          backend = embedding_backend,
-          model = embedding_model,
-          dimensions = embedding_dim,
-          task_type = gemini_task
+    tryCatch(
+      {
+        # Generate caption
+        caption <- chat$chat(
+          ellmer::content_image_file(img),
+          prompt
         )
-        embedding_dim_actual <- length(embedding)
-      } else {
-        embedding <- numeric(0)
-        embedding_dim_actual <- NA_integer_
+
+        # Compute embedding if requested
+        if (compute_embedding) {
+          embedding <- embed_text(
+            caption,
+            backend = embedding_backend,
+            model = embedding_model,
+            dimensions = embedding_dim,
+            task_type = gemini_task
+          )
+          embedding_dim_actual <- length(embedding)
+        } else {
+          embedding <- numeric(0)
+          embedding_dim_actual <- NA_integer_
+        }
+
+        # Create metadata
+        metadata <- list(
+          caption_provider = caption_provider,
+          caption_model = caption_model,
+          template = template,
+          focus = focus,
+          min_words = min_words,
+          max_words = max_words,
+          temperature = temperature,
+          seed = seed
+        )
+
+        if (compute_embedding) {
+          metadata$embedding_backend <- embedding_backend
+          metadata$embedding_model <- embedding_model
+          metadata$embedding_dim <- embedding_dim_actual
+        }
+
+        list(
+          image = img,
+          caption = caption,
+          embedding = embedding, # Don't wrap in another list
+          embedding_dim = embedding_dim_actual,
+          metadata = metadata # Don't wrap in another list
+        )
+      },
+      error = function(e) {
+        list(
+          image = img,
+          caption = paste0("ERROR: ", conditionMessage(e)),
+          embedding = numeric(0),
+          embedding_dim = NA_integer_,
+          metadata = list(error = conditionMessage(e))
+        )
       }
-      
-      # Create metadata
-      metadata <- list(
-        caption_provider = caption_provider,
-        caption_model = caption_model,
-        template = template,
-        focus = focus,
-        min_words = min_words,
-        max_words = max_words,
-        temperature = temperature,
-        seed = seed
-      )
-      
-      if (compute_embedding) {
-        metadata$embedding_backend <- embedding_backend
-        metadata$embedding_model <- embedding_model
-        metadata$embedding_dim <- embedding_dim_actual
-      }
-      
-      list(
-        image = img,
-        caption = caption,
-        embedding = embedding,  # Don't wrap in another list
-        embedding_dim = embedding_dim_actual,
-        metadata = metadata  # Don't wrap in another list
-      )
-    }, error = function(e) {
-      list(
-        image = img,
-        caption = paste0("ERROR: ", conditionMessage(e)),
-        embedding = numeric(0),
-        embedding_dim = NA_integer_,
-        metadata = list(error = conditionMessage(e))
-      )
-    })
+    )
   })
-  
+
   # Convert to tibble
   tbl <- tibble::tibble(
     image = sapply(results, `[[`, "image"),
     caption = sapply(results, `[[`, "caption"),
-    embedding = lapply(results, `[[`, "embedding"),  # Each embedding is already a vector
+    embedding = lapply(results, `[[`, "embedding"), # Each embedding is already a vector
     embedding_dim = sapply(results, `[[`, "embedding_dim"),
-    metadata = lapply(results, `[[`, "metadata")  # Each metadata is already a list
+    metadata = lapply(results, `[[`, "metadata") # Each metadata is already a list
   )
-  
+
   # Add class for consistency with package
   new_feature_tbl(tbl)
 }
@@ -198,19 +205,19 @@ caption_features <- function(
 #' @export
 caption_features_many <- function(impaths, ..., .progress = interactive()) {
   impaths <- as.character(impaths)
-  
+
   if (.progress) {
     pb <- progress::progress_bar$new(
       total = length(impaths),
       format = "Captioning [:bar] :current/:total (:percent) ETA: :eta"
     )
   }
-  
+
   results <- lapply(seq_along(impaths), function(i) {
     if (.progress) pb$tick()
     caption_features(impaths[i], ...)
   })
-  
+
   dplyr::bind_rows(results)
 }
 
@@ -225,28 +232,28 @@ compute_caption_similarity <- function(caption_features, metric = "cosine") {
   if (!"embedding" %in% names(caption_features)) {
     stop("No embeddings found. Run caption_features with compute_embedding = TRUE")
   }
-  
+
   # Extract embeddings
   embeddings <- do.call(rbind, caption_features$embedding)
-  
+
   # Remove any rows with NA embeddings
   valid_rows <- !is.na(caption_features$embedding_dim)
   if (!all(valid_rows)) {
     warning("Removing ", sum(!valid_rows), " images with failed embeddings")
     embeddings <- embeddings[valid_rows, , drop = FALSE]
   }
-  
+
   # Compute similarity
   if (metric == "cosine") {
     sim_matrix <- coop::tcosine(embeddings)
   } else {
     sim_matrix <- as.matrix(proxy::simil(embeddings, method = metric))
   }
-  
+
   # Set row/column names
   rownames(sim_matrix) <- basename(caption_features$image[valid_rows])
   colnames(sim_matrix) <- basename(caption_features$image[valid_rows])
-  
+
   sim_matrix
 }
 
@@ -275,7 +282,7 @@ extract_multimodal_features <- function(
     layers = visual_layers,
     model = visual_model
   )
-  
+
   # Extract caption features
   caption_features <- caption_features(
     impath,
@@ -283,7 +290,7 @@ extract_multimodal_features <- function(
     template = caption_template,
     ...
   )
-  
+
   # Combine results
   combined <- dplyr::left_join(
     visual_features,
@@ -291,6 +298,6 @@ extract_multimodal_features <- function(
     by = "image",
     suffix = c("_visual", "_caption")
   )
-  
+
   new_feature_tbl(combined)
 }

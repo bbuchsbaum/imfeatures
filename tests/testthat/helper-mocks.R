@@ -8,17 +8,17 @@ with_mocked_bindings <- function(..., .env = parent.frame()) {
   # Debug print
   cat("Mocking the following functions:\n")
   print(names(mocks))
-  
+
   restore <- list()
 
   apply_mock <- function(name, value) {
     pkg <- NULL
     target_env <- .env
     obj <- name
-    
+
     # Debug print
     cat("Processing mock:", name, "\n")
-    
+
     # Handle :: notation (package::function)
     if (grepl("::", name, fixed = TRUE)) {
       pkg <- sub("::.*", "", name)
@@ -48,35 +48,41 @@ with_mocked_bindings <- function(..., .env = parent.frame()) {
   }
 
   for (nm in names(mocks)) {
-    tryCatch({
-      apply_mock(nm, mocks[[nm]])
-    }, error = function(e) {
-      cat("ERROR in apply_mock for", nm, ":", e$message, "\n")
-    })
+    tryCatch(
+      {
+        apply_mock(nm, mocks[[nm]])
+      },
+      error = function(e) {
+        cat("ERROR in apply_mock for", nm, ":", e$message, "\n")
+      }
+    )
   }
 
-  on.exit({
-    for (nm in rev(names(restore))) {
-      pkg <- NULL
-      target_env <- .env
-      obj <- nm
-      if (grepl("::", nm)) {
-        pkg <- sub("::.*", "", nm)
-        obj <- sub(".*::", "", nm)
-        target_env <- getNamespace(pkg)
+  on.exit(
+    {
+      for (nm in rev(names(restore))) {
+        pkg <- NULL
+        target_env <- .env
+        obj <- nm
+        if (grepl("::", nm)) {
+          pkg <- sub("::.*", "", nm)
+          obj <- sub(".*::", "", nm)
+          target_env <- getNamespace(pkg)
+        }
+        if (grepl("\\$", obj)) {
+          pieces <- strsplit(obj, "\\$", fixed = TRUE)[[1]]
+          container_name <- pieces[[1]]
+          field_name <- pieces[[2]]
+          container <- get(container_name, envir = target_env)
+          container[[field_name]] <- restore[[nm]]
+          assign(container_name, container, envir = target_env)
+        } else {
+          assign(obj, restore[[nm]], envir = target_env)
+        }
       }
-      if (grepl("\\$", obj)) {
-        pieces <- strsplit(obj, "\\$", fixed = TRUE)[[1]]
-        container_name <- pieces[[1]]
-        field_name <- pieces[[2]]
-        container <- get(container_name, envir = target_env)
-        container[[field_name]] <- restore[[nm]]
-        assign(container_name, container, envir = target_env)
-      } else {
-        assign(obj, restore[[nm]], envir = target_env)
-      }
-    }
-  }, add = TRUE)
+    },
+    add = TRUE
+  )
 
   eval(code, envir = parent.frame())
 }

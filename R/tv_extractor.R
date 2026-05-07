@@ -100,52 +100,23 @@
 #'
 #' # Example 2: CLIP ViT-B/32 from Custom
 #' extractor_clip <- tv_get_extractor(
-#'    model_name = "clip",
-#'    source = "custom",
-#'    model_parameters = list(variant = "ViT-B/32")
+#'   model_name = "clip",
+#'   source = "custom",
+#'   model_parameters = list(variant = "ViT-B/32")
 #' )
 #' # tv_show_model(extractor_clip)
 #'
 #' # Example 3: DINO ViT Base/16 from SSL (using cls_token)
 #' extractor_dino <- tv_get_extractor(
-#'    model_name = "dino-vit-base-p16",
-#'    source = "ssl",
-#'    model_parameters = list(token_extraction = "cls_token")
+#'   model_name = "dino-vit-base-p16",
+#'   source = "ssl",
+#'   model_parameters = list(token_extraction = "cls_token")
 #' )
 #' # tv_show_model(extractor_dino)
 #'
 #' # Example 4: Timm EfficientNet B0
 #' extractor_effnet <- tv_get_extractor(model_name = "efficientnet_b0", source = "timm")
 #' # tv_show_model(extractor_effnet)
-#' }
-#' Get a thingsvision extractor R object
-#'
-#' This function instantiates a feature extractor from the Python `thingsvision`
-#' library and wraps it in an R object of class `thingsvision_extractor` for
-#' easier use within R.
-#'
-#' @param model_name Character string. The name of the model.
-#' @param source Character string. The source library ("torchvision", "timm", etc.).
-#' @param device Character string. Compute device ("cpu", "cuda", etc.).
-#' @param pretrained Logical. Use pretrained weights?
-#' @param model_parameters Named list (optional). Model-specific parameters.
-#'
-#' @details (Keep the detailed documentation about models/sources/params as before)
-#' ...
-#'
-#' \strong{Return Value:}
-#' Returns an R object of class `thingsvision_extractor`. This object encapsulates
-#' the underlying Python extractor and provides R methods (like `print`, `extract`,
-#' `align`) for interaction. Use this object with functions designed for it.
-#'
-#' @return An R object of class `thingsvision_extractor`.
-#' @export
-#' @seealso \code{\link{imfeatures_config}}, \code{\link{tv_extract.thingsvision_extractor}}, \code{\link{print.thingsvision_extractor}}, \code{\link{tv_align.thingsvision_extractor}}
-#' @examples
-#' \dontrun{
-#' # reticulate::use_condaenv("r-thingsvision", required = TRUE)
-#' extractor_rn18 <- tv_get_extractor(model_name = "resnet18", source = "torchvision", device="cpu")
-#' print(extractor_rn18)
 #' }
 tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = TRUE, model_parameters = NULL) {
   assert_scalar(model_name, "character")
@@ -174,33 +145,21 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
   source <- match.arg(source, c("torchvision", "timm", "keras", "ssl", "custom"))
 
   py_model_params <- if (!is.null(model_parameters)) {
-                         if (!is.list(model_parameters) || is.null(names(model_parameters))) {
-                            warning("'model_parameters' should be a named list. Attempting conversion.")
-                         }
-                         reticulate::r_to_py(model_parameters)
-                       } else {
-                         NULL
-                       }
+    if (!is.list(model_parameters) || is.null(names(model_parameters))) {
+      warning("'model_parameters' should be a named list. Attempting conversion.")
+    }
+    reticulate::r_to_py(model_parameters)
+  } else {
+    NULL
+  }
 
   # Support both thingsvision APIs: top-level get_extractor (<=0.2.x) and
   # submodule path (>=2.x). Try top-level, then core.extraction.
   py_extractor <- NULL
   extractor_attempts <- list()
   if (reticulate::py_has_attr(tv_mod, "get_extractor")) {
-    extractor_attempts[["thingsvision.get_extractor"]] <- function() tv_mod$get_extractor(
-      model_name = model_name,
-      source = source,
-      device = device,
-      pretrained = pretrained,
-      model_parameters = py_model_params
-    )
-  }
-  # Try core.extraction.get_extractor if available
-  tv_core <- NULL
-  if (reticulate::py_module_available("thingsvision.core.extraction")) {
-    tv_core <- try(reticulate::import("thingsvision.core.extraction", delay_load = TRUE), silent = TRUE)
-    if (!inherits(tv_core, "try-error") && reticulate::py_has_attr(tv_core, "get_extractor")) {
-      extractor_attempts[["thingsvision.core.extraction.get_extractor"]] <- function() tv_core$get_extractor(
+    extractor_attempts[["thingsvision.get_extractor"]] <- function() {
+      tv_mod$get_extractor(
         model_name = model_name,
         source = source,
         device = device,
@@ -208,16 +167,34 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
         model_parameters = py_model_params
       )
     }
+  }
+  # Try core.extraction.get_extractor if available
+  tv_core <- NULL
+  if (reticulate::py_module_available("thingsvision.core.extraction")) {
+    tv_core <- try(reticulate::import("thingsvision.core.extraction", delay_load = TRUE), silent = TRUE)
+    if (!inherits(tv_core, "try-error") && reticulate::py_has_attr(tv_core, "get_extractor")) {
+      extractor_attempts[["thingsvision.core.extraction.get_extractor"]] <- function() {
+        tv_core$get_extractor(
+          model_name = model_name,
+          source = source,
+          device = device,
+          pretrained = pretrained,
+          model_parameters = py_model_params
+        )
+      }
+    }
     # Also try helpers submodule explicitly (as per upstream layout)
     tv_core_helpers <- try(reticulate::import("thingsvision.core.extraction.helpers", delay_load = TRUE), silent = TRUE)
     if (!inherits(tv_core_helpers, "try-error") && reticulate::py_has_attr(tv_core_helpers, "get_extractor")) {
-      extractor_attempts[["thingsvision.core.extraction.helpers.get_extractor"]] <- function() tv_core_helpers$get_extractor(
-        model_name = model_name,
-        source = source,
-        device = device,
-        pretrained = pretrained,
-        model_parameters = py_model_params
-      )
+      extractor_attempts[["thingsvision.core.extraction.helpers.get_extractor"]] <- function() {
+        tv_core_helpers$get_extractor(
+          model_name = model_name,
+          source = source,
+          device = device,
+          pretrained = pretrained,
+          model_parameters = py_model_params
+        )
+      }
     }
   }
   # Try core.extraction.factory.get_extractor if available (thingsvision >= 2.x)
@@ -225,13 +202,15 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
   if (reticulate::py_module_available("thingsvision.core.extraction.factory")) {
     tv_core_factory <- try(reticulate::import("thingsvision.core.extraction.factory", delay_load = TRUE), silent = TRUE)
     if (!inherits(tv_core_factory, "try-error") && reticulate::py_has_attr(tv_core_factory, "get_extractor")) {
-      extractor_attempts[["thingsvision.core.extraction.factory.get_extractor"]] <- function() tv_core_factory$get_extractor(
-        model_name = model_name,
-        source = source,
-        device = device,
-        pretrained = pretrained,
-        model_parameters = py_model_params
-      )
+      extractor_attempts[["thingsvision.core.extraction.factory.get_extractor"]] <- function() {
+        tv_core_factory$get_extractor(
+          model_name = model_name,
+          source = source,
+          device = device,
+          pretrained = pretrained,
+          model_parameters = py_model_params
+        )
+      }
     }
   }
   # Try extraction.get_extractor (older alt layout)
@@ -239,24 +218,28 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
   if (reticulate::py_module_available("thingsvision.extraction")) {
     tv_extraction <- try(reticulate::import("thingsvision.extraction", delay_load = TRUE), silent = TRUE)
     if (!inherits(tv_extraction, "try-error") && reticulate::py_has_attr(tv_extraction, "get_extractor")) {
-      extractor_attempts[["thingsvision.extraction.get_extractor"]] <- function() tv_extraction$get_extractor(
-        model_name = model_name,
-        source = source,
-        device = device,
-        pretrained = pretrained,
-        model_parameters = py_model_params
-      )
+      extractor_attempts[["thingsvision.extraction.get_extractor"]] <- function() {
+        tv_extraction$get_extractor(
+          model_name = model_name,
+          source = source,
+          device = device,
+          pretrained = pretrained,
+          model_parameters = py_model_params
+        )
+      }
     }
     # Also try extraction.helpers.get_extractor
     tv_extraction_helpers <- try(reticulate::import("thingsvision.extraction.helpers", delay_load = TRUE), silent = TRUE)
     if (!inherits(tv_extraction_helpers, "try-error") && reticulate::py_has_attr(tv_extraction_helpers, "get_extractor")) {
-      extractor_attempts[["thingsvision.extraction.helpers.get_extractor"]] <- function() tv_extraction_helpers$get_extractor(
-        model_name = model_name,
-        source = source,
-        device = device,
-        pretrained = pretrained,
-        model_parameters = py_model_params
-      )
+      extractor_attempts[["thingsvision.extraction.helpers.get_extractor"]] <- function() {
+        tv_extraction_helpers$get_extractor(
+          model_name = model_name,
+          source = source,
+          device = device,
+          pretrained = pretrained,
+          model_parameters = py_model_params
+        )
+      }
     }
   }
   # Try extraction.factory.get_extractor
@@ -264,13 +247,15 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
   if (reticulate::py_module_available("thingsvision.extraction.factory")) {
     tv_extraction_factory <- try(reticulate::import("thingsvision.extraction.factory", delay_load = TRUE), silent = TRUE)
     if (!inherits(tv_extraction_factory, "try-error") && reticulate::py_has_attr(tv_extraction_factory, "get_extractor")) {
-      extractor_attempts[["thingsvision.extraction.factory.get_extractor"]] <- function() tv_extraction_factory$get_extractor(
-        model_name = model_name,
-        source = source,
-        device = device,
-        pretrained = pretrained,
-        model_parameters = py_model_params
-      )
+      extractor_attempts[["thingsvision.extraction.factory.get_extractor"]] <- function() {
+        tv_extraction_factory$get_extractor(
+          model_name = model_name,
+          source = source,
+          device = device,
+          pretrained = pretrained,
+          model_parameters = py_model_params
+        )
+      }
     }
   }
   # Execute first successful attempt
@@ -296,7 +281,7 @@ tv_get_extractor <- function(model_name, source, device = "cuda", pretrained = T
   }
 
   if (reticulate::py_is_null_xptr(py_extractor)) {
-      stop("tv$get_extractor returned a NULL object. Check model_name, source, and parameters.")
+    stop("tv$get_extractor returned a NULL object. Check model_name, source, and parameters.")
   }
 
   # Store key info and the python object in the R object's list structure
@@ -376,18 +361,18 @@ print.thingsvision_extractor <- function(x, ...) {
 #' @return Invisibly returns the input object.
 #' @export
 show_model <- function(object, ...) {
-   UseMethod("show_model")
+  UseMethod("show_model")
 }
 
 #' @export
 #' @method show_model thingsvision_extractor
 show_model.thingsvision_extractor <- function(object, ...) {
   if (reticulate::py_is_null_xptr(object$py_obj)) {
-     stop("The underlying Python extractor object is NULL.")
+    stop("The underlying Python extractor object is NULL.")
   }
   # Capture Python output
   output <- reticulate::py_capture_output({
-     print(object$py_obj$show_model())
+    print(object$py_obj$show_model())
   })
   cat("--- Model Architecture (from Python) ---\n")
   cat(output)
@@ -414,9 +399,9 @@ get_transformations <- function(object, ...) {
 #' @export
 #' @method get_transformations thingsvision_extractor
 get_transformations.thingsvision_extractor <- function(object, ...) {
-   if (reticulate::py_is_null_xptr(object$py_obj)) {
-     stop("The underlying Python extractor object is NULL.")
-   }
+  if (reticulate::py_is_null_xptr(object$py_obj)) {
+    stop("The underlying Python extractor object is NULL.")
+  }
   return(object$py_obj$get_transformations(...))
 }
 
@@ -430,15 +415,15 @@ get_transformations.thingsvision_extractor <- function(object, ...) {
 #' @return Character string ("pt" or "tf").
 #' @export
 get_backend <- function(object, ...) {
-   UseMethod("get_backend")
+  UseMethod("get_backend")
 }
 
 #' @export
 get_backend.thingsvision_extractor <- function(object, ...) {
-   if (reticulate::py_is_null_xptr(object$py_obj)) {
-     stop("The underlying Python extractor object is NULL.")
-   }
-   return(object$py_obj$get_backend())
+  if (reticulate::py_is_null_xptr(object$py_obj)) {
+    stop("The underlying Python extractor object is NULL.")
+  }
+  return(object$py_obj$get_backend())
 }
 
 
@@ -463,30 +448,31 @@ get_backend.thingsvision_extractor <- function(object, ...) {
 #' @export
 #' @method tv_extract thingsvision_extractor
 tv_extract.thingsvision_extractor <- function(object, dataloader, module_name, flatten_acts = FALSE, output_type = "ndarray", output_dir = NULL, step_size = NULL, ...) {
-   assert_scalar(module_name, "character")
-   assert_scalar(flatten_acts, "logical")
+  assert_scalar(module_name, "character")
+  assert_scalar(flatten_acts, "logical")
 
-   if (reticulate::py_is_null_xptr(object$py_obj)) {
-     stop("The underlying Python extractor object is NULL.")
-   }
-   # Check if dataloader seems like a reticulate object
-   if (!inherits(dataloader, "python.builtin.object")) {
-      warning("'dataloader' does not appear to be a reticulate Python object reference.")
-   }
+  if (reticulate::py_is_null_xptr(object$py_obj)) {
+    stop("The underlying Python extractor object is NULL.")
+  }
+  # Check if dataloader seems like a reticulate object
+  if (!inherits(dataloader, "python.builtin.object")) {
+    warning("'dataloader' does not appear to be a reticulate Python object reference.")
+  }
 
-   if (!is.null(step_size)) {
-      if (!is.numeric(step_size) || length(step_size) != 1) {
-         stop("'step_size' must be a numeric scalar if provided.")
-      }
-      if (!is.finite(step_size)) {
-         stop("'step_size' must be a finite number.")
-      }
-      py_step_size <- as.integer(step_size)
-   } else {
-      py_step_size <- reticulate::py_none()
-   }
+  if (!is.null(step_size)) {
+    if (!is.numeric(step_size) || length(step_size) != 1) {
+      stop("'step_size' must be a numeric scalar if provided.")
+    }
+    if (!is.finite(step_size)) {
+      stop("'step_size' must be a finite number.")
+    }
+    py_step_size <- as.integer(step_size)
+  } else {
+    py_step_size <- reticulate::py_none()
+  }
 
-   features_py <- tryCatch({
+  features_py <- tryCatch(
+    {
       if (is.null(output_dir) && is.null(step_size)) {
         # Most common case - no output_dir or step_size
         object$py_obj$extract_features(
@@ -502,11 +488,12 @@ tv_extract.thingsvision_extractor <- function(object, dataloader, module_name, f
           module_name = module_name,
           flatten_acts = flatten_acts,
           output_type = output_type,
-          output_dir = if(is.null(output_dir)) reticulate::py_none() else output_dir,
+          output_dir = if (is.null(output_dir)) reticulate::py_none() else output_dir,
           step_size = py_step_size
         )
       }
-   }, error = function(e) {
+    },
+    error = function(e) {
       # Try to get more detail about the error
       if (grepl("Expected a python object, received", e$message)) {
         # This error might be from internal thingsvision processing
@@ -514,40 +501,44 @@ tv_extract.thingsvision_extractor <- function(object, dataloader, module_name, f
       } else {
         stop("Python feature extraction failed for module '", module_name, "':\n", e$message)
       }
-   })
+    }
+  )
 
 
-   # Handle return based on output_dir
-   if (!is.null(output_dir)) {
-     message("Features saved iteratively to: ", output_dir)
-     return(invisible(NULL))
-   }
+  # Handle return based on output_dir
+  if (!is.null(output_dir)) {
+    message("Features saved iteratively to: ", output_dir)
+    return(invisible(NULL))
+  }
 
-   # Check if features_py is already an R object (automatic conversion by reticulate)
-   if (is.matrix(features_py) || is.array(features_py)) {
-      return(features_py)
-   }
-   
-   # Convert Python result back to R if needed
-   if (reticulate::py_is_null_xptr(features_py)) {
-        warning("Python extraction returned NULL features for module '", module_name, "'.")
-        return(NULL)
-   }
+  # Check if features_py is already an R object (automatic conversion by reticulate)
+  if (is.matrix(features_py) || is.array(features_py)) {
+    return(features_py)
+  }
 
-   features_r <- tryCatch({
+  # Convert Python result back to R if needed
+  if (reticulate::py_is_null_xptr(features_py)) {
+    warning("Python extraction returned NULL features for module '", module_name, "'.")
+    return(NULL)
+  }
+
+  features_r <- tryCatch(
+    {
       reticulate::py_to_r(features_py)
-   }, error = function(e) {
+    },
+    error = function(e) {
       # Debug what type of Python object we got
       py_type <- class(features_py)
-      message("Failed to convert Python features to R. Python object type: ", paste(py_type, collapse=", "))
+      message("Failed to convert Python features to R. Python object type: ", paste(py_type, collapse = ", "))
       message("Error: ", e$message)
       stop("Failed to convert extracted features from Python to R: ", e$message)
-   })
+    }
+  )
 
-   if (!is.matrix(features_r) && !is.array(features_r)) {
-        warning("Conversion from Python resulted in a non-matrix/array R object. Check output.")
-   }
-   return(features_r)
+  if (!is.matrix(features_r) && !is.array(features_r)) {
+    warning("Conversion from Python resulted in a non-matrix/array R object. Check output.")
+  }
+  return(features_r)
 }
 
 #' Align features using a thingsvision_extractor object
@@ -565,42 +556,45 @@ tv_extract.thingsvision_extractor <- function(object, dataloader, module_name, f
 #' @export
 #' @method tv_align thingsvision_extractor
 tv_align.thingsvision_extractor <- function(object, features, module_name, alignment_type = "gLocal", ...) {
-   assert_scalar(module_name, "character")
-   assert_scalar(alignment_type, "character")
-   if (reticulate::py_is_null_xptr(object$py_obj)) {
-     stop("The underlying Python extractor object is NULL.")
-   }
-   if (!inherits(features, c("matrix", "array"))) {
-      stop("'features' must be an R matrix or array.")
-   }
-   if (!is.character(alignment_type) || length(alignment_type) != 1) {
-       stop("'alignment_type' must be a character scalar.")
-   }
-   known_types <- c("gLocal")
-   if (!(alignment_type %in% known_types)) {
-       warning("Unknown alignment_type '", alignment_type, "'.")
-   }
+  assert_scalar(module_name, "character")
+  assert_scalar(alignment_type, "character")
+  if (reticulate::py_is_null_xptr(object$py_obj)) {
+    stop("The underlying Python extractor object is NULL.")
+  }
+  if (!inherits(features, c("matrix", "array"))) {
+    stop("'features' must be an R matrix or array.")
+  }
+  if (!is.character(alignment_type) || length(alignment_type) != 1) {
+    stop("'alignment_type' must be a character scalar.")
+  }
+  known_types <- c("gLocal")
+  if (!(alignment_type %in% known_types)) {
+    warning("Unknown alignment_type '", alignment_type, "'.")
+  }
 
-   features_py <- reticulate::r_to_py(features)
+  features_py <- reticulate::r_to_py(features)
 
-   aligned_features_py <- tryCatch({
+  aligned_features_py <- tryCatch(
+    {
       object$py_obj$align(
-         features = features_py,
-         module_name = module_name,
-         alignment_type = alignment_type
+        features = features_py,
+        module_name = module_name,
+        alignment_type = alignment_type
       )
-   }, error = function(e) {
+    },
+    error = function(e) {
       stop("Python feature alignment failed for module '", module_name, "':\n", e$message)
-   })
+    }
+  )
 
 
-   if (reticulate::py_is_null_xptr(aligned_features_py)) {
-        warning("Python alignment returned NULL features for module '", module_name, "'.")
-        return(NULL)
-   }
+  if (reticulate::py_is_null_xptr(aligned_features_py)) {
+    warning("Python alignment returned NULL features for module '", module_name, "'.")
+    return(NULL)
+  }
 
-   aligned_features_r <- reticulate::py_to_r(aligned_features_py)
-   return(aligned_features_r)
+  aligned_features_r <- reticulate::py_to_r(aligned_features_py)
+  return(aligned_features_r)
 }
 
 #' Create a thingsvision ImageDataset
@@ -616,7 +610,7 @@ tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...)
   assert_scalar(root, "character")
   assert_scalar(out_path, "character")
   if (!inherits(extractor, "thingsvision_extractor")) {
-      stop("'extractor' must be an object of class 'thingsvision_extractor'.")
+    stop("'extractor' must be an object of class 'thingsvision_extractor'.")
   }
   # Lazily acquire thingsvision.utils.data without mutating package bindings
   tv_data_mod <- NULL
@@ -638,7 +632,7 @@ tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...)
   # Access underlying python object for its methods
   py_extractor <- extractor$py_obj
   if (reticulate::py_is_null_xptr(py_extractor)) {
-     stop("The underlying Python extractor object is NULL in the provided R object.")
+    stop("The underlying Python extractor object is NULL in the provided R object.")
   }
 
   if (is.null(transforms)) {
@@ -647,7 +641,7 @@ tv_create_dataset <- function(root, out_path, extractor, transforms = NULL, ...)
 
   # Get any additional arguments
   extra_args <- list(...)
-  
+
   # Call the Python function directly with explicit arguments
   if ("file_names" %in% names(extra_args)) {
     dataset <- tv_data_mod$ImageDataset(

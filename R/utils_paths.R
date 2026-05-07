@@ -6,7 +6,9 @@
   for (i in seq_len(min_len)) {
     segs <- sapply(split_paths, function(x) x[i])
     if (length(unique(segs)) > 1) {
-      if (i == 1) return("/")
+      if (i == 1) {
+        return("/")
+      }
       common <- common[1:(i - 1)]
       break
     }

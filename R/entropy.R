@@ -15,27 +15,27 @@ entropy <- function(a) {
   a <- a[!is.na(a)]
 
   if (length(a) == 0) {
-    # This covers cases where original 'a' was empty, all NAs (any type), 
+    # This covers cases where original 'a' was empty, all NAs (any type),
     # or became empty after stripping NAs from a mixed vector that passed the initial check.
-    warning("All values are NA or input is empty after initial NA removal from input to entropy().") 
+    warning("All values are NA or input is empty after initial NA removal from input to entropy().")
     return(NA_real_)
   }
-  
-  # At this point, 'a' contains only non-NA values. 
+
+  # At this point, 'a' contains only non-NA values.
   # The initial check should ensure these are numeric if original 'a' wasn't purely NAs.
   # However, an explicit check here for safety on the cleaned 'a'.
   if (!is.numeric(a)) {
-      # This case should ideally not be reached if the first check is comprehensive for non-all-NA inputs.
-      # It might occur if 'a' was all NAs of a type that !is.na() removed, leaving a non-numeric zero-length vector of a different type.
-      # But R coerces empty vectors: numeric(0), logical(0), character(0). sum() handles numeric(0) and logical(0).
-      # This is more of a safeguard for an unexpected state of 'a' after NA removal.
-      stop("Internal error: Non-NA values remaining in `a` are not numeric. This should not happen.")
+    # This case should ideally not be reached if the first check is comprehensive for non-all-NA inputs.
+    # It might occur if 'a' was all NAs of a type that !is.na() removed, leaving a non-numeric zero-length vector of a different type.
+    # But R coerces empty vectors: numeric(0), logical(0), character(0). sum() handles numeric(0) and logical(0).
+    # This is more of a safeguard for an unexpected state of 'a' after NA removal.
+    stop("Internal error: Non-NA values remaining in `a` are not numeric. This should not happen.")
   }
 
   s <- sum(a) # sum() works correctly for numeric(0) (returns 0) and logical(0) (returns 0)
   if (s == 0) {
     warning("Sum of probabilities is zero")
-    return(NA_real_) 
+    return(NA_real_)
   }
 
   eps <- sqrt(.Machine$double.eps)
@@ -43,133 +43,144 @@ entropy <- function(a) {
     a <- a / s # Normalize. If 'a' was logical (e.g. from logical(0) sum), it's coerced to numeric here.
   }
 
-  v <- a > 0.0 
+  v <- a > 0.0
   a_pos <- a[v]
-  
+
   if (length(a_pos) == 0) {
-    return(NA_real_) 
+    return(NA_real_)
   }
-  
+
   -sum(a_pos * log2(a_pos))
 }
 
 #' @keywords internal
 first_order_entropy <- function(fres, gabor_bins = NULL) {
-  first_order_bin = numeric(fres$num_filters)
+  first_order_bin <- numeric(fres$num_filters)
   for (b in 1:fres$num_filters) {
-    first_order_bin[b] = sum(fres$resp_val[fres$resp_bin==b])
+    first_order_bin[b] <- sum(fres$resp_val[fres$resp_bin == b])
   }
-  first_order = entropy(first_order_bin)
+  first_order <- entropy(first_order_bin)
   first_order
 }
 
 
 #' @keywords internal
-filter_bank <- function(num_filters, flt_size,  octave=3, verbose = FALSE) {
+filter_bank <- function(num_filters, flt_size, octave = 3, verbose = FALSE) {
+  bins_vec <- head(seq(0, 2 * pi, length.out = num_filters + 1), -1)
 
-  bins_vec = head(seq(0, 2*pi, length.out=num_filters+1), -1)
-
-  flt_raw = array(0, c(num_filters, flt_size, flt_size))
+  flt_raw <- array(0, c(num_filters, flt_size, flt_size))
   for (i in 1:num_filters) {
-    #filter_bank.set_flt(i, filter_bank.create_gabor(FILTER_SIZE, theta=BINS_VEC[i], octave=3))
-    flt_raw[i,,] <- create_gabor(flt_size, theta=bins_vec[i], octave=octave)
-    # --- Debug: Print range/sum of the first filter --- 
+    # filter_bank.set_flt(i, filter_bank.create_gabor(FILTER_SIZE, theta=BINS_VEC[i], octave=3))
+    flt_raw[i, , ] <- create_gabor(flt_size, theta = bins_vec[i], octave = octave)
+    # --- Debug: Print range/sum of the first filter ---
     if (i == 1 && verbose) {
-      message("[R] filter_bank: First Gabor filter range: [",
-              min(flt_raw[i,,]), ", ", max(flt_raw[i,,]),
-              "], Sum = ", sum(flt_raw[i,,]))
+      message(
+        "[R] filter_bank: First Gabor filter range: [",
+        min(flt_raw[i, , ]), ", ", max(flt_raw[i, , ]),
+        "], Sum = ", sum(flt_raw[i, , ])
+      )
     }
     # -----------------------------------------------
   }
 
-  ret <- list(bins_vec=bins_vec,
-       flt_weights=flt_raw,
-       octave=octave,
-       flt_size=flt_size)
+  ret <- list(
+    bins_vec = bins_vec,
+    flt_weights = flt_raw,
+    octave = octave,
+    flt_size = flt_size
+  )
 
   class(ret) <- c("filter_bank")
   ret
 }
 
 #' @keywords internal
-create_gaussian <- function(size, sigma=2) {
-    valsy = seq(-size/2+1, size/2, length.out=size)
-    valsx = seq(-size/2+1, size/2, length.out=size)
-    mg <- pracma::meshgrid(valsx, valsy)
-    xgr <- mg$X
-    ygr <- mg$Y
-    gaussian <- exp(-(xgr^2 + ygr^2)/(2*sigma*sigma))
-    gaussian/sum(gaussian)
+create_gaussian <- function(size, sigma = 2) {
+  valsy <- seq(-size / 2 + 1, size / 2, length.out = size)
+  valsx <- seq(-size / 2 + 1, size / 2, length.out = size)
+  mg <- pracma::meshgrid(valsx, valsy)
+  xgr <- mg$X
+  ygr <- mg$Y
+  gaussian <- exp(-(xgr^2 + ygr^2) / (2 * sigma * sigma))
+  gaussian / sum(gaussian)
 }
 
 #' @keywords internal
-create_gabor <- function(size, theta, octave=3) {
-  amplitude = 1.0
-  phase = pi/2.0
-  frequency = 0.5^octave # 0.5**(octave+0.5)
-  hrsf = 4 # half response spatial frequency bandwith
-  sigma = 1/(pi*frequency) * sqrt(log(2)/2) * (2.0^hrsf+1)/(2.0^hrsf-1)
-  valsy = seq(-size/2+1, size/2, length.out=size)
-  valsx = seq(-size/2+1, size/2, length.out=size)
+create_gabor <- function(size, theta, octave = 3) {
+  amplitude <- 1.0
+  phase <- pi / 2.0
+  frequency <- 0.5^octave # 0.5**(octave+0.5)
+  hrsf <- 4 # half response spatial frequency bandwith
+  sigma <- 1 / (pi * frequency) * sqrt(log(2) / 2) * (2.0^hrsf + 1) / (2.0^hrsf - 1)
+  valsy <- seq(-size / 2 + 1, size / 2, length.out = size)
+  valsx <- seq(-size / 2 + 1, size / 2, length.out = size)
   mg <- pracma::meshgrid(valsx, valsy)
   xgr <- mg$X
   ygr <- mg$Y
 
-  omega = 2*pi*frequency
-  gaussian = exp(-(xgr*xgr + ygr*ygr)/(2*sigma*sigma))
-  slant = xgr*(omega*sin(theta)) + ygr*(omega*cos(theta))
-  gabor = gaussian * amplitude*cos(slant + phase);
+  omega <- 2 * pi * frequency
+  gaussian <- exp(-(xgr * xgr + ygr * ygr) / (2 * sigma * sigma))
+  slant <- xgr * (omega * sin(theta)) + ygr * (omega * cos(theta))
+  gabor <- gaussian * amplitude * cos(slant + phase)
   gabor
-
 }
 
 #' @keywords internal
-filtered_image <- function(file, max_pixels=300*300) {
+filtered_image <- function(file, max_pixels = 300 * 300) {
   # Validate input file
   if (!is.character(file) || length(file) != 1) {
     stop("'file' must be a single character string (file path)")
   }
-  
+
   if (!file.exists(file)) {
     stop("Image file not found: ", file)
   }
-  
+
   # Try to load the image and handle errors gracefully
-  img <- tryCatch({
-    imager::load.image(file)
-  }, error = function(e) {
-    stop("Failed to load image: ", file, "\nError: ", e$message)
-  })
-  
+  img <- tryCatch(
+    {
+      imager::load.image(file)
+    },
+    error = function(e) {
+      stop("Failed to load image: ", file, "\nError: ", e$message)
+    }
+  )
+
   # Verify it's a valid image object
   if (!inherits(img, "cimg")) {
     stop("imager::load.image did not return a valid cimg object for: ", file)
   }
-  
+
   if (!is.null(max_pixels)) {
     isize <- dim(img)[1:2]
 
-    a = sqrt(max_pixels / (isize[1]*isize[2]))
-    img <- tryCatch({
-      imager::resize(img, as.integer(isize[1]*a), as.integer(isize[2]*a), interpolation_type=6)
-    }, error = function(e) {
-      warning("Image resize failed, using original size. Error: ", e$message)
-      img # Return original image
-    })
+    a <- sqrt(max_pixels / (isize[1] * isize[2]))
+    img <- tryCatch(
+      {
+        imager::resize(img, as.integer(isize[1] * a), as.integer(isize[2] * a), interpolation_type = 6)
+      },
+      error = function(e) {
+        warning("Image resize failed, using original size. Error: ", e$message)
+        img # Return original image
+      }
+    )
   }
 
   # Convert to grayscale and ensure it's a valid matrix
-  image_raw = tryCatch({
-    as.array(imager::grayscale(img)) # luma transform
-  }, error = function(e) {
-    stop("Failed to convert image to grayscale: ", e$message)
-  })
-  
+  image_raw <- tryCatch(
+    {
+      as.array(imager::grayscale(img)) # luma transform
+    },
+    error = function(e) {
+      stop("Failed to convert image to grayscale: ", e$message)
+    }
+  )
+
   if (!is.array(image_raw) || length(dim(image_raw)) < 2) {
     stop("Failed to create valid image matrix from: ", file)
   }
-  
-  ret <- list(file=file, img=img, image_raw=image_raw, image_size=dim(image_raw)[1:2])
+
+  ret <- list(file = file, img = img, image_raw = image_raw, image_size = dim(image_raw)[1:2])
   class(ret) <- c("filtered_image", "list")
   ret
 }
@@ -177,7 +188,6 @@ filtered_image <- function(file, max_pixels=300*300) {
 
 #' @keywords internal
 run_filterbank <- function(fimg, fbank, verbose = FALSE) {
-
   shape <- dim(fimg$image_raw)[1:2]
   h <- shape[1]
   w <- shape[2]
@@ -185,51 +195,58 @@ run_filterbank <- function(fimg, fbank, verbose = FALSE) {
   img_filt <- array(0, c(num_filters, h, w))
 
   iraw <- imager::as.cimg(fimg$image_raw)
-  # --- Debug: Print input image range --- 
+  # --- Debug: Print input image range ---
   if (verbose) {
-    message("[R] run_filterbank: Input image range: [",
-            min(iraw), ", ", max(iraw),
-            "], Mean = ", mean(iraw))
+    message(
+      "[R] run_filterbank: Input image range: [",
+      min(iraw), ", ", max(iraw),
+      "], Mean = ", mean(iraw)
+    )
   }
   # ------------------------------------
-  
+
   for (i in 1:num_filters) {
-    conv_result <- imager::convolve(iraw, imager::as.cimg(fbank$flt_weights[i,,]))
-    img_filt[i,,] <- as.array(conv_result) # Ensure it's an array for min/max
-    # --- Debug: Print range/sum of the first convolution result --- 
+    conv_result <- imager::convolve(iraw, imager::as.cimg(fbank$flt_weights[i, , ]))
+    img_filt[i, , ] <- as.array(conv_result) # Ensure it's an array for min/max
+    # --- Debug: Print range/sum of the first convolution result ---
     if (i == 1 && verbose) {
-        message("[R] run_filterbank: First convolution result (conv) range: [",
-                min(img_filt[i,,]), ", ", max(img_filt[i,,]),
-                "], Sum = ", sum(img_filt[i,,]))
+      message(
+        "[R] run_filterbank: First convolution result (conv) range: [",
+        min(img_filt[i, , ]), ", ", max(img_filt[i, , ]),
+        "], Sum = ", sum(img_filt[i, , ])
+      )
     }
     # -----------------------------------------------------------
   }
 
-  resp_bin <- apply(img_filt, c(2,3), which.max)
-  #resp_bin = np.argmax(self.image_flt, axis=0)
-  resp_val <- apply(img_filt, c(2,3), max)
+  resp_bin <- apply(img_filt, c(2, 3), which.max)
+  # resp_bin = np.argmax(self.image_flt, axis=0)
+  resp_val <- apply(img_filt, c(2, 3), max)
 
   resp_val <- zero_borders(resp_val, 2)
 
   if (verbose) {
-    message("[R] run_filterbank: Range resp_val (after border zero): [",
-            min(resp_val), ", ", max(resp_val), "]")
+    message(
+      "[R] run_filterbank: Range resp_val (after border zero): [",
+      min(resp_val), ", ", max(resp_val), "]"
+    )
   }
 
   ret <- list(
-    fimg=fimg,
-    fbank=fbank,
-    img_filt=img_filt,
-    num_filters=num_filters,
-    resp_bin=resp_bin,
-    resp_val=resp_val)
+    fimg = fimg,
+    fbank = fbank,
+    img_filt = img_filt,
+    num_filters = num_filters,
+    resp_bin = resp_bin,
+    resp_val = resp_val
+  )
 
   class(ret) <- "filtered_set"
   ret
 }
 
 #' @keywords internal
-zero_borders <- function(resp_val, nlines=2) {
+zero_borders <- function(resp_val, nlines = 2) {
   nr <- nrow(resp_val)
   nc <- ncol(resp_val)
 
@@ -247,30 +264,31 @@ zero_borders <- function(resp_val, nlines=2) {
 }
 
 #' @keywords internal
-do_counting <- function(fres, maxdiag=80, circ_bins=48, verbose = FALSE) {
+do_counting <- function(fres, maxdiag = 80, circ_bins = 48, verbose = FALSE) {
   isize <- fres$fimg$image_size
   w <- isize[1]
   h <- isize[2]
 
-  #normalize_fac = float(filter_img.resp_val.shape[0]*filter_img.resp_val.shape[1])
-  #complex_before = np.sum(filter_img.resp_val)/normalize_fac
+  # normalize_fac = float(filter_img.resp_val.shape[0]*filter_img.resp_val.shape[1])
+  # complex_before = np.sum(filter_img.resp_val)/normalize_fac
 
   resp_val <- fres$resp_val
   if (verbose) {
-    message("[R] do_counting: Range resp_val (input): [",
-            min(resp_val), ", ", max(resp_val), "]")
+    message(
+      "[R] do_counting: Range resp_val (input): [",
+      min(resp_val), ", ", max(resp_val), "]"
+    )
   }
 
   # cutoff minor filter responses
-  normalize_fac = dim(resp_val)[1]*dim(resp_val)[2]
+  normalize_fac <- dim(resp_val)[1] * dim(resp_val)[2]
 
   ## gradient magnitude
-  complex_before = sum(resp_val)/normalize_fac
-
+  complex_before <- sum(resp_val) / normalize_fac
 
 
   # Get cutoff, but handle cases where there are fewer than 10000 values
-  sorted_vals <- sort(as.vector(resp_val), decreasing=TRUE)
+  sorted_vals <- sort(as.vector(resp_val), decreasing = TRUE)
   n_vals <- length(sorted_vals)
   if (n_vals >= 10000) {
     cutoff <- sorted_vals[10000]
@@ -282,127 +300,139 @@ do_counting <- function(fres, maxdiag=80, circ_bins=48, verbose = FALSE) {
     cutoff <- 0
   }
   if (verbose) message("[R] do_counting: Calculated cutoff (k-th=", min(10000, n_vals), "): ", cutoff)
-  resp_val[resp_val<cutoff] = 0
+  resp_val[resp_val < cutoff] <- 0
   if (verbose) {
-    message("[R] do_counting: Range resp_val (after cutoff): [",
-            min(resp_val), ", ", max(resp_val), "]")
+    message(
+      "[R] do_counting: Range resp_val (after cutoff): [",
+      min(resp_val), ", ", max(resp_val), "]"
+    )
   }
-  #ey, ex = filter_img.resp_val.nonzero()
+  # ey, ex = filter_img.resp_val.nonzero()
 
   # lookup tables to speed up calculations
-  edge_dims = dim(resp_val)
-  mg <- pracma::meshgrid(seq(-edge_dims[1], edge_dims[1], length.out=2*edge_dims[1]+1),
-                         seq(-edge_dims[2], edge_dims[2], length.out=2*edge_dims[2]+1))
+  edge_dims <- dim(resp_val)
+  mg <- pracma::meshgrid(
+    seq(-edge_dims[1], edge_dims[1], length.out = 2 * edge_dims[1] + 1),
+    seq(-edge_dims[2], edge_dims[2], length.out = 2 * edge_dims[2] + 1)
+  )
   xx <- mg$X
   yy <- mg$Y
 
-  dist = t(sqrt(xx^2+yy^2))
-  ecds <- which(resp_val != 0, arr.ind=TRUE)
-  
+  dist <- t(sqrt(xx^2 + yy^2))
+  ecds <- which(resp_val != 0, arr.ind = TRUE)
+
   # Handle case where no edges are found
   if (nrow(ecds) == 0) {
     if (verbose) message("[R] do_counting: No edges found after thresholding")
     counts <- array(0, c(maxdiag, circ_bins, length(fres$fbank$bins_vec)))
-    return(list(counts=counts, complex_before=complex_before))
+    return(list(counts = counts, complex_before = complex_before))
   }
 
-  ex <- ecds[,1]
-  ey <- ecds[,2]
+  ex <- ecds[, 1]
+  ey <- ecds[, 2]
 
-  orientations = fres$resp_bin[cbind(ex,ey)]
+  orientations <- fres$resp_bin[cbind(ex, ey)]
 
-  counts = array(0, c(maxdiag, circ_bins, length(fres$fbank$bins_vec)))
+  counts <- array(0, c(maxdiag, circ_bins, length(fres$fbank$bins_vec)))
   gabor_bins <- length(fres$fbank$bins_vec)
-  #print "Counting", filter_img.image_name, filter_img.image_size(), "comparing", ex.size
+  # print "Counting", filter_img.image_name, filter_img.image_size(), "comparing", ex.size
   for (cp in seq_along(ex)) {
-    #print(cp)
+    # print(cp)
 
-    orientations_rel = orientations - orientations[cp]
-    orientations_rel = (orientations_rel + gabor_bins) %% gabor_bins
+    orientations_rel <- orientations - orientations[cp]
+    orientations_rel <- (orientations_rel + gabor_bins) %% gabor_bins
 
-    i1 <- (ex-ex[cp])+edge_dims[1]
-    i2 <- (ey-ey[cp])+edge_dims[2]
-    distance_rel = round(dist[cbind(i1,i2)]) + 1
-    distance_rel[distance_rel>=maxdiag] = maxdiag
+    i1 <- (ex - ex[cp]) + edge_dims[1]
+    i2 <- (ey - ey[cp]) + edge_dims[2]
+    distance_rel <- round(dist[cbind(i1, i2)]) + 1
+    distance_rel[distance_rel >= maxdiag] <- maxdiag
 
-    direction <- round(atan2(ey-ey[cp], ex-ex[cp]) / (2.0*pi)*circ_bins + (orientations[cp]/gabor_bins*circ_bins))
-    direction <- (direction+circ_bins) %% circ_bins
-    ind <- cbind(distance_rel, direction+1, orientations_rel+1)
-    counts[ind] <- counts[ind] + resp_val[cbind(ex,ey)] * resp_val[ex[cp],ey[cp]]
-    #np.add.at(counts, cbind(distance_rel, direction, orientations_rel),
-    #          fres.resp_val[cbind(ey,ex)] * fres.resp_val[ey[cp],ex[cp])
+    direction <- round(atan2(ey - ey[cp], ex - ex[cp]) / (2.0 * pi) * circ_bins + (orientations[cp] / gabor_bins * circ_bins))
+    direction <- (direction + circ_bins) %% circ_bins
+    lin_idx <- distance_rel + maxdiag * direction + maxdiag * circ_bins * orientations_rel
+    weights <- resp_val[cbind(ex, ey)] * resp_val[ex[cp], ey[cp]]
+    accum <- rowsum(weights, lin_idx, reorder = FALSE)
+    counts[as.integer(rownames(accum))] <- counts[as.integer(rownames(accum))] + accum[, 1]
   }
 
   if (verbose) {
-    message("[R] do_counting: Range counts cube: [",
-            min(counts), ", ", max(counts),
-            "], Sum = ", sum(counts))
+    message(
+      "[R] do_counting: Range counts cube: [",
+      min(counts), ", ", max(counts),
+      "], Sum = ", sum(counts)
+    )
   }
 
-  list(counts=counts, complex_before=complex_before)
+  list(counts = counts, complex_before = complex_before)
 }
 
 
 #' @keywords internal
 do_statistics <- function(counts, bins_vec, verbose = FALSE) {
-
-  #counts_sum = sum(counts, axis=2) + 0.00001
-  counts_sum <- apply(counts, c(1,2), sum) + .00001
+  # counts_sum = sum(counts, axis=2) + 0.00001
+  counts_sum <- apply(counts, c(1, 2), sum) + .00001
   if (verbose) {
-    message("[R] do_statistics: counts_sum range: [",
-            min(counts_sum), ", ", max(counts_sum),
-            "], Sum = ", sum(counts_sum))
+    message(
+      "[R] do_statistics: counts_sum range: [",
+      min(counts_sum), ", ", max(counts_sum),
+      "], Sum = ", sum(counts_sum)
+    )
   }
-          
-  normalized_counts <- sweep(counts, c(1,2), counts_sum, "/")
-  if (verbose) {
-    message("[R] do_statistics: normalized_counts range: [",
-            min(normalized_counts), ", ", max(normalized_counts),
-            "], Sum = ", sum(normalized_counts)) # Sum should be ~ maxdiag * circ_bins
-  }
-  #normalized_counts <- counts / (counts_sum[,,,np.newaxis])
 
-  x = normalized_counts * cos(bins_vec)
-  y = normalized_counts * sin(bins_vec)
-  #mean_vector = mean(x+1i*y, axis=2)
-  mean_vector <- apply(x+1i*y, c(1,2), mean)
-  #circular_mean_angle = np.mod(np.angle(mean_vector) + 2*np.pi, 2*np.pi)
-  circular_mean_angle <- (Arg(mean_vector) + 2*pi) %% (2*pi)
-  circular_mean_length = abs(mean_vector)
+  normalized_counts <- sweep(counts, c(1, 2), counts_sum, "/")
+  if (verbose) {
+    message(
+      "[R] do_statistics: normalized_counts range: [",
+      min(normalized_counts), ", ", max(normalized_counts),
+      "], Sum = ", sum(normalized_counts)
+    ) # Sum should be ~ maxdiag * circ_bins
+  }
+  # normalized_counts <- counts / (counts_sum[,,,np.newaxis])
+
+  x <- normalized_counts * cos(bins_vec)
+  y <- normalized_counts * sin(bins_vec)
+  # mean_vector = mean(x+1i*y, axis=2)
+  mean_vector <- apply(x + 1i * y, c(1, 2), mean)
+  # circular_mean_angle = np.mod(np.angle(mean_vector) + 2*np.pi, 2*np.pi)
+  circular_mean_angle <- (Arg(mean_vector) + 2 * pi) %% (2 * pi)
+  circular_mean_length <- abs(mean_vector)
 
   # correction as proposed by Zar 1999
-  d = 2*pi/length(bins_vec)
-  c = d / 2.0 / sin(d/2.0)
-  circular_mean_length = circular_mean_length * c
+  d <- 2 * pi / length(bins_vec)
+  c <- d / 2.0 / sin(d / 2.0)
+  circular_mean_length <- circular_mean_length * c
 
   d <- dim(normalized_counts)[1]
   a <- dim(normalized_counts)[2]
-  #d,a,_ = normalized_counts.shape
-  shannon = matrix(0, d,a)
-  shannon_nan = matrix(0, d,a)
-  for (di in seq(1,d)) {
-    for (ai in seq(1,a)) {
-      shannon[di,ai] = entropy(normalized_counts[di,ai,])
-      if (counts_sum[di,ai]>1) {
-        shannon_nan[di,ai] = shannon[di,ai]
+  # d,a,_ = normalized_counts.shape
+  shannon <- matrix(0, d, a)
+  shannon_nan <- matrix(0, d, a)
+  for (di in seq(1, d)) {
+    for (ai in seq(1, a)) {
+      shannon[di, ai] <- entropy(normalized_counts[di, ai, ])
+      if (counts_sum[di, ai] > 1) {
+        shannon_nan[di, ai] <- shannon[di, ai]
       } else {
-        shannon_nan[di,ai] = NaN
+        shannon_nan[di, ai] <- NaN
       }
     }
   }
 
   if (verbose) {
-    message("[R] do_statistics: shannon matrix range: [",
-            min(shannon, na.rm=TRUE), ", ", max(shannon, na.rm=TRUE), "]")
+    message(
+      "[R] do_statistics: shannon matrix range: [",
+      min(shannon, na.rm = TRUE), ", ", max(shannon, na.rm = TRUE), "]"
+    )
   }
 
-  list(normalized_counts=normalized_counts,
-       circular_mean_angle=circular_mean_angle,
-       circular_mean_length=circular_mean_length,
-       shannon=shannon,
-       shannon_nan=shannon_nan)
+  list(
+    normalized_counts = normalized_counts,
+    circular_mean_angle = circular_mean_angle,
+    circular_mean_length = circular_mean_length,
+    shannon = shannon,
+    shannon_nan = shannon_nan
+  )
 }
-
 
 
 #' Calculate Edge Entropy Features from Images
@@ -420,7 +450,7 @@ do_statistics <- function(counts, bins_vec, verbose = FALSE) {
 #'        Defaults to 500.
 #' @param gabor_bins Integer. Number of orientation bins for Gabor filter bank.
 #'        Defaults to 24.
-#' @param filter_length Integer. Size of the Gabor filters (must be odd). 
+#' @param filter_length Integer. Size of the Gabor filters (must be odd).
 #'        Defaults to 31.
 #' @param circ_bins Integer. Number of circular bins for directional statistics.
 #'        Defaults to 48.
@@ -451,63 +481,57 @@ do_statistics <- function(counts, bins_vec, verbose = FALSE) {
 #' @examples
 #' \donttest{
 #' # Example 1: Using a matrix with default parameters
-#' img_matrix <- matrix(runif(100*100), nrow=100)
+#' img_matrix <- matrix(runif(100 * 100), nrow = 100)
 #' result <- compute_edge_entropy(img_matrix)
-#' print(result$H1)  # First-order entropy
-#' print(result$H2)  # Second-order (pairwise) entropy
-#' 
+#' print(result$H1) # First-order entropy
+#' print(result$H2) # Second-order (pairwise) entropy
+#'
 #' # Example 2: Load and process an image file
 #' library(imager)
 #' img <- load.example("coins")
 #' gray_img <- grayscale(img)
-#' img_array <- as.array(gray_img)[,,1,1]
-#' 
+#' img_array <- as.array(gray_img)[, , 1, 1]
+#'
 #' # Compute edge entropy with custom parameters
 #' result_custom <- compute_edge_entropy(
 #'   image = img_array,
-#'   gabor_bins = 32L,  # More orientation bins
-#'   filter_length = 41L,  # Larger filter for coarser features
-#'   circ_bins = 64L,  # More angular bins
-#'   use_cpp = TRUE  # Use fast C++ implementation
+#'   gabor_bins = 32L, # More orientation bins
+#'   filter_length = 41L, # Larger filter for coarser features
+#'   circ_bins = 64L, # More angular bins
+#'   use_cpp = TRUE # Use fast C++ implementation
 #' )
-#' 
+#'
 #' # Example 3: Compare R and C++ implementations
-#' small_img <- matrix(runif(50*50), nrow=50)
+#' small_img <- matrix(runif(50 * 50), nrow = 50)
 #' result_r <- compute_edge_entropy(small_img, use_cpp = FALSE, verbose = TRUE)
 #' result_cpp <- compute_edge_entropy(small_img, use_cpp = TRUE, verbose = FALSE)
-#' 
+#'
 #' # Results should be very similar
 #' all.equal(result_r$H1, result_cpp$H1, tolerance = 1e-10)
-#' 
-#' # Example 4: Process with different distance ranges
+#'
 #' result_ranges <- compute_edge_entropy(
 #'   image = img_array,
-#'   ranges = list(c(10,50), c(50,100), c(100,200), c(200,400)),
-#'   maxdiag = 600L  # Increase to accommodate larger ranges
+#'   ranges = list(c(10, 50), c(50, 100), c(100, 200), c(200, 400)),
+#'   maxdiag = 600L
 #' )
-#' 
-#' # Example 5: Batch process multiple images
+#' }
+#' \dontrun{
 #' img_files <- list.files("path/to/images", pattern = "\\.jpg$", full.names = TRUE)
 #' entropy_results <- lapply(img_files[1:5], function(f) {
-#'   img <- load.image(f)
-#'   gray <- grayscale(img)
-#'   arr <- as.array(gray)[,,1,1]
+#'   img <- imager::load.image(f)
+#'   gray <- imager::grayscale(img)
+#'   arr <- as.array(gray)[, , 1, 1]
 #'   compute_edge_entropy(arr, max_pixels = 100000L)
 #' })
-#' 
-#' # Extract H1 and H2 values
-#' h1_values <- sapply(entropy_results, function(x) x$H1)
-#' h2_values <- sapply(entropy_results, function(x) x$H2)
 #' }
 #'
 #' @name compute_edge_entropy
 #' @rdname compute_edge_entropy
 #' @export
-compute_edge_entropy <- function(image, max_pixels=120000L, maxdiag=500L, gabor_bins=24L,
-                         filter_length=31L, circ_bins=48L,
-                         ranges=list(c(20,80), c(80, 160), c(160,240)),
-                         use_cpp=TRUE, verbose = FALSE) {
-
+compute_edge_entropy <- function(image, max_pixels = 120000L, maxdiag = 500L, gabor_bins = 24L,
+                                 filter_length = 31L, circ_bins = 48L,
+                                 ranges = list(c(20, 80), c(80, 160), c(160, 240)),
+                                 use_cpp = TRUE, verbose = FALSE) {
   assert_image(image)
   assert_scalar(max_pixels, "integer")
   assert_scalar(maxdiag, "integer")
@@ -517,41 +541,44 @@ compute_edge_entropy <- function(image, max_pixels=120000L, maxdiag=500L, gabor_
   checkmate::assert_list(ranges, types = "numeric", min.len = 1)
   assert_scalar(use_cpp, "logical")
   assert_scalar(verbose, "logical")
-  
+
   # Validate filter_length is positive and odd (to match C++ validation)
   if (filter_length <= 0 || filter_length %% 2 == 0) {
     stop("'filter_length' must be a positive odd integer")
   }
-  
+
   # Check if image is a file path or a matrix
   if (is.character(image) && length(image) == 1) {
     # It's a file path
     impath <- image
-    
+
     # Check if the file exists
     if (!file.exists(impath)) {
       stop("Image file does not exist: ", impath)
     }
-    
+
     if (use_cpp) {
       # For C++ implementation, we load the image and convert to matrix here
-      fimg <- tryCatch({
-        filtered_image(impath, max_pixels)
-      }, error = function(e) {
-        stop("Failed to load image: ", impath, "\nError: ", e$message)
-      })
-      
+      fimg <- tryCatch(
+        {
+          filtered_image(impath, max_pixels)
+        },
+        error = function(e) {
+          stop("Failed to load image: ", impath, "\nError: ", e$message)
+        }
+      )
+
       # Verify image_raw is a matrix
       if (!is.matrix(fimg$image_raw) && !is.array(fimg$image_raw)) {
         stop("Failed to convert image to matrix: ", impath)
       }
-      
+
       image_matrix <- fimg$image_raw
       # Additional check for numeric matrix with valid dimensions
       if (!is.numeric(image_matrix) || length(dim(image_matrix)) < 2) {
         stop("Image must be a numeric matrix/array with at least 2 dimensions")
       }
-      
+
       result <- edge_entropy_cpp(
         image = as.matrix(image_matrix),
         impath = impath,
@@ -567,76 +594,81 @@ compute_edge_entropy <- function(image, max_pixels=120000L, maxdiag=500L, gabor_
       fimg <- filtered_image(impath, max_pixels)
       fbank <- filter_bank(gabor_bins, filter_length, verbose = verbose)
       fres <- run_filterbank(fimg, fbank, verbose = verbose)
-      cts <- do_counting(fres, maxdiag=maxdiag, circ_bins=circ_bins, verbose = verbose)
+      cts <- do_counting(fres, maxdiag = maxdiag, circ_bins = circ_bins, verbose = verbose)
       stats <- do_statistics(cts$counts, fres$fbank$bins_vec, verbose = verbose)
-      
+
       fo <- first_order_entropy(fres)
-      
+
       shannon_summary <- lapply(ranges, function(r) {
         # Ensure rowMeans are calculated correctly and handle potential NaNs
         valid_rows <- r[1]:r[2]
         # Check bounds
         valid_rows <- valid_rows[valid_rows <= nrow(stats$shannon_nan)]
-        if (length(valid_rows) == 0) return(NA)
-        
+        if (length(valid_rows) == 0) {
+          return(NA)
+        }
+
         # Use shannon_nan which has NaN for low-count bins
         row_means_subset <- rowMeans(stats$shannon_nan[valid_rows, , drop = FALSE], na.rm = TRUE)
         # Handle case where all values in a range might be NaN or empty
         mean_val <- mean(row_means_subset, na.rm = TRUE)
         if (!is.finite(mean_val)) mean_val <- NA
-        
+
         if (verbose) {
           message(sprintf("[R] edge_entropy: Range [%d, %d]: rowmeans mean = %.6f", r[1], r[2], mean_val))
         }
         mean_val
       })
-      
+
       if (verbose) {
         message("[R] edge_entropy: Calculated fo = ", fo)
         message("[R] edge_entropy: final_shannon[1] = ", shannon_summary[[1]])
         message("[R] edge_entropy: final_shannon[2] = ", shannon_summary[[2]])
         message("[R] edge_entropy: final_shannon[3] = ", shannon_summary[[3]])
       }
-      
+
       return(data.frame(
-        im=impath, 
-        entropy=fo, 
-        pentropy_20_80=shannon_summary[[1]], 
-        pentropy_80_160=shannon_summary[[2]], 
-        pentropy_160_240=shannon_summary[[3]],
-        complex_before=cts$complex_before
+        im = impath,
+        entropy = fo,
+        pentropy_20_80 = shannon_summary[[1]],
+        pentropy_80_160 = shannon_summary[[2]],
+        pentropy_160_240 = shannon_summary[[3]],
+        complex_before = cts$complex_before
       ))
     }
   } else if (is.matrix(image)) {
     # It's a matrix
-    
+
     # Add additional validation for the matrix
     if (!is.numeric(image)) {
       stop("Image matrix must contain numeric values")
     }
-    
+
     if (length(dim(image)) != 2) {
       stop("Image must be a 2D matrix, not higher-dimensional array")
     }
-    
+
     if (nrow(image) < 3 || ncol(image) < 3) {
       stop("Image matrix is too small (minimum size: 3x3)")
     }
-    
+
     if (use_cpp) {
-      result <- tryCatch({
-        edge_entropy_cpp(
-          image = image,
-          impath = "matrix", # Use "matrix" as the identifier
-          maxdiag = as.integer(maxdiag),
-          gabor_bins = as.integer(gabor_bins),
-          filter_length = as.integer(filter_length),
-          circ_bins = as.integer(circ_bins),
-          ranges = lapply(ranges, function(r) as.integer(r))
-        )
-      }, error = function(e) {
-        stop("C++ function failed: ", e$message)
-      })
+      result <- tryCatch(
+        {
+          edge_entropy_cpp(
+            image = image,
+            impath = "matrix", # Use "matrix" as the identifier
+            maxdiag = as.integer(maxdiag),
+            gabor_bins = as.integer(gabor_bins),
+            filter_length = as.integer(filter_length),
+            circ_bins = as.integer(circ_bins),
+            ranges = lapply(ranges, function(r) as.integer(r))
+          )
+        },
+        error = function(e) {
+          stop("C++ function failed: ", e$message)
+        }
+      )
       return(result)
     } else {
       # Create a filtered_image object from the matrix
@@ -647,48 +679,50 @@ compute_edge_entropy <- function(image, max_pixels=120000L, maxdiag=500L, gabor_
         image_size = dim(image)
       )
       class(fimg) <- c("filtered_image", "list")
-      
+
       # Then proceed with the R implementation
       fbank <- filter_bank(gabor_bins, filter_length, verbose = verbose)
       fres <- run_filterbank(fimg, fbank, verbose = verbose)
-      cts <- do_counting(fres, maxdiag=maxdiag, circ_bins=circ_bins, verbose = verbose)
+      cts <- do_counting(fres, maxdiag = maxdiag, circ_bins = circ_bins, verbose = verbose)
       stats <- do_statistics(cts$counts, fres$fbank$bins_vec, verbose = verbose)
-      
+
       fo <- first_order_entropy(fres)
-      
+
       shannon_summary <- lapply(ranges, function(r) {
         # Ensure rowMeans are calculated correctly and handle potential NaNs
         valid_rows <- r[1]:r[2]
         # Check bounds
         valid_rows <- valid_rows[valid_rows <= nrow(stats$shannon_nan)]
-        if (length(valid_rows) == 0) return(NA)
-        
+        if (length(valid_rows) == 0) {
+          return(NA)
+        }
+
         # Use shannon_nan which has NaN for low-count bins
         row_means_subset <- rowMeans(stats$shannon_nan[valid_rows, , drop = FALSE], na.rm = TRUE)
         # Handle case where all values in a range might be NaN or empty
         mean_val <- mean(row_means_subset, na.rm = TRUE)
         if (!is.finite(mean_val)) mean_val <- NA
-        
+
         if (verbose) {
           message(sprintf("[R] edge_entropy (matrix): Range [%d, %d]: rowmeans mean = %.6f", r[1], r[2], mean_val))
         }
         mean_val
       })
-      
+
       if (verbose) {
         message("[R] edge_entropy (matrix): Calculated fo = ", fo)
         message("[R] edge_entropy (matrix): final_shannon[1] = ", shannon_summary[[1]])
         message("[R] edge_entropy (matrix): final_shannon[2] = ", shannon_summary[[2]])
         message("[R] edge_entropy (matrix): final_shannon[3] = ", shannon_summary[[3]])
       }
-      
+
       return(data.frame(
-        im="matrix", 
-        entropy=fo, 
-        pentropy_20_80=shannon_summary[[1]], 
-        pentropy_80_160=shannon_summary[[2]], 
-        pentropy_160_240=shannon_summary[[3]],
-        complex_before=cts$complex_before
+        im = "matrix",
+        entropy = fo,
+        pentropy_20_80 = shannon_summary[[1]],
+        pentropy_80_160 = shannon_summary[[2]],
+        pentropy_160_240 = shannon_summary[[3]],
+        complex_before = cts$complex_before
       ))
     }
   } else {
@@ -709,16 +743,16 @@ compute_edge_entropy <- function(image, max_pixels=120000L, maxdiag=500L, gabor_
 #' @export
 edge_entropy <- compute_edge_entropy
 
-#filter_bank = Filter_bank(GABOR_BINS, flt_size=FILTER_SIZE)
-#for i in range(filter_bank.num_filters):
+# filter_bank = Filter_bank(GABOR_BINS, flt_size=FILTER_SIZE)
+# for i in range(filter_bank.num_filters):
 #  filter_bank.set_flt(i, filter_bank.create_gabor(FILTER_SIZE, theta=BINS_VEC[i], octave=3))
 
-#img = FilterImage(file_list[i], max_pixels=MAX_PIXELS)
-#img.run_filterbank(filter_bank)
-#counts, complex_before = do_counting(img, os.path.basename(file_list[i]))
+# img = FilterImage(file_list[i], max_pixels=MAX_PIXELS)
+# img.run_filterbank(filter_bank)
+# counts, complex_before = do_counting(img, os.path.basename(file_list[i]))
 
-#fimg <- filtered_image("testdata2/ballerina.jpg", 200*100)
-#fbank <- filter_bank(24, 31)
-#fres <- run_filterbank(fimg, fbank)
-#cts <- do_counting(fres)
-#stats <- do_statistics(cts$counts, fres$fbank$bins_vec)
+# fimg <- filtered_image("testdata2/ballerina.jpg", 200*100)
+# fbank <- filter_bank(24, 31)
+# fres <- run_filterbank(fimg, fbank)
+# cts <- do_counting(fres)
+# stats <- do_statistics(cts$counts, fres$fbank$bins_vec)

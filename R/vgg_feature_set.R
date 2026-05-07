@@ -1,20 +1,20 @@
 #' Extract VGG-16 features by tier
 #'
 #' Convenience wrapper around \code{im_features()} to extract VGG-16 features grouped by spatial tiers:
-#' \\itemize{
-#'   \\item{\\code{"low"}: conv1_1, conv1_2, conv2_1, conv2_2}
-#'   \\item{\\code{"mid"}: conv3_1–conv4_3}
-#'   \\item{\\code{"high"}: conv5_1–conv5_3}
-#'   \\item{\\code{"semantic"}: fc1 (fc6) and fc2 (fc7)}
+#' \itemize{
+#'   \item \code{"low"}: conv1_1, conv1_2, conv2_1, conv2_2
+#'   \item \code{"mid"}: conv3_1 through conv4_3
+#'   \item \code{"high"}: conv5_1 through conv5_3
+#'   \item \code{"semantic"}: fc1 (fc6) and fc2 (fc7)
 #' }
 #' Layers are retrieved by name (e.g., \code{"block1_conv1"}) instead of numeric indices.
 #'
 #' @param impaths Character vector of image file paths.
 #' @param tier Character; one of "low", "mid", "high", or "semantic".
-#' @param model Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras3::application_vgg16(weights = 'imagenet')}. 
-#' @param target_size Numeric vector of length 2 specifying image resize dimensions (width, height). 
-#' @param pooling Character string specifying spatial pooling; passed to the \code{spatial_pooling} argument of \code{im_features}. 
-#'        Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7". 
+#' @param model Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras3::application_vgg16(weights = 'imagenet')}.
+#' @param target_size Numeric vector of length 2 specifying image resize dimensions (width, height).
+#' @param pooling Character string specifying spatial pooling; passed to the \code{spatial_pooling} argument of \code{im_features}.
+#'        Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7".
 #' @return An S3 object of class \code{vgg_feature_set}, a list with components:
 #' \describe{
 #'   \item{features}{Numeric matrix (N_images × total_channels) of pooled features.}
@@ -40,9 +40,10 @@ extract_vgg_features <- function(impaths,
   if (length(impaths) == 1 && dir.exists(impaths)) {
     orig_dir <- impaths
     impaths <- list.files(orig_dir,
-                          pattern = "\\.(jpg|jpeg|png)$",
-                          full.names = TRUE,
-                          ignore.case = TRUE)
+      pattern = "\\.(jpg|jpeg|png)$",
+      full.names = TRUE,
+      ignore.case = TRUE
+    )
     if (length(impaths) == 0) {
       stop("No image files (jpg, jpeg, png) found in directory: ", orig_dir)
     }
@@ -54,11 +55,13 @@ extract_vgg_features <- function(impaths,
   }
 
   tier <- match.arg(tier)
-  pooling <- match.arg(pooling,
-                       c("none", "avg", "max", "resize_3x3", "resize_5x5", "resize_7x7"))
+  pooling <- match.arg(
+    pooling,
+    c("none", "avg", "max", "resize_3x3", "resize_5x5", "resize_7x7")
+  )
 
   if (is.null(model)) {
-    model <- keras3::application_vgg16(weights = 'imagenet', include_top = TRUE)
+    model <- keras3::application_vgg16(weights = "imagenet", include_top = TRUE)
   }
 
   # Define layer name map for VGG-16
@@ -137,4 +140,4 @@ print.vgg_feature_set <- function(x, ...) {
   cat("  Layers:       ", paste(x$layer_names, collapse = ", "), "\n")
   cat("  Pooling:      ", x$pooling, "\n")
   invisible(x)
-} 
+}
