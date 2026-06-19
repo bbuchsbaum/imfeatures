@@ -1,0 +1,106 @@
+# extract features from intermediate layers
+
+extract features from intermediate layers
+
+## Usage
+
+``` r
+extract_features(
+  impath,
+  layers,
+  model = NULL,
+  target_size = c(224, 224),
+  spatial_pooling = "none"
+)
+
+im_features(
+  impath,
+  layers,
+  model = NULL,
+  target_size = c(224, 224),
+  spatial_pooling = "none"
+)
+```
+
+## Arguments
+
+- impath:
+
+  path to image file
+
+- layers:
+
+  the layer indices
+
+- model:
+
+  the Keras model
+
+- target_size:
+
+  the target image dimensions for approproate for model
+
+- spatial_pooling:
+
+  A character string specifying the type of spatial processing to apply
+  to 4D feature maps (typically from convolutional layers). Options are:
+
+  - `"none"`: (Default) No spatial processing is applied; the full
+    feature maps are returned (usually as a 4D array: 1 x H x W x C).
+
+  - `"avg"`: Global average pooling is applied across spatial dimensions
+    (H, W), resulting in one value per channel (vector of length C).
+
+  - `"max"`: Global max pooling is applied across spatial dimensions (H,
+    W), resulting in one value per channel (vector of length C).
+
+  - `"resize_HxW"`: Downsamples the spatial dimensions to `H` by `W`
+    using bilinear interpolation, then flattens. Any value matching
+    `"^resize_[0-9]+x[0-9]+$"` is accepted (e.g., `"resize_3x3"`,
+    `"resize_7x7"`). Results in a vector of length `H * W * C`.
+
+  This parameter only affects 4D outputs. For other layer types (e.g.,
+  2D outputs like N x Features from dense layers, or already pooled
+  features), this parameter is ignored, and features are returned as is.
+  The handling of these raw features (e.g. flattening) is typically
+  managed by downstream functions.
+
+## Value
+
+A tibble with columns `image`, `layer` and a list-column `feature`. The
+tibble inherits class `imfeatures_feature_tbl` for dplyr compatibility.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+# Extract features from a single image using default VGG16 model
+img_path <- system.file("extdata", "example.jpg", package = "imfeatures")
+
+# Extract features from multiple layers
+features <- extract_features(
+  impath = img_path,
+  layers = c(3, 5, 7),  # conv1_2, conv2_1, conv2_2
+  model = NULL,  # Uses default VGG16
+  target_size = c(224, 224)
+)
+
+# Extract features with spatial pooling
+features_pooled <- extract_features(
+  impath = img_path,
+  layers = c(10, 12),  # Later convolutional layers
+  spatial_pooling = "avg"  # Global average pooling
+)
+
+# Extract features with spatial resizing
+features_resized <- extract_features(
+  impath = img_path,
+  layers = c(10),
+  spatial_pooling = "resize_7x7"  # Resize spatial dimensions to 7x7
+)
+
+# Access the extracted features
+layer3_features <- features$feature[[1]]  # Features from layer 3
+dim(layer3_features)  # Check dimensions
+} # }
+```

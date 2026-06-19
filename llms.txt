@@ -1,0 +1,235 @@
+# imfeatures
+
+[![R-CMD-check](https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml)
+
+`imfeatures` extracts visual features from 2D images using deep learning
+models and traditional computer vision techniques. It supports VGG16,
+ResNet, and other pre-trained models via Python (Keras / `thingsvision`
+/ CLIP), and provides methods for edge entropy, multiscale entropy, and
+feature-similarity metrics.
+
+## Install
+
+``` r
+
+# install.packages("devtools")
+devtools::install_github("bbuchsbaum/imfeatures")
+```
+
+The package depends on Python for deep-learning backends. On a
+workstation,
+[`imfeatures_config()`](https://bbuchsbaum.github.io/imfeatures/reference/imfeatures_config.md)
+sets up a managed environment automatically; on HPC or other shared
+systems, see the HPC Quickstart below.
+
+## Cookbook
+
+Compute pairwise feature similarities at three VGG-16 layers:
+
+``` r
+
+library(imfeatures)
+imgs <- list.files(system.file("extdata", package = "imfeatures"),
+                   pattern = "\\.(jpe?g|png)$", full.names = TRUE)
+im_feature_sim(imgs, layers = c(1, 2, 3))
+```
+
+Compute edge entropy on a grayscale matrix (no Python required):
+
+``` r
+
+library(imfeatures)
+img <- matrix(runif(100 * 100), nrow = 100)
+compute_edge_entropy(img)
+```
+
+## HPC Quickstart (single recommended path)
+
+On HPC systems, avoid automatic Conda setup and use an existing Python
+instead.
+
+1.  Disable auto Python setup during load (recommended on HPC):
+
+``` r
+
+Sys.setenv(IMFEATURES_SKIP_PYTHON = "TRUE")
+```
+
+To make this permanent, add `IMFEATURES_SKIP_PYTHON=TRUE` to
+`~/.Renviron`.
+
+2.  Create or choose a Python environment (module + venv is typical):
+
+``` bash
+# Example using your cluster's Python module
+module load python/3.10             # if applicable (3.9/3.10 recommended)
+python -m venv $WORK/venvs/imfeatures
+source $WORK/venvs/imfeatures/bin/activate
+pip install --upgrade pip wheel setuptools
+
+# Minimal required packages
+pip install Pillow numpy
+
+# Optional packages for full functionality
+pip install thingsvision resmem open-clip-torch
+
+# PyTorch: use your cluster's module if available, otherwise pick one index
+# CPU only:
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# or CUDA-specific (example):
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+ 
+Note on Python versions: some optional packages (e.g., thingsvision via numba)
+currently do not support Python 3.11+. Prefer Python 3.9 or 3.10 when you plan
+to use these features.
+```
+
+3.  Tell imfeatures to use that Python:
+
+``` r
+
+library(imfeatures)
+use_existing_python(file.path(Sys.getenv("WORK"), "venvs/imfeatures/bin/python"))
+```
+
+Alternatively, set once in `~/.Renviron` and it will be auto-detected:
+
+``` R
+RETICULATE_PYTHON=/full/path/to/venvs/imfeatures/bin/python
+IMFEATURES_SKIP_PYTHON=TRUE
+```
+
+4.  Verify:
+
+``` r
+
+reticulate::py_config()
+```
+
+Troubleshooting:
+
+- If you see a Conda error like “bad interpreter” during
+  [`library(imfeatures)`](https://bbuchsbaum.github.io/imfeatures/),
+  it’s usually a broken R-miniconda on shared filesystems. Use the HPC
+  Quickstart above or set `IMFEATURES_SKIP_PYTHON=TRUE` and call
+  [`use_existing_python()`](https://bbuchsbaum.github.io/imfeatures/reference/use_existing_python.md).
+- To force `virtualenv` instead of Conda during
+  [`imfeatures_config()`](https://bbuchsbaum.github.io/imfeatures/reference/imfeatures_config.md),
+  set `IMFEATURES_METHOD=virtualenv` before calling it.
+
+# Package index
+
+## All functions
+
+- [`build_caption_prompt()`](https://bbuchsbaum.github.io/imfeatures/reference/build_caption_prompt.md)
+  : Build a caption prompt for image description
+- [`caption_features()`](https://bbuchsbaum.github.io/imfeatures/reference/caption_features.md)
+  : Extract Caption Features from Images
+- [`caption_features_many()`](https://bbuchsbaum.github.io/imfeatures/reference/caption_features_many.md)
+  : Batch caption feature extraction with progress
+- [`check_caption_provider_auth()`](https://bbuchsbaum.github.io/imfeatures/reference/check_caption_provider_auth.md)
+  : Check if provider API key is configured
+- [`clip_features()`](https://bbuchsbaum.github.io/imfeatures/reference/clip_features.md)
+  : Extract CLIP embeddings (final or intermediate layers)
+- [`clip_text_features()`](https://bbuchsbaum.github.io/imfeatures/reference/clip_text_features.md)
+  : Extract CLIP text features from text strings
+- [`compute_caption_similarity()`](https://bbuchsbaum.github.io/imfeatures/reference/compute_caption_similarity.md)
+  : Compute similarity between caption embeddings
+- [`compute_edge_entropy()`](https://bbuchsbaum.github.io/imfeatures/reference/compute_edge_entropy.md)
+  [`edge_entropy()`](https://bbuchsbaum.github.io/imfeatures/reference/compute_edge_entropy.md)
+  : Calculate Edge Entropy Features from Images
+- [`compute_feature_similarity()`](https://bbuchsbaum.github.io/imfeatures/reference/compute_feature_similarity.md)
+  [`im_feature_sim()`](https://bbuchsbaum.github.io/imfeatures/reference/compute_feature_similarity.md)
+  : Compute similarity matrix for a set of image using feature vectors
+  from a Keras 3 model
+- [`compute_feature_similarity_tv()`](https://bbuchsbaum.github.io/imfeatures/reference/compute_feature_similarity_tv.md)
+  [`im_feature_sim_tv()`](https://bbuchsbaum.github.io/imfeatures/reference/compute_feature_similarity_tv.md)
+  : Compute Similarity Matrix using thingsvision Features
+- [`configure_hpc_python()`](https://bbuchsbaum.github.io/imfeatures/reference/configure_hpc_python.md)
+  : Configure Python for HPC systems
+- [`cosine_similarity()`](https://bbuchsbaum.github.io/imfeatures/reference/cosine_similarity.md)
+  : Compute cosine similarity between text embeddings
+- [`embed_text()`](https://bbuchsbaum.github.io/imfeatures/reference/embed_text.md)
+  : Compute text embeddings
+- [`extract_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features.md)
+  [`im_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features.md)
+  : extract features from intermediate layers
+- [`extract_features_tv()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features_tv.md)
+  [`im_features_tv()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features_tv.md)
+  : Extract Deep Learning Features using thingsvision
+- [`extract_multimodal_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_multimodal_features.md)
+  : Extract multimodal features (visual + caption)
+- [`extract_vgg_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_vgg_features.md)
+  : Extract VGG-16 features by tier
+- [`get_backend()`](https://bbuchsbaum.github.io/imfeatures/reference/get_backend.md)
+  : Get Backend Name
+- [`get_caption_focus_areas()`](https://bbuchsbaum.github.io/imfeatures/reference/get_caption_focus_areas.md)
+  : Get available focus areas
+- [`get_caption_templates()`](https://bbuchsbaum.github.io/imfeatures/reference/get_caption_templates.md)
+  : Get available caption templates
+- [`get_default_caption_model()`](https://bbuchsbaum.github.io/imfeatures/reference/get_default_caption_model.md)
+  : Get default model for provider
+- [`get_default_module_name()`](https://bbuchsbaum.github.io/imfeatures/reference/get_default_module_name.md)
+  : Get default module name for a model
+- [`get_recommended_layers()`](https://bbuchsbaum.github.io/imfeatures/reference/get_recommended_layers.md)
+  : Get recommended layers for feature extraction
+- [`get_transformations()`](https://bbuchsbaum.github.io/imfeatures/reference/get_transformations.md)
+  : Get Preprocessing Transformations
+- [`hpc_setup`](https://bbuchsbaum.github.io/imfeatures/reference/hpc_setup.md)
+  : HPC Setup for imfeatures
+- [`im_predict()`](https://bbuchsbaum.github.io/imfeatures/reference/im_predict.md)
+  : predict the class of an image using Keras model
+- [`image_mse()`](https://bbuchsbaum.github.io/imfeatures/reference/image_mse.md)
+  : Multiscale entropy for images
+- [`imfeatures_config()`](https://bbuchsbaum.github.io/imfeatures/reference/imfeatures_config.md)
+  [`install_imfeatures_python()`](https://bbuchsbaum.github.io/imfeatures/reference/imfeatures_config.md)
+  : Configure the Python environment for imfeatures
+- [`install_python_deps()`](https://bbuchsbaum.github.io/imfeatures/reference/install_python_deps.md)
+  : Install Python dependencies for imfeatures
+- [`list_caption_providers()`](https://bbuchsbaum.github.io/imfeatures/reference/list_caption_providers.md)
+  : List available caption providers
+- [`list_module_names()`](https://bbuchsbaum.github.io/imfeatures/reference/list_module_names.md)
+  : List available module names for a model
+- [`load_vgg16_places()`](https://bbuchsbaum.github.io/imfeatures/reference/load_vgg16_places.md)
+  [`vgg16_places()`](https://bbuchsbaum.github.io/imfeatures/reference/load_vgg16_places.md)
+  : Load VGG16 Places365 model
+- [`places_cat365`](https://bbuchsbaum.github.io/imfeatures/reference/places_cat365.md)
+  : Places 365 categories
+- [`plot_im_scatter()`](https://bbuchsbaum.github.io/imfeatures/reference/plot_im_scatter.md)
+  [`im_scatter()`](https://bbuchsbaum.github.io/imfeatures/reference/plot_im_scatter.md)
+  [`plot_im_scatter3d()`](https://bbuchsbaum.github.io/imfeatures/reference/plot_im_scatter.md)
+  [`im_scatter3d()`](https://bbuchsbaum.github.io/imfeatures/reference/plot_im_scatter.md)
+  : a 2D scatterplot with images displayed at each location
+- [`predict(`*`<residualized_tiers>`*`)`](https://bbuchsbaum.github.io/imfeatures/reference/predict.residualized_tiers.md)
+  : Predict method for residualized_tiers
+- [`print(`*`<thingsvision_extractor>`*`)`](https://bbuchsbaum.github.io/imfeatures/reference/print.thingsvision_extractor.md)
+  : Print method for thingsvision_extractor objects
+- [`print(`*`<vgg_feature_set>`*`)`](https://bbuchsbaum.github.io/imfeatures/reference/print.vgg_feature_set.md)
+  : Print method for vgg_feature_set objects
+- [`residualize_tiers()`](https://bbuchsbaum.github.io/imfeatures/reference/residualize_tiers.md)
+  : Hierarchical residualization of tiered feature matrices with PCA
+- [`show_model()`](https://bbuchsbaum.github.io/imfeatures/reference/show_model.md)
+  : Show Model Architecture for thingsvision_extractor
+- [`tv_align(`*`<thingsvision_extractor>`*`)`](https://bbuchsbaum.github.io/imfeatures/reference/tv_align.thingsvision_extractor.md)
+  : Align features using a thingsvision_extractor object
+- [`tv_create_dataloader()`](https://bbuchsbaum.github.io/imfeatures/reference/tv_create_dataloader.md)
+  : Create a thingsvision DataLoader
+- [`tv_create_dataset()`](https://bbuchsbaum.github.io/imfeatures/reference/tv_create_dataset.md)
+  : Create a thingsvision ImageDataset
+- [`tv_extract()`](https://bbuchsbaum.github.io/imfeatures/reference/tv_extract.md)
+  : Generic feature extraction
+- [`tv_extract(`*`<thingsvision_extractor>`*`)`](https://bbuchsbaum.github.io/imfeatures/reference/tv_extract.thingsvision_extractor.md)
+  : Extract features using a thingsvision_extractor object
+- [`tv_get_extractor()`](https://bbuchsbaum.github.io/imfeatures/reference/tv_get_extractor.md)
+  : Get a thingsvision extractor object
+- [`use_existing_python()`](https://bbuchsbaum.github.io/imfeatures/reference/use_existing_python.md)
+  : Use existing Python installation for imfeatures
+
+# Articles
+
+### Setup
+
+- [Five-minute
+  set-up](https://bbuchsbaum.github.io/imfeatures/articles/five-minute-setup.md):
+- [HPC Setup for
+  imfeatures](https://bbuchsbaum.github.io/imfeatures/articles/hpc-setup.md):

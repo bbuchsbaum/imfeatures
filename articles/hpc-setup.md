@@ -1,0 +1,85 @@
+# HPC Setup for imfeatures
+
+## Overview
+
+On HPC clusters, automatic Conda setup can fail or be undesired due to
+shared filesystems and site policies. This vignette shows a single,
+reliable path: use an existing Python via module + virtualenv (or a
+site-provided environment), then point `imfeatures` at that Python.
+
+### 1. Disable auto Python setup on load
+
+Avoid auto-creating environments during
+[`library(imfeatures)`](https://bbuchsbaum.github.io/imfeatures/):
+
+``` r
+
+Sys.setenv(IMFEATURES_SKIP_PYTHON = "TRUE")
+```
+
+To make this permanent, add to `~/.Renviron`:
+
+    IMFEATURES_SKIP_PYTHON=TRUE
+
+### 2. Create or choose a Python environment
+
+Example using your cluster’s Python module and a virtualenv:
+
+``` bash
+module load python/3.10             # if applicable (3.9/3.10 recommended)
+python -m venv $WORK/venvs/imfeatures
+source $WORK/venvs/imfeatures/bin/activate
+pip install --upgrade pip wheel setuptools
+
+# Minimal required packages
+pip install Pillow numpy
+
+# Optional packages for full functionality
+pip install thingsvision resmem open-clip-torch
+
+# PyTorch: prefer your cluster's module if available; otherwise choose one index
+# CPU only:
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# or CUDA-specific (example):
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+Note on Python versions: some optional packages (e.g., thingsvision via numba)
+currently do not support Python 3.11+. Prefer Python 3.9 or 3.10 when you plan
+to use these features.
+```
+
+### 3. Point imfeatures at that Python
+
+In R, either for the current session:
+
+``` r
+
+library(imfeatures)
+use_existing_python("$WORK/venvs/imfeatures/bin/python")
+```
+
+Or persistently by adding to `~/.Renviron`:
+
+    RETICULATE_PYTHON=$WORK/venvs/imfeatures/bin/python
+    IMFEATURES_SKIP_PYTHON=TRUE
+
+### 4. Verify configuration
+
+``` r
+
+reticulate::py_config()
+```
+
+You should see the Python path from your virtualenv.
+
+### Troubleshooting
+
+- “bad interpreter” from Conda during package load indicates a broken
+  R-miniconda on the shared filesystem. Use the steps above or set
+  `IMFEATURES_SKIP_PYTHON=TRUE` and run
+  [`use_existing_python()`](https://bbuchsbaum.github.io/imfeatures/reference/use_existing_python.md).
+- To avoid Conda entirely during
+  [`imfeatures_config()`](https://bbuchsbaum.github.io/imfeatures/reference/imfeatures_config.md),
+  set `IMFEATURES_METHOD=virtualenv`.
+- `RETICULATE_PYTHON` is respected on load; you can set it to point at
+  your Python to skip any auto-detection.
