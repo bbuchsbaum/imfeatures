@@ -10,3 +10,6 @@ dnn_mds_cluster.png
 layer_simtab.txt
 pcmri_layers/
 *.tar.gz
+docs
+src/*.o
+src/*.so

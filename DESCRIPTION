@@ -12,6 +12,8 @@ Description: Provides tools for extracting visual features from 2D images using
     integration, as well as methods for computing edge entropy, multiscale
     entropy, and feature similarity metrics.
 License: MIT + file LICENSE
+URL: https://bbuchsbaum.github.io/imfeatures/, https://github.com/bbuchsbaum/imfeatures
+BugReports: https://github.com/bbuchsbaum/imfeatures/issues
 Encoding: UTF-8
 LazyData: true
 Imports:
@@ -44,6 +46,7 @@ Suggests:
   irlba,
   tensorflow
 VignetteBuilder: knitr
+Config/Needs/website: pkgdown
 RoxygenNote: 7.3.3
 Depends:
     R (>= 4.1.0)

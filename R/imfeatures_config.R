@@ -145,7 +145,7 @@ imfeatures_config <- local({
 #' @examples
 #' \dontrun{
 #' # On HPC after loading Python module
-#' module load python/3.9
+#' # module load python/3.9
 #' use_existing_python()
 #'
 #' # With specific Python path

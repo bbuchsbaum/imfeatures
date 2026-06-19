@@ -1,18 +1,20 @@
+url: https://bbuchsbaum.github.io/imfeatures/
 template:
   bootstrap: 5
-
 home:
   title: imfeatures
-  sidebar: false
-
+  sidebar: no
 navbar:
   structure:
-  - home
-  - reference
-  - articles
-
+    left:
+    - reference
+    - articles
+    right:
+    - search
+    - github
+    - lightswitch
 articles:
-- title: Get started
-  contents: README
-- title: Cookbook
-  contents: README
+- title: Setup
+  contents:
+  - five-minute-setup
+  - hpc-setup

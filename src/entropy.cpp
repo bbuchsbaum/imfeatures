@@ -104,13 +104,6 @@ List filter_bank_cpp(int num_filters, int flt_size, int octave = 3) {
   // #pragma omp parallel for
   for (int i = 0; i < num_filters; i++) {
     NumericMatrix gab = create_gabor_cpp(flt_size, bins_vec[i], octave);
-    // --- Debug: Print range/sum of the first filter --- 
-    if (i == 0) {
-      Rcpp::Rcout << "[C++] filter_bank: First Gabor filter range: [" 
-                  << Rcpp::min(gab) << ", " << Rcpp::max(gab) 
-                  << "], Sum = " << Rcpp::sum(gab) << "\n";
-    }
-    // -----------------------------------------------
     for (int r = 0; r < flt_size; r++) {
       for (int c = 0; c < flt_size; c++) {
         flt_raw[i + num_filters * (r + flt_size * c)] = gab(r, c);
@@ -147,12 +140,6 @@ List run_filterbank_cpp(const NumericMatrix &image_r, const List &fbank) {
   int h = image.n_rows;
   int w = image.n_cols;
 
-  // --- Debug: Print input image range --- 
-  Rcpp::Rcout << "[C++] run_filterbank: Input image range: [" 
-              << Rcpp::min(image_r) << ", " << Rcpp::max(image_r) 
-              << "], Mean = " << Rcpp::mean(image_r) << "\n";
-  // ------------------------------------
-  
   // Prepare a 3D array for filtered responses: dimensions [num_filters, h, w].
   NumericVector img_filt( Dimension(num_filters, h, w) ); 
 
@@ -206,14 +193,6 @@ List run_filterbank_cpp(const NumericMatrix &image_r, const List &fbank) {
     arma::mat conv = convolve2d_arma(image, kernel); // Use arma version again
     // ------------------------
     
-    // --- Debug: Print range/sum of the first convolution result --- 
-    if (i == 0) {
-        Rcpp::Rcout << "[C++] run_filterbank: First convolution result (conv) range: [" 
-                    << conv.min() << ", " << conv.max() // Use arma min/max
-                    << "], Sum = " << arma::accu(conv) << "\n"; // Use arma accu
-    }
-    // -----------------------------------------------------------
-
     // Store result into the 3D array img_filt
     for (int r = 0; r < h; r++) {
       for (int c = 0; c < w; c++) {
@@ -249,9 +228,6 @@ List run_filterbank_cpp(const NumericMatrix &image_r, const List &fbank) {
     }
   }
   
-  Rcpp::Rcout << "[C++] run_filterbank: Range resp_val (raw max): [" 
-              << Rcpp::min(resp_val) << ", " << Rcpp::max(resp_val) << "]\n";
-
   // Optionally, zero out border regions (nlines can be adjusted)
   int nlines = 2; // Enable border zeroing (matching R logic)
   if (nlines > 0) {
@@ -277,9 +253,6 @@ List run_filterbank_cpp(const NumericMatrix &image_r, const List &fbank) {
     }
   }
   
-  Rcpp::Rcout << "[C++] run_filterbank: Range resp_val (after border zero): [" 
-              << Rcpp::min(resp_val) << ", " << Rcpp::max(resp_val) << "]\n";
-
   return List::create(
     _["num_filters"] = num_filters,
     _["resp_bin"]    = resp_bin,
@@ -305,10 +278,6 @@ List do_counting_cpp(const IntegerMatrix &resp_bin,
       sum_resp += resp_val[i]; 
   }
   double complex_before = (size > 0) ? (sum_resp / (double)size) : 0.0;
-  Rcpp::Rcout << "[C++] do_counting: complex_before = " << complex_before << "\n";
-  Rcpp::Rcout << "[C++] do_counting: Range resp_val (input): [" 
-              << Rcpp::min(resp_val) << ", " << Rcpp::max(resp_val) << "]\n";
-
   // 2) Determine cutoff from the k-th highest response.
   std::vector<double> allresp;
   allresp.reserve(size);
@@ -325,22 +294,12 @@ List do_counting_cpp(const IntegerMatrix &resp_bin,
     int cutoff_idx = std::max(1, (int)std::ceil((double)allresp.size() * 0.1));
     cutoff = allresp[cutoff_idx - 1];
   }
-  Rcpp::Rcout << "[C++] do_counting: Calculated cutoff (k-th=" << k_element << "): " << cutoff << "\n";
-
   // 3) Zero out values below the cutoff.
-  int non_zero_count_after_cutoff = 0;
   for (int i = 0; i < size; i++) {
     if (resp_val[i] < cutoff) {
       resp_val[i] = 0.0;
-    } else if (resp_val[i] != 0.0) {
-        non_zero_count_after_cutoff++;
     }
   }
-  Rcpp::Rcout << "[C++] do_counting: Range resp_val (after cutoff): [" 
-              << Rcpp::min(resp_val) << ", " << Rcpp::max(resp_val) << "]\n";
-  Rcpp::Rcout << "[C++] do_counting: Non-zero pixels after cutoff: " 
-              << non_zero_count_after_cutoff << "\n";
-
   // 4) Collect coordinates of nonzero responses.
   std::vector<int> ex, ey;
   for (int r = 0; r < h; r++) {
@@ -387,10 +346,6 @@ List do_counting_cpp(const IntegerMatrix &resp_bin,
     }
   }
 
-  Rcpp::Rcout << "[C++] do_counting: Range counts cube: [" 
-              << Rcpp::min(counts) << ", " << Rcpp::max(counts) 
-              << "], Sum = " << Rcpp::sum(counts) << "\n";
-
   return List::create(
     _["counts"]         = counts,
     _["complex_before"] = complex_before
@@ -412,10 +367,6 @@ List do_statistics_cpp(const NumericVector &counts,
   if (bins_vec.length() != gabor_bins)
     stop("Length of 'bins_vec' must match 3rd dimension of 'counts'.");
   
-  Rcpp::Rcout << "[C++] do_statistics: Input counts range: [" 
-              << Rcpp::min(counts) << ", " << Rcpp::max(counts) 
-              << "], Sum = " << Rcpp::sum(counts) << "\n";
-
   NumericVector counts_sum( Dimension(maxdiag, circ_bins), 0.0 );
 
   for (int d = 0; d < maxdiag; d++) {
@@ -428,10 +379,6 @@ List do_statistics_cpp(const NumericVector &counts,
     }
   }
   
-  Rcpp::Rcout << "[C++] do_statistics: counts_sum range: [" 
-              << Rcpp::min(counts_sum) << ", " << Rcpp::max(counts_sum) 
-              << "], Sum = " << Rcpp::sum(counts_sum) << "\n";
-
   NumericVector normalized_counts( Dimension(maxdiag, circ_bins, gabor_bins), 0.0 );
   for (int d = 0; d < maxdiag; d++) {
     for (int c = 0; c < circ_bins; c++) {
@@ -445,10 +392,6 @@ List do_statistics_cpp(const NumericVector &counts,
     }
   }
   
-  Rcpp::Rcout << "[C++] do_statistics: normalized_counts range: [" 
-              << Rcpp::min(normalized_counts) << ", " << Rcpp::max(normalized_counts) 
-              << "], Sum = " << Rcpp::sum(normalized_counts) << "\n";
-
   NumericMatrix circular_mean_angle(maxdiag, circ_bins);
   NumericMatrix circular_mean_length(maxdiag, circ_bins);
   NumericMatrix shannon(maxdiag, circ_bins);
@@ -489,9 +432,6 @@ List do_statistics_cpp(const NumericVector &counts,
     }
   }
   
-  Rcpp::Rcout << "[C++] do_statistics: shannon matrix range: [" 
-              << Rcpp::min(shannon) << ", " << Rcpp::max(shannon) << "]\n";
-
   return List::create(
     _["normalized_counts"]    = normalized_counts,
     _["circular_mean_angle"]  = circular_mean_angle,
@@ -614,15 +554,6 @@ DataFrame edge_entropy_cpp(const NumericMatrix &image,
       final_shannon[i] = accum / (double)count;
   }
   
-  Rcpp::Rcout << "[C++] edge_entropy: Calculated fo = " << fo << "\n";
-  
-  Rcpp::Rcout << "[C++] edge_entropy: rowmeans (shannon) range: [" 
-              << Rcpp::min(rowmeans) << ", " << Rcpp::max(rowmeans) << "]\n";
-              
-  Rcpp::Rcout << "[C++] edge_entropy: final_shannon[0] = " << ((final_shannon.size() >= 1) ? final_shannon[0] : NA_REAL) << "\n";
-  Rcpp::Rcout << "[C++] edge_entropy: final_shannon[1] = " << ((final_shannon.size() >= 2) ? final_shannon[1] : NA_REAL) << "\n";
-  Rcpp::Rcout << "[C++] edge_entropy: final_shannon[2] = " << ((final_shannon.size() >= 3) ? final_shannon[2] : NA_REAL) << "\n";
-
   double complex_before = cts["complex_before"];
 
   return DataFrame::create(

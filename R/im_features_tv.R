@@ -146,7 +146,7 @@
 #' # Example 1: Extract ResNet-18 features using defaults
 #' features_rn18 <- im_features_tv(
 #'   impaths = image_paths,
-#'   model_name = "resnet18"  # Uses source="torchvision" and module_name="avgpool" by default
+#'   model_name = "resnet18", # Uses source="torchvision" and module_name="avgpool" by default
 #'   flatten_acts = TRUE, # Explicitly flatten (though avgpool often is already flat)
 #'   device = "cpu" # Use CPU for this example if no GPU
 #' )

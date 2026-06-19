@@ -12,6 +12,8 @@
 ^\.omc$
 ^\.claude$
 ^.*\.Rcheck$
+^src/.*\.o$
+^src/.*\.so$
 ^Space_Invaders\.jpg$
 ^dnn_mds_cluster\.png$
 ^layer_simtab\.txt$
@@ -23,3 +25,4 @@
 ^testcode$
 ^testdata$
 ^testdata2$
+^pkgdown$

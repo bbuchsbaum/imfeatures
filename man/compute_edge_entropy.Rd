@@ -86,8 +86,8 @@ It automatically converts the ranges list to the required format for the C++ fun
 # Example 1: Using a matrix with default parameters
 img_matrix <- matrix(runif(100*100), nrow=100)
 result <- compute_edge_entropy(img_matrix)
-print(result$H1)  # First-order entropy
-print(result$H2)  # Second-order (pairwise) entropy
+print(result$entropy)  # First-order orientation entropy
+print(result$pentropy_20_80)  # Pairwise entropy for distance range 20-80
 
 # Example 2: Load and process an image file
 library(imager)
@@ -110,7 +110,7 @@ result_r <- compute_edge_entropy(small_img, use_cpp = FALSE, verbose = TRUE)
 result_cpp <- compute_edge_entropy(small_img, use_cpp = TRUE, verbose = FALSE)
 
 # Results should be very similar
-all.equal(result_r$H1, result_cpp$H1, tolerance = 1e-10)
+all.equal(result_r$entropy, result_cpp$entropy, tolerance = 1e-10)
 
 result_ranges <- compute_edge_entropy(
   image = img_array,

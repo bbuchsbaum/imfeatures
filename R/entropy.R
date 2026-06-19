@@ -409,7 +409,7 @@ do_statistics <- function(counts, bins_vec, verbose = FALSE) {
   shannon_nan <- matrix(0, d, a)
   for (di in seq(1, d)) {
     for (ai in seq(1, a)) {
-      shannon[di, ai] <- entropy(normalized_counts[di, ai, ])
+      shannon[di, ai] <- suppressWarnings(entropy(normalized_counts[di, ai, ]))
       if (counts_sum[di, ai] > 1) {
         shannon_nan[di, ai] <- shannon[di, ai]
       } else {
@@ -483,8 +483,8 @@ do_statistics <- function(counts, bins_vec, verbose = FALSE) {
 #' # Example 1: Using a matrix with default parameters
 #' img_matrix <- matrix(runif(100 * 100), nrow = 100)
 #' result <- compute_edge_entropy(img_matrix)
-#' print(result$H1) # First-order entropy
-#' print(result$H2) # Second-order (pairwise) entropy
+#' print(result$entropy) # First-order orientation entropy
+#' print(result$pentropy_20_80) # Pairwise entropy for distance range 20-80
 #'
 #' # Example 2: Load and process an image file
 #' library(imager)
@@ -507,7 +507,7 @@ do_statistics <- function(counts, bins_vec, verbose = FALSE) {
 #' result_cpp <- compute_edge_entropy(small_img, use_cpp = TRUE, verbose = FALSE)
 #'
 #' # Results should be very similar
-#' all.equal(result_r$H1, result_cpp$H1, tolerance = 1e-10)
+#' all.equal(result_r$entropy, result_cpp$entropy, tolerance = 1e-10)
 #'
 #' result_ranges <- compute_edge_entropy(
 #'   image = img_array,
@@ -605,14 +605,14 @@ compute_edge_entropy <- function(image, max_pixels = 120000L, maxdiag = 500L, ga
         # Check bounds
         valid_rows <- valid_rows[valid_rows <= nrow(stats$shannon_nan)]
         if (length(valid_rows) == 0) {
-          return(NA)
+          return(NA_real_)
         }
 
         # Use shannon_nan which has NaN for low-count bins
         row_means_subset <- rowMeans(stats$shannon_nan[valid_rows, , drop = FALSE], na.rm = TRUE)
         # Handle case where all values in a range might be NaN or empty
         mean_val <- mean(row_means_subset, na.rm = TRUE)
-        if (!is.finite(mean_val)) mean_val <- NA
+        if (!is.finite(mean_val)) mean_val <- NA_real_
 
         if (verbose) {
           message(sprintf("[R] edge_entropy: Range [%d, %d]: rowmeans mean = %.6f", r[1], r[2], mean_val))
@@ -694,14 +694,14 @@ compute_edge_entropy <- function(image, max_pixels = 120000L, maxdiag = 500L, ga
         # Check bounds
         valid_rows <- valid_rows[valid_rows <= nrow(stats$shannon_nan)]
         if (length(valid_rows) == 0) {
-          return(NA)
+          return(NA_real_)
         }
 
         # Use shannon_nan which has NaN for low-count bins
         row_means_subset <- rowMeans(stats$shannon_nan[valid_rows, , drop = FALSE], na.rm = TRUE)
         # Handle case where all values in a range might be NaN or empty
         mean_val <- mean(row_means_subset, na.rm = TRUE)
-        if (!is.finite(mean_val)) mean_val <- NA
+        if (!is.finite(mean_val)) mean_val <- NA_real_
 
         if (verbose) {
           message(sprintf("[R] edge_entropy (matrix): Range [%d, %d]: rowmeans mean = %.6f", r[1], r[2], mean_val))
