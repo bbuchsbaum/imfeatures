@@ -13,3 +13,4 @@ pcmri_layers/
 docs
 src/*.o
 src/*.so
+.omc/
