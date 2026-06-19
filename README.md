@@ -6,31 +6,43 @@
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml)
-[![Codecov
-coverage](https://codecov.io/gh/bbuchsbaum/imfeatures/branch/main/graph/badge.svg)](https://app.codecov.io/gh/bbuchsbaum/imfeatures)
 <!-- badges: end -->
 
-The goal of imfeatures is to …
+`imfeatures` extracts visual features from 2D images using deep learning
+models and traditional computer vision techniques. It supports VGG16,
+ResNet, and other pre-trained models via Python (Keras / `thingsvision`
+/ CLIP), and provides methods for edge entropy, multiscale entropy, and
+feature-similarity metrics.
 
-## Get started
-
-Install the development version from [GitHub](https://github.com/) with:
+## Install
 
 ``` r
 # install.packages("devtools")
 devtools::install_github("bbuchsbaum/imfeatures")
 ```
 
+The package depends on Python for deep-learning backends. On a
+workstation, `imfeatures_config()` sets up a managed environment
+automatically; on HPC or other shared systems, see the HPC Quickstart
+below.
+
 ## Cookbook
 
-This is a basic example which shows you how to solve a common problem:
+Compute pairwise feature similarities at three VGG-16 layers:
 
 ``` r
 library(imfeatures)
-im1 <- "testdata/1_A_1.jpeg"
-im2 <- "testdata/1_B_1.jpeg"
+imgs <- list.files(system.file("extdata", package = "imfeatures"),
+                   pattern = "\\.(jpe?g|png)$", full.names = TRUE)
+im_feature_sim(imgs, layers = c(1, 2, 3))
+```
 
-im_feature_sim(c(im1, im2), layers = c(1, 2, 3))
+Compute edge entropy on a grayscale matrix (no Python required):
+
+``` r
+library(imfeatures)
+img <- matrix(runif(100 * 100), nrow = 100)
+compute_edge_entropy(img)
 ```
 
 ## HPC Quickstart (single recommended path)
@@ -77,12 +89,12 @@ to use these features.
 
 ``` r
 library(imfeatures)
-use_existing_python("$WORK/venvs/imfeatures/bin/python")
+use_existing_python(file.path(Sys.getenv("WORK"), "venvs/imfeatures/bin/python"))
 ```
 
 Alternatively, set once in `~/.Renviron` and it will be auto-detected:
 
-    RETICULATE_PYTHON=$WORK/venvs/imfeatures/bin/python
+    RETICULATE_PYTHON=/full/path/to/venvs/imfeatures/bin/python
     IMFEATURES_SKIP_PYTHON=TRUE
 
 4.  Verify:
