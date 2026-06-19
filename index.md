@@ -3,10 +3,38 @@
 [![R-CMD-check](https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml)
 
 `imfeatures` extracts visual features from 2D images using deep learning
-models and traditional computer vision techniques. It supports VGG16,
-ResNet, and other pre-trained models via Python (Keras / `thingsvision`
-/ CLIP), and provides methods for edge entropy, multiscale entropy, and
-feature-similarity metrics.
+models and traditional computer vision techniques. It combines fast
+R-native image descriptors with optional Python-backed deep-learning
+features.
+
+## What it does
+
+- **Edge entropy**:
+  [`compute_edge_entropy()`](https://bbuchsbaum.github.io/imfeatures/reference/compute_edge_entropy.md)
+  measures first-order oriented-edge entropy and pairwise edge entropy
+  across distance ranges. It works on grayscale matrices or image paths
+  and does not require Python.
+- **Multiscale color entropy**:
+  [`image_mse()`](https://bbuchsbaum.github.io/imfeatures/reference/image_mse.md)
+  computes mean multiscale entropy for the `H`, `S`, and `V` channels of
+  an [`imager::cimg`](https://rdrr.io/pkg/imager/man/cimg.html) image.
+  This is also R-native.
+- **VGG-16 features**:
+  [`extract_vgg_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_vgg_features.md)
+  extracts pooled low-, mid-, high-, or semantic-tier VGG-16
+  activations.
+  [`im_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features.md)
+  and
+  [`im_feature_sim()`](https://bbuchsbaum.github.io/imfeatures/reference/compute_feature_similarity.md)
+  expose lower-level layer selection and similarity matrices.
+- **Model zoo features**:
+  [`im_features_tv()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features_tv.md)
+  uses Python `thingsvision` for torchvision, timm, SSL, CLIP, and
+  related models.
+- **Vision-language features**:
+  [`caption_features()`](https://bbuchsbaum.github.io/imfeatures/reference/caption_features.md)
+  can generate captions and optional caption embeddings through `ellmer`
+  providers.
 
 ## Install
 
@@ -16,103 +44,144 @@ feature-similarity metrics.
 devtools::install_github("bbuchsbaum/imfeatures")
 ```
 
-The package depends on Python for deep-learning backends. On a
-workstation,
+Python is only needed for the deep-learning and vision-language
+backends. The entropy functions can be used after installing the R
+package.
+
+## Quick Examples
+
+Compute edge entropy for a grayscale matrix:
+
+``` r
+
+library(imfeatures)
+
+set.seed(1)
+img <- matrix(runif(96 * 96), nrow = 96)
+
+edge <- compute_edge_entropy(img)
+edge[, c("entropy", "pentropy_20_80", "pentropy_80_160", "pentropy_160_240")]
+```
+
+Compute multiscale HSV entropy for an `imager` image:
+
+``` r
+
+library(imfeatures)
+library(imager)
+
+img <- load.example("parrots")
+image_mse(img)
+```
+
+Extract VGG-16 features from your own image directory:
+
+``` r
+
+library(imfeatures)
+
+imgs <- list.files(
+  "path/to/images",
+  pattern = "\\.(jpe?g|png)$",
+  full.names = TRUE,
+  ignore.case = TRUE
+)
+stopifnot(length(imgs) >= 2)
+
+vgg <- extract_vgg_features(imgs, tier = "mid", pooling = "avg")
+dim(vgg$features)
+```
+
+Compute pairwise feature similarities from selected VGG-16 layers:
+
+``` r
+
+library(imfeatures)
+
+sim <- im_feature_sim(
+  imgs,
+  layers = c("block3_conv3", "block4_conv3"),
+  spatial_pooling = "avg",
+  lowmem = FALSE
+)
+
+sim$layer_block3_conv3
+```
+
+Generate captions or caption embeddings when an `ellmer` provider is
+configured:
+
+``` r
+
+library(imfeatures)
+
+captions <- caption_features(
+  imgs,
+  caption_provider = "openai",
+  template = "dense",
+  compute_embedding = TRUE,
+  embedding_backend = "openai"
+)
+```
+
+## Python Setup
+
+For workstation use,
 [`imfeatures_config()`](https://bbuchsbaum.github.io/imfeatures/reference/imfeatures_config.md)
-sets up a managed environment automatically; on HPC or other shared
-systems, see the HPC Quickstart below.
-
-## Cookbook
-
-Compute pairwise feature similarities at three VGG-16 layers:
+creates or activates the Python environment used by Keras,
+`thingsvision`, PyTorch, and `open_clip`:
 
 ``` r
 
 library(imfeatures)
-imgs <- list.files(system.file("extdata", package = "imfeatures"),
-                   pattern = "\\.(jpe?g|png)$", full.names = TRUE)
-im_feature_sim(imgs, layers = c(1, 2, 3))
+imfeatures_config()
 ```
 
-Compute edge entropy on a grayscale matrix (no Python required):
+If you already manage Python yourself, point `reticulate` at that
+interpreter:
 
 ``` r
 
 library(imfeatures)
-img <- matrix(runif(100 * 100), nrow = 100)
-compute_edge_entropy(img)
+use_existing_python("/full/path/to/python")
 ```
 
-## HPC Quickstart (single recommended path)
+## HPC Setup
 
-On HPC systems, avoid automatic Conda setup and use an existing Python
-instead.
-
-1.  Disable auto Python setup during load (recommended on HPC):
+On HPC systems, avoid automatic Conda setup during package load. The
+usual pattern is:
 
 ``` r
 
 Sys.setenv(IMFEATURES_SKIP_PYTHON = "TRUE")
-```
-
-To make this permanent, add `IMFEATURES_SKIP_PYTHON=TRUE` to
-`~/.Renviron`.
-
-2.  Create or choose a Python environment (module + venv is typical):
-
-``` bash
-# Example using your cluster's Python module
-module load python/3.10             # if applicable (3.9/3.10 recommended)
-python -m venv $WORK/venvs/imfeatures
-source $WORK/venvs/imfeatures/bin/activate
-pip install --upgrade pip wheel setuptools
-
-# Minimal required packages
-pip install Pillow numpy
-
-# Optional packages for full functionality
-pip install thingsvision resmem open-clip-torch
-
-# PyTorch: use your cluster's module if available, otherwise pick one index
-# CPU only:
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-# or CUDA-specific (example):
-# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
- 
-Note on Python versions: some optional packages (e.g., thingsvision via numba)
-currently do not support Python 3.11+. Prefer Python 3.9 or 3.10 when you plan
-to use these features.
-```
-
-3.  Tell imfeatures to use that Python:
-
-``` r
-
 library(imfeatures)
-use_existing_python(file.path(Sys.getenv("WORK"), "venvs/imfeatures/bin/python"))
+use_existing_python("/full/path/to/venvs/imfeatures/bin/python")
 ```
 
-Alternatively, set once in `~/.Renviron` and it will be auto-detected:
+For a persistent setup, put both variables in `~/.Renviron`:
 
-``` R
-RETICULATE_PYTHON=/full/path/to/venvs/imfeatures/bin/python
+``` text
 IMFEATURES_SKIP_PYTHON=TRUE
+RETICULATE_PYTHON=/full/path/to/venvs/imfeatures/bin/python
 ```
 
-4.  Verify:
+Install the Python packages into a cluster-managed module or virtual
+environment, not an automatically created R miniconda. At minimum the
+Python side needs `Pillow` and `numpy`; model backends add packages such
+as `tensorflow`/`keras`, `torch`, `torchvision`, `thingsvision`,
+`resmem`, and `open-clip-torch`.
+
+The full HPC walkthrough is in:
 
 ``` r
 
-reticulate::py_config()
+vignette("hpc-setup", package = "imfeatures")
 ```
 
-Troubleshooting:
+## Documentation
 
-- If you see a Conda error like “bad interpreter” during
-  [`library(imfeatures)`](https://bbuchsbaum.github.io/imfeatures/),
-  it’s usually a broken R-miniconda on shared filesystems. Use the HPC
-  Quickstart above or set `IMFEATURES_SKIP_PYTHON=TRUE` and call
-  [`use_existing_python()`](https://bbuchsbaum.github.io/imfeatures/reference/use_existing_python.md).
-- To force `virtualenv` instead of Conda during
-  [`imfeatures_config()`](https://bbuchsbaum.github.io/imfeatures/reference/imfeatures_config.md),
-  set `IMFEATURES_METHOD=virtualenv` before calling it.
+- Website: <https://bbuchsbaum.github.io/imfeatures/>
+- Setup vignette:
+  [`vignette("five-minute-setup", package = "imfeatures")`](https://bbuchsbaum.github.io/imfeatures/articles/five-minute-setup.md)
+- HPC vignette:
+  [`vignette("hpc-setup", package = "imfeatures")`](https://bbuchsbaum.github.io/imfeatures/articles/hpc-setup.md)

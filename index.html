@@ -51,82 +51,126 @@
 </h1></div>
 <!-- badges: start -->
 <p><a href="https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/bbuchsbaum/imfeatures/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <!-- badges: end --></p>
-<p><code>imfeatures</code> extracts visual features from 2D images using deep learning models and traditional computer vision techniques. It supports VGG16, ResNet, and other pre-trained models via Python (Keras / <code>thingsvision</code> / CLIP), and provides methods for edge entropy, multiscale entropy, and feature-similarity metrics.</p>
+<p><code>imfeatures</code> extracts visual features from 2D images using deep learning models and traditional computer vision techniques. It combines fast R-native image descriptors with optional Python-backed deep-learning features.</p>
+<div class="section level2">
+<h2 id="what-it-does">What it does<a class="anchor" aria-label="anchor" href="#what-it-does"></a>
+</h2>
+<ul>
+<li>
+<strong>Edge entropy</strong>: <code><a href="reference/compute_edge_entropy.html">compute_edge_entropy()</a></code> measures first-order oriented-edge entropy and pairwise edge entropy across distance ranges. It works on grayscale matrices or image paths and does not require Python.</li>
+<li>
+<strong>Multiscale color entropy</strong>: <code><a href="reference/image_mse.html">image_mse()</a></code> computes mean multiscale entropy for the <code>H</code>, <code>S</code>, and <code>V</code> channels of an <code><a href="https://rdrr.io/pkg/imager/man/cimg.html" class="external-link">imager::cimg</a></code> image. This is also R-native.</li>
+<li>
+<strong>VGG-16 features</strong>: <code><a href="reference/extract_vgg_features.html">extract_vgg_features()</a></code> extracts pooled low-, mid-, high-, or semantic-tier VGG-16 activations. <code><a href="reference/extract_features.html">im_features()</a></code> and <code><a href="reference/compute_feature_similarity.html">im_feature_sim()</a></code> expose lower-level layer selection and similarity matrices.</li>
+<li>
+<strong>Model zoo features</strong>: <code><a href="reference/extract_features_tv.html">im_features_tv()</a></code> uses Python <code>thingsvision</code> for torchvision, timm, SSL, CLIP, and related models.</li>
+<li>
+<strong>Vision-language features</strong>: <code><a href="reference/caption_features.html">caption_features()</a></code> can generate captions and optional caption embeddings through <code>ellmer</code> providers.</li>
+</ul>
+</div>
 <div class="section level2">
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("devtools")</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"bbuchsbaum/imfeatures"</span><span class="op">)</span></span></code></pre></div>
-<p>The package depends on Python for deep-learning backends. On a workstation, <code><a href="reference/imfeatures_config.html">imfeatures_config()</a></code> sets up a managed environment automatically; on HPC or other shared systems, see the HPC Quickstart below.</p>
+<p>Python is only needed for the deep-learning and vision-language backends. The entropy functions can be used after installing the R package.</p>
 </div>
 <div class="section level2">
-<h2 id="cookbook">Cookbook<a class="anchor" aria-label="anchor" href="#cookbook"></a>
+<h2 id="quick-examples">Quick Examples<a class="anchor" aria-label="anchor" href="#quick-examples"></a>
 </h2>
-<p>Compute pairwise feature similarities at three VGG-16 layers:</p>
+<p>Compute edge entropy for a grayscale matrix:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
-<span><span class="va">imgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, package <span class="op">=</span> <span class="st">"imfeatures"</span><span class="op">)</span>,</span>
-<span>                   pattern <span class="op">=</span> <span class="st">"\\.(jpe?g|png)$"</span>, full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/compute_feature_similarity.html">im_feature_sim</a></span><span class="op">(</span><span class="va">imgs</span>, layers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Compute edge entropy on a grayscale matrix (no Python required):</p>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">img</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">96</span> <span class="op">*</span> <span class="fl">96</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">96</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">edge</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_edge_entropy.html">compute_edge_entropy</a></span><span class="op">(</span><span class="va">img</span><span class="op">)</span></span>
+<span><span class="va">edge</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"entropy"</span>, <span class="st">"pentropy_20_80"</span>, <span class="st">"pentropy_80_160"</span>, <span class="st">"pentropy_160_240"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<p>Compute multiscale HSV entropy for an <code>imager</code> image:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
-<span><span class="va">img</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="fl">100</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/compute_edge_entropy.html">compute_edge_entropy</a></span><span class="op">(</span><span class="va">img</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="hpc-quickstart-single-recommended-path">HPC Quickstart (single recommended path)<a class="anchor" aria-label="anchor" href="#hpc-quickstart-single-recommended-path"></a>
-</h2>
-<p>On HPC systems, avoid automatic Conda setup and use an existing Python instead.</p>
-<ol style="list-style-type: decimal">
-<li>Disable auto Python setup during load (recommended on HPC):</li>
-</ol>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://asgr.github.io/imager/" class="external-link">imager</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">img</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/imager/man/load.example.html" class="external-link">load.example</a></span><span class="op">(</span><span class="st">"parrots"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/image_mse.html">image_mse</a></span><span class="op">(</span><span class="va">img</span><span class="op">)</span></span></code></pre></div>
+<p>Extract VGG-16 features from your own image directory:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>IMFEATURES_SKIP_PYTHON <span class="op">=</span> <span class="st">"TRUE"</span><span class="op">)</span></span></code></pre></div>
-<p>To make this permanent, add <code>IMFEATURES_SKIP_PYTHON=TRUE</code> to <code>~/.Renviron</code>.</p>
-<ol start="2" style="list-style-type: decimal">
-<li>Create or choose a Python environment (module + venv is typical):</li>
-</ol>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Example using your cluster's Python module</span></span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="ex">module</span> load python/3.10             <span class="co"># if applicable (3.9/3.10 recommended)</span></span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> venv <span class="va">$WORK</span>/venvs/imfeatures</span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="bu">source</span> <span class="va">$WORK</span>/venvs/imfeatures/bin/activate</span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">--upgrade</span> pip wheel setuptools</span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a></span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co"># Minimal required packages</span></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="ex">pip</span> install Pillow numpy</span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co"># Optional packages for full functionality</span></span>
-<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="ex">pip</span> install thingsvision resmem open-clip-torch</span>
-<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a></span>
-<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co"># PyTorch: use your cluster's module if available, otherwise pick one index</span></span>
-<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co"># CPU only:</span></span>
-<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="ex">pip</span> install torch torchvision <span class="at">--index-url</span> https://download.pytorch.org/whl/cpu</span>
-<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co"># or CUDA-specific (example):</span></span>
-<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co"># pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118</span></span>
-<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a> </span>
-<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="ex">Note</span> on Python versions: some optional packages <span class="er">(</span><span class="ex">e.g.,</span> thingsvision via numba<span class="kw">)</span></span>
-<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a><span class="ex">currently</span> do not support Python 3.11+. Prefer Python 3.9 or 3.10 when you plan</span>
-<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="ex">to</span> use these features.</span></code></pre></div>
-<ol start="3" style="list-style-type: decimal">
-<li>Tell imfeatures to use that Python:</li>
-</ol>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">imgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span></span>
+<span>  <span class="st">"path/to/images"</span>,</span>
+<span>  pattern <span class="op">=</span> <span class="st">"\\.(jpe?g|png)$"</span>,</span>
+<span>  full.names <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  ignore.case <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">imgs</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">vgg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/extract_vgg_features.html">extract_vgg_features</a></span><span class="op">(</span><span class="va">imgs</span>, tier <span class="op">=</span> <span class="st">"mid"</span>, pooling <span class="op">=</span> <span class="st">"avg"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">vgg</span><span class="op">$</span><span class="va">features</span><span class="op">)</span></span></code></pre></div>
+<p>Compute pairwise feature similarities from selected VGG-16 layers:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sim</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_feature_similarity.html">im_feature_sim</a></span><span class="op">(</span></span>
+<span>  <span class="va">imgs</span>,</span>
+<span>  layers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"block3_conv3"</span>, <span class="st">"block4_conv3"</span><span class="op">)</span>,</span>
+<span>  spatial_pooling <span class="op">=</span> <span class="st">"avg"</span>,</span>
+<span>  lowmem <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sim</span><span class="op">$</span><span class="va">layer_block3_conv3</span></span></code></pre></div>
+<p>Generate captions or caption embeddings when an <code>ellmer</code> provider is configured:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/use_existing_python.html">use_existing_python</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"WORK"</span><span class="op">)</span>, <span class="st">"venvs/imfeatures/bin/python"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Alternatively, set once in <code>~/.Renviron</code> and it will be auto-detected:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>RETICULATE_PYTHON<span class="ot">=</span><span class="er">/</span>full<span class="sc">/</span>path<span class="sc">/</span>to<span class="sc">/</span>venvs<span class="sc">/</span>imfeatures<span class="sc">/</span>bin<span class="sc">/</span>python</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>IMFEATURES_SKIP_PYTHON<span class="ot">=</span><span class="cn">TRUE</span></span></code></pre></div>
-<ol start="4" style="list-style-type: decimal">
-<li>Verify:</li>
-</ol>
+<span></span>
+<span><span class="va">captions</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/caption_features.html">caption_features</a></span><span class="op">(</span></span>
+<span>  <span class="va">imgs</span>,</span>
+<span>  caption_provider <span class="op">=</span> <span class="st">"openai"</span>,</span>
+<span>  template <span class="op">=</span> <span class="st">"dense"</span>,</span>
+<span>  compute_embedding <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  embedding_backend <span class="op">=</span> <span class="st">"openai"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="python-setup">Python Setup<a class="anchor" aria-label="anchor" href="#python-setup"></a>
+</h2>
+<p>For workstation use, <code><a href="reference/imfeatures_config.html">imfeatures_config()</a></code> creates or activates the Python environment used by Keras, <code>thingsvision</code>, PyTorch, and <code>open_clip</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/imfeatures_config.html">imfeatures_config</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>If you already manage Python yourself, point <code>reticulate</code> at that interpreter:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">reticulate</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/reticulate/reference/py_config.html" class="external-link">py_config</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>Troubleshooting:</p>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/use_existing_python.html">use_existing_python</a></span><span class="op">(</span><span class="st">"/full/path/to/python"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="hpc-setup">HPC Setup<a class="anchor" aria-label="anchor" href="#hpc-setup"></a>
+</h2>
+<p>On HPC systems, avoid automatic Conda setup during package load. The usual pattern is:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>IMFEATURES_SKIP_PYTHON <span class="op">=</span> <span class="st">"TRUE"</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/use_existing_python.html">use_existing_python</a></span><span class="op">(</span><span class="st">"/full/path/to/venvs/imfeatures/bin/python"</span><span class="op">)</span></span></code></pre></div>
+<p>For a persistent setup, put both variables in <code>~/.Renviron</code>:</p>
+<pre class="text"><code>IMFEATURES_SKIP_PYTHON=TRUE
+RETICULATE_PYTHON=/full/path/to/venvs/imfeatures/bin/python</code></pre>
+<p>Install the Python packages into a cluster-managed module or virtual environment, not an automatically created R miniconda. At minimum the Python side needs <code>Pillow</code> and <code>numpy</code>; model backends add packages such as <code>tensorflow</code>/<code>keras</code>, <code>torch</code>, <code>torchvision</code>, <code>thingsvision</code>, <code>resmem</code>, and <code>open-clip-torch</code>.</p>
+<p>The full HPC walkthrough is in:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"hpc-setup"</span>, package <span class="op">=</span> <span class="st">"imfeatures"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
+</h2>
 <ul>
-<li>If you see a Conda error like “bad interpreter” during <code><a href="https://bbuchsbaum.github.io/imfeatures/">library(imfeatures)</a></code>, it’s usually a broken R-miniconda on shared filesystems. Use the HPC Quickstart above or set <code>IMFEATURES_SKIP_PYTHON=TRUE</code> and call <code><a href="reference/use_existing_python.html">use_existing_python()</a></code>.</li>
-<li>To force <code>virtualenv</code> instead of Conda during <code><a href="reference/imfeatures_config.html">imfeatures_config()</a></code>, set <code>IMFEATURES_METHOD=virtualenv</code> before calling it.</li>
+<li>Website: <a href="https://bbuchsbaum.github.io/imfeatures/" class="uri">https://bbuchsbaum.github.io/imfeatures/</a>
+</li>
+<li>Setup vignette: <code><a href="articles/five-minute-setup.html">vignette("five-minute-setup", package = "imfeatures")</a></code>
+</li>
+<li>HPC vignette: <code><a href="articles/hpc-setup.html">vignette("hpc-setup", package = "imfeatures")</a></code>
+</li>
 </ul>
 </div>
 </div>
