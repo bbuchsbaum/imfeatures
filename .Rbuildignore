@@ -12,6 +12,7 @@
 ^\.omc$
 ^\.claude$
 ^.*\.Rcheck$
+^\.rcmdcheck_result\.rds$
 ^src/.*\.o$
 ^src/.*\.so$
 ^Space_Invaders\.jpg$
