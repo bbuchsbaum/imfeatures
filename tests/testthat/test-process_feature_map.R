@@ -48,7 +48,7 @@ test_that("invalid resize option returns original with warning", {
   expect_identical(out, p)
 })
 
-test_that("resize option calls tensorflow and returns flattened output", {
+test_that("resize downsampling uses area-pooled cell means (regression #48)", {
   # Skip if TensorFlow is not available
   skip_if_not_installed("tensorflow")
   skip_if_not(
@@ -56,16 +56,32 @@ test_that("resize option calls tensorflow and returns flattened output", {
     "TensorFlow Python module not available"
   )
 
-  # Test with actual TensorFlow - no mocking needed
-  # Create a 1x4x4x1 array
-  p <- array(1:16, dim = c(1, 4, 4, 1))
+  # A 6x6 map reduced to 2x2 has four non-overlapping 3x3 cells.
+  # Area pooling must return each cell mean rather than point samples.
+  p <- array(seq_len(36), dim = c(1, 6, 6, 1))
 
   # Resize to 2x2 and flatten
   out <- imfeatures:::.process_feature_map(p, "resize_2x2")
+  expected <- c(
+    mean(p[1, 1:3, 1:3, 1]),
+    mean(p[1, 4:6, 1:3, 1]),
+    mean(p[1, 1:3, 4:6, 1]),
+    mean(p[1, 4:6, 4:6, 1])
+  )
 
-  # Should return a flattened vector of length 4 (2x2x1)
   expect_type(out, "double")
-  expect_length(out, 4)
+  expect_equal(out, expected, tolerance = 1e-6)
+
+  # Averaging the area-pooled grid must reproduce global average pooling,
+  # including when source and target sizes are not integer multiples.
+  p_irregular <- array(seq_len(2 * 7 * 5), dim = c(1, 7, 5, 2))
+  resized <- imfeatures:::.process_feature_map(p_irregular, "resize_3x2")
+  resized <- array(resized, dim = c(1, 3, 2, 2))
+  expect_equal(
+    as.vector(apply(resized, MARGIN = c(1, 4), FUN = mean)),
+    imfeatures:::.process_feature_map(p_irregular, "avg"),
+    tolerance = 1e-5
+  )
 
   # Test invalid resize format still works
   p2 <- array(1:8, dim = c(1, 2, 2, 2))

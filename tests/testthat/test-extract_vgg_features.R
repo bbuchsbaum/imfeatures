@@ -7,25 +7,33 @@ context("extract_vgg_features")
 # internal seams (model construction and the batched forward pass) instead of
 # mocking im_features().
 
-mock_multi_model <- function(model, layers) {
-  structure(list(layers = layers), class = "mock_multi_model")
-}
+local_vgg_mocks <- function(state = new.env(parent = emptyenv()),
+                            env = parent.frame()) {
+  state$build_calls <- 0L
+  state$predict_calls <- 0L
+  state$batch_sizes <- integer()
 
-# One array per layer, first dimension indexing the image in the batch.
-# Two features per layer keeps the expected width at length(layer_names) * 2.
-mock_forward_batch <- function(multi, paths, target_size) {
-  lapply(seq_along(multi$layers), function(i) {
-    matrix(rep(c(i, i) + 0.0, each = length(paths)), nrow = length(paths), ncol = 2)
-  })
-}
-
-local_vgg_mocks <- function(env = parent.frame()) {
   local_mocked_bindings(
-    .vgg_multi_output_model = mock_multi_model,
-    .vgg_forward_batch      = mock_forward_batch,
+    .vgg_multi_output_model = function(model, layers) {
+      state$build_calls <- state$build_calls + 1L
+      structure(list(layers = layers), class = "mock_multi_model")
+    },
+    .vgg_forward_batch = function(multi, paths, target_size) {
+      ids <- as.numeric(sub("^img([0-9]+)\\.png$", "\\1", basename(paths)))
+      state$predict_calls <- state$predict_calls + 1L
+      state$batch_sizes <- c(state$batch_sizes, length(paths))
+
+      lapply(seq_along(multi$layers), function(layer_index) {
+        cbind(
+          ids + layer_index * 100,
+          ids + layer_index * 100 + 0.5
+        )
+      })
+    },
     .package = "imfeatures",
     .env = env
   )
+  invisible(state)
 }
 
 make_dummy_images <- function(dir, n = 2) {
@@ -75,14 +83,53 @@ test_that("features matrix is numeric, not character (regression #45)", {
   expect_equal(nrow(res$features), length(paths))
 })
 
-test_that("batching does not change the result (regression #46)", {
-  local_vgg_mocks()
+test_that("chunking preserves image order and limits forward passes", {
+  state <- local_vgg_mocks()
   img_dir <- file.path(tempdir(), "imgs_batch")
   paths <- make_dummy_images(img_dir, 5)
-  one <- extract_vgg_features(paths, tier = "low", model = list(dummy = TRUE), batch_size = 1)
-  big <- extract_vgg_features(paths, tier = "low", model = list(dummy = TRUE), batch_size = 32)
+  out <- extract_vgg_features(
+    paths,
+    tier = "low",
+    model = list(dummy = TRUE),
+    batch_size = 2L
+  )
+
+  expected <- do.call(cbind, lapply(seq_along(out$layer_names), function(layer_index) {
+    cbind(
+      seq_along(paths) + layer_index * 100,
+      seq_along(paths) + layer_index * 100 + 0.5
+    )
+  }))
+
+  expect_equal(out$features, expected)
+  expect_identical(state$build_calls, 1L)
+  expect_identical(state$predict_calls, 3L)
+  expect_identical(state$batch_sizes, c(2L, 2L, 1L))
+  expect_identical(out$batch_size, 2L)
+})
+
+test_that("batch size does not change feature layout (regression #46)", {
+  img_dir <- file.path(tempdir(), "imgs_batch_equivalence")
+  paths <- make_dummy_images(img_dir, 5)
+
+  local_vgg_mocks()
+  one <- extract_vgg_features(
+    paths,
+    tier = "low",
+    model = list(dummy = TRUE),
+    batch_size = 1L
+  )
+
+  big <- extract_vgg_features(
+    paths,
+    tier = "low",
+    model = list(dummy = TRUE),
+    batch_size = 8L
+  )
+
   expect_identical(one$features, big$features)
   expect_equal(nrow(one$features), 5)
+  expect_identical(big$batch_size, 8L)
 })
 
 test_that("batch_size is validated", {
@@ -90,5 +137,32 @@ test_that("batch_size is validated", {
   paths <- make_dummy_images(img_dir, 2)
   expect_error(
     extract_vgg_features(paths, tier = "low", model = list(dummy = TRUE), batch_size = 0)
+  )
+})
+
+test_that("the default batch size bounds low-tier activation memory", {
+  expect_identical(formals(extract_vgg_features)$batch_size, 8L)
+})
+
+test_that("malformed multi-output predictions fail explicitly", {
+  expect_error(
+    imfeatures:::.validate_vgg_batch_outputs(
+      list(matrix(1, nrow = 2, ncol = 1)),
+      expected_layers = 2L,
+      batch_n = 2L
+    ),
+    "Expected 2 VGG layer output"
+  )
+
+  expect_error(
+    imfeatures:::.validate_vgg_batch_outputs(
+      list(
+        matrix(1, nrow = 2, ncol = 1),
+        matrix(1, nrow = 1, ncol = 1)
+      ),
+      expected_layers = 2L,
+      batch_n = 2L
+    ),
+    "batch dimension"
   )
 })

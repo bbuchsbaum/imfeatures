@@ -10,7 +10,7 @@ extract_vgg_features(
   model = NULL,
   target_size = c(224, 224),
   pooling = "avg",
-  batch_size = 32L
+  batch_size = 8L
 )
 }
 \arguments{
@@ -27,7 +27,8 @@ Defaults to "avg" (global average pooling). Other options: "none", "max", "resiz
 
 \item{batch_size}{Integer; number of images per forward pass. Images are pushed
 through a single multi-output model in batches rather than one at a time,
-which is substantially faster for large image sets. Defaults to 32.}
+which is substantially faster for large image sets. Defaults to 8 to
+bound peak memory use for early VGG layers.}
 }
 \value{
 An S3 object of class \code{vgg_feature_set}, a list with components:
@@ -40,6 +41,7 @@ An S3 object of class \code{vgg_feature_set}, a list with components:
   \item{layer_names}{Character names of VGG-16 layers used.}
   \item{model_name}{Character, set to "vgg16".}
   \item{target_size}{Numeric vector of image resize dimensions.}
+  \item{batch_size}{Integer number of images processed per forward pass.}
 }
 }
 \description{

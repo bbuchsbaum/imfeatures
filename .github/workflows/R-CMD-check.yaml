@@ -23,6 +23,7 @@ jobs:
       R_KEEP_PKG_SOURCE: yes
       IMFEATURES_SKIP_PYTHON: "TRUE"
       RETICULATE_AUTOCONFIGURE: "FALSE"
+      RGL_USE_NULL: "TRUE"
     steps:
       - uses: actions/checkout@v4
 

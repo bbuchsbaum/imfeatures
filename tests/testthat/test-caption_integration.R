@@ -2,6 +2,14 @@ library(testthat)
 
 context("caption_features integration")
 
+skip_unless_caption_integration <- function() {
+  enabled <- tolower(Sys.getenv("IMFEATURES_RUN_INTEGRATION_TESTS", "false"))
+  skip_if_not(
+    enabled %in% c("1", "true", "yes"),
+    "Set IMFEATURES_RUN_INTEGRATION_TESTS=true to run external provider tests"
+  )
+}
+
 # Path to Space Invaders test image
 space_invaders_path <- file.path(dirname(dirname(dirname(getwd()))), "Space_Invaders.jpg")
 if (!file.exists(space_invaders_path)) {
@@ -13,6 +21,7 @@ if (!file.exists(space_invaders_path)) {
 }
 
 test_that("caption_features works with Ollama (local provider)", {
+  skip_unless_caption_integration()
   skip_if_not(check_caption_provider_auth("ollama"), "Ollama not available")
   skip_if_not(file.exists(space_invaders_path), "Space Invaders image not found")
 
@@ -49,6 +58,7 @@ test_that("caption_features works with Ollama (local provider)", {
 })
 
 test_that("caption_features works with OpenAI provider", {
+  skip_unless_caption_integration()
   skip_if_not(check_caption_provider_auth("openai"), "OpenAI API key not set")
   skip_if_not(file.exists(space_invaders_path), "Space Invaders image not found")
 
@@ -90,6 +100,7 @@ test_that("caption_features works with OpenAI provider", {
 })
 
 test_that("caption_features works with Gemini provider", {
+  skip_unless_caption_integration()
   skip_if_not(check_caption_provider_auth("gemini"), "Gemini API key not set")
   skip_if_not(file.exists(space_invaders_path), "Space Invaders image not found")
 
@@ -127,6 +138,7 @@ test_that("caption_features works with Gemini provider", {
 })
 
 test_that("caption_features works with HuggingFace embeddings", {
+  skip_unless_caption_integration()
   skip_if_not(check_caption_provider_auth("openai"), "OpenAI API key not set for caption")
   skip_if_not(nzchar(Sys.getenv("HUGGINGFACE_API_KEY")), "HuggingFace API key not set")
   skip_if_not(file.exists(space_invaders_path), "Space Invaders image not found")
@@ -150,6 +162,7 @@ test_that("caption_features works with HuggingFace embeddings", {
 })
 
 test_that("batch processing works with multiple images", {
+  skip_unless_caption_integration()
   skip_if_not(check_caption_provider_auth("openai"), "OpenAI API key not set")
   skip_if_not(file.exists(space_invaders_path), "Space Invaders image not found")
 
@@ -184,6 +197,7 @@ test_that("batch processing works with multiple images", {
 })
 
 test_that("multimodal features work", {
+  skip_unless_caption_integration()
   skip_if_not(check_caption_provider_auth("openai"), "OpenAI API key not set")
   skip_if_not(file.exists(space_invaders_path), "Space Invaders image not found")
   skip_if_not(requireNamespace("keras3", quietly = TRUE), "keras3 not available")
@@ -211,6 +225,7 @@ test_that("multimodal features work", {
 })
 
 test_that("different templates produce different styles", {
+  skip_unless_caption_integration()
   skip_if_not(check_caption_provider_auth("openai"), "OpenAI API key not set")
   skip_if_not(file.exists(space_invaders_path), "Space Invaders image not found")
 

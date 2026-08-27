@@ -181,7 +181,12 @@ vgg16 <- function() {
 #'          \item{\code{"none"}: (Default) No spatial processing is applied; the full feature maps are returned (usually as a 4D array: 1 x H x W x C).}
 #'          \item{\code{"avg"}: Global average pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).}
 #'          \item{\code{"max"}: Global max pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).}
-#'          \item{\code{"resize_HxW"}: Downsamples the spatial dimensions to \code{H} by \code{W} using bilinear interpolation, then flattens. Any value matching \code{"^resize_[0-9]+x[0-9]+$"} is accepted (e.g., \code{"resize_3x3"}, \code{"resize_7x7"}). Results in a vector of length \code{H * W * C}.}
+#'          \item{\code{"resize_HxW"}: Downsamples the spatial dimensions to
+#'          \code{H} by \code{W} using area pooling, then flattens. Bilinear
+#'          interpolation is retained when the requested size upsamples a map.
+#'          Any value matching \code{"^resize_[0-9]+x[0-9]+$"} is accepted
+#'          (e.g., \code{"resize_3x3"}, \code{"resize_7x7"}). Results in a
+#'          vector of length \code{H * W * C}.}
 #'        }
 #'        This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
 #'        this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.
@@ -302,10 +307,19 @@ im_features <- extract_features
       )
       if (!is.null(target_dims_int) && length(target_dims_int) == 2 && !any(is.na(target_dims_int)) && all(target_dims_int > 0)) {
         p_tf <- tf$constant(p, dtype = tf$float32)
+        source_dims <- dim(p)[2:3]
+        is_downsampling <- all(target_dims_int <= source_dims) &&
+          any(target_dims_int < source_dims)
+
+        # resize_HxW is a spatial-pooling mode. Area interpolation averages
+        # each output cell's input footprint and avoids aliased point samples.
+        # Retain bilinear interpolation when users explicitly upsample.
+        resize_method <- if (is_downsampling) "area" else "bilinear"
         p_resized_tf <- tf$image$resize(
           images = p_tf,
           size = list(as.integer(target_dims_int[1]), as.integer(target_dims_int[2])),
-          method = tf$image$ResizeMethod$BILINEAR
+          method = resize_method,
+          antialias = !is_downsampling && any(target_dims_int < source_dims)
         )
         return(as.vector(as.array(p_resized_tf)))
       } else {

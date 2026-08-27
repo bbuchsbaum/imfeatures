@@ -17,7 +17,8 @@
 #'        Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7".
 #' @param batch_size Integer; number of images per forward pass. Images are pushed
 #'        through a single multi-output model in batches rather than one at a time,
-#'        which is substantially faster for large image sets. Defaults to 32.
+#'        which is substantially faster for large image sets. Defaults to 8 to
+#'        bound peak memory use for early VGG layers.
 #' @return An S3 object of class \code{vgg_feature_set}, a list with components:
 #' \describe{
 #'   \item{features}{Numeric matrix (N_images × total_channels) of pooled features.}
@@ -28,6 +29,7 @@
 #'   \item{layer_names}{Character names of VGG-16 layers used.}
 #'   \item{model_name}{Character, set to "vgg16".}
 #'   \item{target_size}{Numeric vector of image resize dimensions.}
+#'   \item{batch_size}{Integer number of images processed per forward pass.}
 #' }
 #' @export
 #' @importFrom keras3 application_vgg16 keras_model get_layer image_to_array imagenet_preprocess_input
@@ -36,11 +38,12 @@ extract_vgg_features <- function(impaths,
                                  model = NULL,
                                  target_size = c(224, 224),
                                  pooling = "avg",
-                                 batch_size = 32L) {
+                                 batch_size = 8L) {
   assert_image(impaths)
   checkmate::assert_integerish(target_size, len = 2)
   assert_scalar(pooling, "character")
   checkmate::assert_count(batch_size, positive = TRUE)
+  batch_size <- as.integer(batch_size)
   # Allow passing a directory containing images
   if (length(impaths) == 1 && dir.exists(impaths)) {
     orig_dir <- impaths
@@ -93,10 +96,11 @@ extract_vgg_features <- function(impaths,
   multi <- .vgg_multi_output_model(model, layers)
 
   rows <- vector("list", length(impaths))
-  starts <- seq(1L, length(impaths), by = as.integer(batch_size))
+  starts <- seq(1L, length(impaths), by = batch_size)
   for (s0 in starts) {
-    idx <- s0:min(s0 + as.integer(batch_size) - 1L, length(impaths))
+    idx <- s0:min(s0 + batch_size - 1L, length(impaths))
     preds <- .vgg_forward_batch(multi, impaths[idx], target_size)
+    .validate_vgg_batch_outputs(preds, length(layers), length(idx))
 
     # Pool per image so that every spatial_pooling mode -- including "none" and
     # the resize_HxW variants, whose output layout is per-image -- keeps exactly
@@ -126,7 +130,8 @@ extract_vgg_features <- function(impaths,
     layer_indices = layer_indices,
     layer_names = layer_names,
     model_name = "vgg16",
-    target_size = target_size
+    target_size = target_size,
+    batch_size = batch_size
   )
   class(res) <- "vgg_feature_set"
   res
@@ -183,4 +188,25 @@ print.vgg_feature_set <- function(x, ...) {
   preds <- stats::predict(multi, x, verbose = 0)
   if (!is.list(preds)) preds <- list(preds)
   preds
+}
+
+.validate_vgg_batch_outputs <- function(preds, expected_layers, batch_n) {
+  if (length(preds) != expected_layers) {
+    stop(sprintf(
+      "Expected %d VGG layer output(s), received %d",
+      expected_layers, length(preds)
+    ), call. = FALSE)
+  }
+
+  invalid_batch <- vapply(preds, function(p) {
+    output_dims <- dim(p)
+    is.null(output_dims) || length(output_dims) < 2L || output_dims[1] != batch_n
+  }, logical(1))
+  if (any(invalid_batch)) {
+    stop("VGG output batch dimension does not match the input batch",
+      call. = FALSE
+    )
+  }
+
+  invisible(TRUE)
 }

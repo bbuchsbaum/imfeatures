@@ -45,7 +45,8 @@ Suggests:
   knitr,
   rmarkdown,
   irlba,
-  tensorflow
+  tensorflow,
+  png
 VignetteBuilder: knitr
 Config/Needs/website: pkgdown
 RoxygenNote: 7.3.3
