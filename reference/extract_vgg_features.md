@@ -23,7 +23,8 @@ extract_vgg_features(
   tier = c("low", "mid", "high", "semantic"),
   model = NULL,
   target_size = c(224, 224),
-  pooling = "avg"
+  pooling = "avg",
+  batch_size = 32L
 )
 ```
 
@@ -53,6 +54,12 @@ extract_vgg_features(
   `spatial_pooling` argument of `im_features`. Defaults to "avg" (global
   average pooling). Other options: "none", "max", "resize_3x3",
   "resize_5x5", "resize_7x7".
+
+- batch_size:
+
+  Integer; number of images per forward pass. Images are pushed through
+  a single multi-output model in batches rather than one at a time,
+  which is substantially faster for large image sets. Defaults to 32.
 
 ## Value
 
