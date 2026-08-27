@@ -15,6 +15,9 @@
 #' @param target_size Numeric vector of length 2 specifying image resize dimensions (width, height).
 #' @param pooling Character string specifying spatial pooling; passed to the \code{spatial_pooling} argument of \code{im_features}.
 #'        Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7".
+#' @param batch_size Integer; number of images per forward pass. Images are pushed
+#'        through a single multi-output model in batches rather than one at a time,
+#'        which is substantially faster for large image sets. Defaults to 32.
 #' @return An S3 object of class \code{vgg_feature_set}, a list with components:
 #' \describe{
 #'   \item{features}{Numeric matrix (N_images × total_channels) of pooled features.}
@@ -27,15 +30,17 @@
 #'   \item{target_size}{Numeric vector of image resize dimensions.}
 #' }
 #' @export
-#' @importFrom keras3 application_vgg16
+#' @importFrom keras3 application_vgg16 keras_model get_layer image_to_array imagenet_preprocess_input
 extract_vgg_features <- function(impaths,
                                  tier = c("low", "mid", "high", "semantic"),
                                  model = NULL,
                                  target_size = c(224, 224),
-                                 pooling = "avg") {
+                                 pooling = "avg",
+                                 batch_size = 32L) {
   assert_image(impaths)
   checkmate::assert_integerish(target_size, len = 2)
   assert_scalar(pooling, "character")
+  checkmate::assert_count(batch_size, positive = TRUE)
   # Allow passing a directory containing images
   if (length(impaths) == 1 && dir.exists(impaths)) {
     orig_dir <- impaths
@@ -81,29 +86,36 @@ extract_vgg_features <- function(impaths,
   layer_indices <- match(layers, all_names)
   layer_names <- layers
 
-  # Extract features for each image; wrap errors per image
-  feats_list <- lapply(impaths, function(path) {
-    tryCatch(
-      im_features(
-        impath = path,
-        layers = layers,
-        model = model,
-        target_size = target_size,
-        spatial_pooling = pooling
-      ),
-      error = function(e) {
-        stop(sprintf("Error processing image '%s': %s", path, e$message), call. = FALSE)
-      }
-    )
-  })
+  # One model with every requested layer as an output, evaluated on batches.
+  # Building a fresh keras_model per layer per image (and predicting on a batch
+  # of 1) is what im_features() does; for many images that cost is dominated by
+  # graph construction and tf.function retracing rather than by the convolutions.
+  multi <- .vgg_multi_output_model(model, layers)
 
-  # Combine into matrix: N_images x total_features.
-  # Pull only the numeric `feature` list-column; unlisting the whole tibble
-  # would coerce metadata (image, layer) into the matrix as character.
-  features <- do.call(
-    rbind,
-    lapply(feats_list, function(x) unlist(x$feature, use.names = FALSE))
-  )
+  rows <- vector("list", length(impaths))
+  starts <- seq(1L, length(impaths), by = as.integer(batch_size))
+  for (s0 in starts) {
+    idx <- s0:min(s0 + as.integer(batch_size) - 1L, length(impaths))
+    preds <- .vgg_forward_batch(multi, impaths[idx], target_size)
+
+    # Pool per image so that every spatial_pooling mode -- including "none" and
+    # the resize_HxW variants, whose output layout is per-image -- keeps exactly
+    # the semantics it had when images were processed one at a time.
+    for (i in seq_along(idx)) {
+      vecs <- lapply(seq_along(layers), function(j) {
+        p <- preds[[j]]
+        p_i <- if (length(dim(p)) == 4L) {
+          p[i, , , , drop = FALSE]
+        } else {
+          p[i, , drop = FALSE]
+        }
+        .process_feature_map(p_i, pooling)
+      })
+      rows[[idx[i]]] <- unlist(vecs, use.names = FALSE)
+    }
+  }
+
+  features <- do.call(rbind, rows)
   storage.mode(features) <- "double"
 
   res <- list(
@@ -143,4 +155,32 @@ print.vgg_feature_set <- function(x, ...) {
   cat("  Layers:       ", paste(x$layer_names, collapse = ", "), "\n")
   cat("  Pooling:      ", x$pooling, "\n")
   invisible(x)
+}
+
+
+# Build one Keras model exposing every requested layer as an output.
+# Split out so tests can substitute it without a real Keras model.
+.vgg_multi_output_model <- function(model, layers) {
+  outputs <- lapply(layers, function(nm) keras3::get_layer(model, name = nm)$output)
+  keras3::keras_model(inputs = model$input, outputs = outputs)
+}
+
+# Load a batch of images and run one forward pass, returning a list with one
+# array per output layer (first dimension indexes the image within the batch).
+.vgg_forward_batch <- function(multi, paths, target_size) {
+  arrs <- lapply(paths, function(path) {
+    tryCatch(
+      keras3::image_to_array(.image_load_compat(path, target_size = target_size)),
+      error = function(e) {
+        stop(sprintf("Error processing image '%s': %s", path, e$message), call. = FALSE)
+      }
+    )
+  })
+  x <- array(0, dim = c(length(arrs), dim(arrs[[1]])))
+  for (i in seq_along(arrs)) x[i, , , ] <- arrs[[i]]
+  x <- keras3::imagenet_preprocess_input(x)
+
+  preds <- stats::predict(multi, x, verbose = 0)
+  if (!is.list(preds)) preds <- list(preds)
+  preds
 }
