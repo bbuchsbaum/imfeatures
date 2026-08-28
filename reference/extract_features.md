@@ -55,7 +55,8 @@ im_features(
     W), resulting in one value per channel (vector of length C).
 
   - `"resize_HxW"`: Downsamples the spatial dimensions to `H` by `W`
-    using bilinear interpolation, then flattens. Any value matching
+    using area pooling, then flattens. Bilinear interpolation is
+    retained when the requested size upsamples a map. Any value matching
     `"^resize_[0-9]+x[0-9]+$"` is accepted (e.g., `"resize_3x3"`,
     `"resize_7x7"`). Results in a vector of length `H * W * C`.
 

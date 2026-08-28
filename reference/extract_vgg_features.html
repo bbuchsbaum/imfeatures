@@ -59,7 +59,7 @@ Layers are retrieved by name (e.g., "block1_conv1") instead of numeric indices.'
 <span>  model <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  target_size <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">224</span>, <span class="fl">224</span><span class="op">)</span>,</span>
 <span>  pooling <span class="op">=</span> <span class="st">"avg"</span>,</span>
-<span>  batch_size <span class="op">=</span> <span class="fl">32L</span></span>
+<span>  batch_size <span class="op">=</span> <span class="fl">8L</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -91,7 +91,8 @@ Defaults to "avg" (global average pooling). Other options: "none", "max", "resiz
 <dt id="arg-batch-size">batch_size<a class="anchor" aria-label="anchor" href="#arg-batch-size"></a></dt>
 <dd><p>Integer; number of images per forward pass. Images are pushed
 through a single multi-output model in batches rather than one at a time,
-which is substantially faster for large image sets. Defaults to 32.</p></dd>
+which is substantially faster for large image sets. Defaults to 8 to
+bound peak memory use for early VGG layers.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -119,6 +120,9 @@ which is substantially faster for large image sets. Defaults to 32.</p></dd>
 
   <dt>target_size</dt>
 <dd><p>Numeric vector of image resize dimensions.</p></dd>
+
+  <dt>batch_size</dt>
+<dd><p>Integer number of images processed per forward pass.</p></dd>
 
 
 </dl></div>

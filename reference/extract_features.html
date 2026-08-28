@@ -81,7 +81,12 @@
 Options are:</p><ul><li><p><code>"none"</code>: (Default) No spatial processing is applied; the full feature maps are returned (usually as a 4D array: 1 x H x W x C).</p></li>
 <li><p><code>"avg"</code>: Global average pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).</p></li>
 <li><p><code>"max"</code>: Global max pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).</p></li>
-<li><p><code>"resize_HxW"</code>: Downsamples the spatial dimensions to <code>H</code> by <code>W</code> using bilinear interpolation, then flattens. Any value matching <code>"^resize_[0-9]+x[0-9]+$"</code> is accepted (e.g., <code>"resize_3x3"</code>, <code>"resize_7x7"</code>). Results in a vector of length <code>H * W * C</code>.</p></li>
+<li><p><code>"resize_HxW"</code>: Downsamples the spatial dimensions to
+  <code>H</code> by <code>W</code> using area pooling, then flattens. Bilinear
+  interpolation is retained when the requested size upsamples a map.
+  Any value matching <code>"^resize_[0-9]+x[0-9]+$"</code> is accepted
+  (e.g., <code>"resize_3x3"</code>, <code>"resize_7x7"</code>). Results in a
+  vector of length <code>H * W * C</code>.</p></li>
 </ul><p>This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
 this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.</p></dd>
 
