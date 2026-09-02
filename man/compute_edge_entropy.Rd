@@ -44,7 +44,7 @@ Defaults to 500.}
 \item{gabor_bins}{Integer. Number of orientation bins for Gabor filter bank.
 Defaults to 24.}
 
-\item{filter_length}{Integer. Size of the Gabor filters (must be odd). 
+\item{filter_length}{Integer. Size of the Gabor filters (must be odd).
 Defaults to 31.}
 
 \item{circ_bins}{Integer. Number of circular bins for directional statistics.
@@ -84,28 +84,28 @@ It automatically converts the ranges list to the required format for the C++ fun
 \examples{
 \donttest{
 # Example 1: Using a matrix with default parameters
-img_matrix <- matrix(runif(100*100), nrow=100)
+img_matrix <- matrix(runif(100 * 100), nrow = 100)
 result <- compute_edge_entropy(img_matrix)
-print(result$entropy)  # First-order orientation entropy
-print(result$pentropy_20_80)  # Pairwise entropy for distance range 20-80
+print(result$entropy) # First-order orientation entropy
+print(result$pentropy_20_80) # Pairwise entropy for distance range 20-80
 
 # Example 2: Load and process an image file
 library(imager)
 img <- load.example("coins")
 gray_img <- grayscale(img)
-img_array <- as.array(gray_img)[,,1,1]
+img_array <- as.array(gray_img)[, , 1, 1]
 
 # Compute edge entropy with custom parameters
 result_custom <- compute_edge_entropy(
   image = img_array,
-  gabor_bins = 32L,  # More orientation bins
-  filter_length = 41L,  # Larger filter for coarser features
-  circ_bins = 64L,  # More angular bins
-  use_cpp = TRUE  # Use fast C++ implementation
+  gabor_bins = 32L, # More orientation bins
+  filter_length = 41L, # Larger filter for coarser features
+  circ_bins = 64L, # More angular bins
+  use_cpp = TRUE # Use fast C++ implementation
 )
 
 # Example 3: Compare R and C++ implementations
-small_img <- matrix(runif(50*50), nrow=50)
+small_img <- matrix(runif(50 * 50), nrow = 50)
 result_r <- compute_edge_entropy(small_img, use_cpp = FALSE, verbose = TRUE)
 result_cpp <- compute_edge_entropy(small_img, use_cpp = TRUE, verbose = FALSE)
 
@@ -114,7 +114,7 @@ all.equal(result_r$entropy, result_cpp$entropy, tolerance = 1e-10)
 
 result_ranges <- compute_edge_entropy(
   image = img_array,
-  ranges = list(c(10,50), c(50,100), c(100,200), c(200,400)),
+  ranges = list(c(10, 50), c(50, 100), c(100, 200), c(200, 400)),
   maxdiag = 600L
 )
 }
@@ -123,7 +123,7 @@ img_files <- list.files("path/to/images", pattern = "\\\\.jpg$", full.names = TR
 entropy_results <- lapply(img_files[1:5], function(f) {
   img <- imager::load.image(f)
   gray <- imager::grayscale(img)
-  arr <- as.array(gray)[,,1,1]
+  arr <- as.array(gray)[, , 1, 1]
   compute_edge_entropy(arr, max_pixels = 100000L)
 })
 }

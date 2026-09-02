@@ -118,17 +118,17 @@ extractor_rn18 <- tv_get_extractor(model_name = "resnet18", source = "torchvisio
 
 # Example 2: CLIP ViT-B/32 from Custom
 extractor_clip <- tv_get_extractor(
-   model_name = "clip",
-   source = "custom",
-   model_parameters = list(variant = "ViT-B/32")
+  model_name = "clip",
+  source = "custom",
+  model_parameters = list(variant = "ViT-B/32")
 )
 # tv_show_model(extractor_clip)
 
 # Example 3: DINO ViT Base/16 from SSL (using cls_token)
 extractor_dino <- tv_get_extractor(
-   model_name = "dino-vit-base-p16",
-   source = "ssl",
-   model_parameters = list(token_extraction = "cls_token")
+  model_name = "dino-vit-base-p16",
+  source = "ssl",
+  model_parameters = list(token_extraction = "cls_token")
 )
 # tv_show_model(extractor_dino)
 

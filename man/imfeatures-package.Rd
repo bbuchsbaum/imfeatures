@@ -12,6 +12,15 @@ VGG16, ResNet, and other pre-trained models through Python integration,
 as well as methods for computing edge entropy, multiscale entropy, and
 feature similarity metrics.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://bbuchsbaum.github.io/imfeatures/}
+  \item \url{https://github.com/bbuchsbaum/imfeatures}
+  \item Report bugs at \url{https://github.com/bbuchsbaum/imfeatures/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Bradley Buchsbaum \email{brad.buchsbaum@gmail.com}
 

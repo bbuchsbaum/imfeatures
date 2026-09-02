@@ -17,5 +17,6 @@
 Named list of residualized PC matrices for each tier in \code{newdata}.
 }
 \description{
-Applies a trained residualized_tiers transformation (Sequential SVD-QR method) to new data.
+Applies a trained residualized_tiers transformation to new data using the
+stored PCA maps and cross-tier coefficient matrices.
 }

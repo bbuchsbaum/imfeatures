@@ -32,13 +32,13 @@ img <- load.example("parrots")
 
 # Compute multiscale entropy with default parameters
 mse_values <- image_mse(img)
-print(mse_values)  # H, S, V entropy values
+print(mse_values) # H, S, V entropy values
 
 # Use custom smoothing factors for different scales
 mse_custom <- image_mse(
   im = img,
-  sf = c(200, 100, 50, 25, 0),  # More smoothing levels
-  bins = 32L  # More bins for finer discretization
+  sf = c(200, 100, 50, 25, 0), # More smoothing levels
+  bins = 32L # More bins for finer discretization
 )
 
 # Process a grayscale image (will be converted to color)
@@ -55,6 +55,6 @@ mse_results <- lapply(img_files, function(f) {
 
 # Convert to data frame for analysis
 mse_df <- do.call(rbind, mse_results)
-colMeans(mse_df)  # Average entropy across images
+colMeans(mse_df) # Average entropy across images
 }
 }

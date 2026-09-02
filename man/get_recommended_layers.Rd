@@ -25,8 +25,8 @@ useful when extracting features from multiple layers.
 }
 \examples{
 \dontrun{
-get_recommended_layers("resnet50", level = "high")   # "avgpool"
-get_recommended_layers("resnet50", level = "multi")  # c("layer3", "layer4", "avgpool")
+get_recommended_layers("resnet50", level = "high") # "avgpool"
+get_recommended_layers("resnet50", level = "multi") # c("layer3", "layer4", "avgpool")
 }
 
 }

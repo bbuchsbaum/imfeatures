@@ -18,3 +18,35 @@ articles:
   contents:
   - five-minute-setup
   - hpc-setup
+- title: Feature hierarchies
+  contents:
+  - feature-hierarchies
+reference:
+- title: Feature hierarchies
+  contents:
+  - as_feature_hierarchy
+  - subset_feature_blocks
+  - hierarchy_recipe
+  - block_pca
+  - ordered_innovation
+  - fit_hierarchy_transform
+  - apply_hierarchy_transform
+  - residualize_tiers
+  - vgg_hierarchy_spec
+  - vgg16_block_end_spec
+  - vgg19_block_end_spec
+  - vgg_block_end_taps
+  - extract_feature_hierarchy
+  - global_average_pool
+  - global_max_pool
+  - adaptive_grid_pool
+  - dct_pool
+  - radial_pool
+  - identity_pool
+  - pool_activations
+  - pooler_feature_names
+  - as_nhwc
+  - linear_cka
+  - effective_rank
+  - hierarchy_diagnostics
+  - check_transform_invariance

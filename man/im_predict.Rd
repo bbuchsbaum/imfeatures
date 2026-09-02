@@ -25,11 +25,11 @@ img_path <- system.file("extdata", "dog.jpg", package = "imfeatures")
 
 # Use default VGG16 model trained on ImageNet
 predictions <- im_predict(img_path, topn = 5)
-print(predictions)  # Top 5 predicted classes with scores
+print(predictions) # Top 5 predicted classes with scores
 
 # Use a custom pre-loaded model
 library(keras3)
-resnet_model <- application_resnet50(weights = 'imagenet')
+resnet_model <- application_resnet50(weights = "imagenet")
 predictions_resnet <- im_predict(
   impath = img_path,
   model = resnet_model,

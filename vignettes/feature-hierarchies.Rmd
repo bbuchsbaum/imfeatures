@@ -1,0 +1,187 @@
+---
+title: "Build ordered image-feature hierarchies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Build ordered image-feature hierarchies}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+When several network stages describe the same images, the first principal
+components of every stage often recover the same high-variance trajectory.
+A hierarchy transform turns those aligned blocks into compact scores and
+then into **innovations**: information that first becomes linearly available
+at a given stage.
+
+You start with a named list of matrices — one stage per block, same rows —
+and finish with a named list you can pass to an encoding model.
+
+```{r load}
+library(imfeatures)
+```
+
+## What do the inputs look like?
+
+The vignette uses a synthetic three-stage movie: a shared slow trajectory
+plus stage-specific signal. In a real analysis the blocks would be VGG
+activations after spatial pooling and, if you are modelling fMRI, after
+HRF convolution.
+
+```{r simulate-blocks}
+set.seed(1)
+n <- 120
+t <- seq_len(n) / n
+shared <- cbind(sin(2 * pi * t), cos(2 * pi * t))
+
+stage <- function(scale, p, noise) {
+  unique <- matrix(rnorm(n * 2), n, 2)
+  cbind(scale * shared, unique) %*% matrix(rnorm(4 * p), 4, p) +
+    matrix(rnorm(n * p, sd = noise), n, p)
+}
+
+blocks <- list(
+  b1 = stage(1.0, 18, 0.15),
+  b2 = stage(0.8, 18, 0.15),
+  b3 = stage(0.5, 18, 0.15)
+)
+```
+
+```{r check-blocks, include = FALSE}
+stopifnot(length(unique(vapply(blocks, nrow, integer(1)))) == 1L)
+stopifnot(all(vapply(blocks, function(m) all(is.finite(m)), logical(1))))
+```
+
+## How do you compile the hierarchy?
+
+Write a recipe, fit it on training rows, then apply it. The fit stores
+PCA maps and cross-stage coefficients, so each new row is transformed
+from its own stage values only.
+
+```{r fit-recipe}
+recipe <- hierarchy_recipe(
+  order = c("b1", "b2", "b3"),
+  compress = block_pca(rank = 8, score_weighting = "whitened"),
+  decomposition = ordered_innovation(method = "svd"),
+  name_prefix = "vgg"
+)
+fit <- fit_hierarchy_transform(recipe, blocks)
+features <- predict(fit, blocks)
+```
+
+```{r show-names}
+names(features)
+```
+
+```{r check-fit, include = FALSE}
+stopifnot(identical(names(features), c("vgg_b1", "vgg_b2_innovation", "vgg_b3_innovation")))
+stopifnot(all(vapply(features, ncol, integer(1)) == 8L))
+stopifnot(all(vapply(features, function(m) all(is.finite(m)), logical(1))))
+```
+
+The first band keeps the earliest stage. Later bands are innovations after
+removing everything already linearly available from earlier stages.
+
+## Did the decomposition separate the stages?
+
+On the rows used to fit the maps, later innovations should be orthogonal
+to earlier scores. Linear CKA between those innovation blocks should be
+near zero.
+
+```{r diagnostics}
+diag <- hierarchy_diagnostics(fit, blocks)
+diag$innovation[, c("stage", "residual_energy", "fraction_predictable")]
+```
+
+```{r show-cka}
+round(diag$pairwise_cka, 3)
+```
+
+```{r check-diag, include = FALSE}
+stopifnot(abs(diag$pairwise_cka["b1", "b2"]) < 1e-8)
+stopifnot(abs(diag$pairwise_cka["b1", "b3"]) < 1e-8)
+stopifnot(all(diag$innovation$residual_energy >= 0, na.rm = TRUE))
+stopifnot(all(diag$innovation$residual_energy <= 1 + 1e-8, na.rm = TRUE))
+stopifnot(all(is.finite(as.matrix(diag$compression[, c("cka_retained", "recon_error")]))))
+```
+
+Residual energy is the fraction of each compressed stage that remains after
+the earlier stages are projected out. A small value means that stage mostly
+repeated earlier information.
+
+```{r residual-energy-plot, echo = FALSE, fig.width = 6, fig.height = 3.2, fig.alt = "Bar plot of residual energy by stage"}
+op <- par(mar = c(4, 4, 1, 1))
+barplot(
+  diag$innovation$residual_energy,
+  names.arg = diag$innovation$stage,
+  ylim = c(0, 1),
+  ylab = "Residual energy",
+  col = "grey80",
+  border = NA
+)
+par(op)
+```
+
+## Can you apply the same maps to new rows?
+
+Split the simulated movie, fit on the first half, and transform both halves.
+Batch membership cannot change a row: transforming 60 test rows together
+must match transforming any subset of those rows.
+
+```{r held-out}
+train <- subset_feature_blocks(blocks, 1:60)
+test <- subset_feature_blocks(blocks, 61:120)
+fit_half <- fit_hierarchy_transform(recipe, train)
+test_features <- predict(fit_half, test)
+invariance <- check_transform_invariance(fit_half, test)
+```
+
+```{r show-invariance}
+invariance[c("batch_invariant", "permutation_equivariant")]
+```
+
+```{r check-heldout, include = FALSE}
+stopifnot(isTRUE(invariance$batch_invariant))
+stopifnot(isTRUE(invariance$permutation_equivariant))
+held <- hierarchy_diagnostics(fit_half, train, heldout = test)
+stopifnot(is.finite(held$heldout$pairwise_cka["b1", "b2"]))
+```
+
+Held-out CKA is not forced to zero. If it rebounds toward 1, the
+decomposition overfit the training segment.
+
+```{r heldout-cka}
+held <- hierarchy_diagnostics(fit_half, train, heldout = test)
+round(held$heldout$pairwise_cka, 3)
+```
+
+## Where do image models enter?
+
+`vgg16_block_end_spec()` records one tap at the end of each VGG-16 block
+and a depth-adaptive DCT pooler. `extract_feature_hierarchy()` returns the
+named raw blocks; you then fit the same recipe. Temporal alignment such as
+HRF convolution stays outside this package.
+
+```{r spec-example, eval = FALSE}
+spec <- vgg16_block_end_spec()
+raw <- extract_feature_hierarchy(image_paths, spec = spec)
+fit <- fit_hierarchy_transform(recipe, raw)
+```
+
+`residualize_tiers()` remains a compatibility wrapper around the same
+inductive maps.
+
+## Next steps
+
+- `?hierarchy_recipe` and `?fit_hierarchy_transform` for compression and
+  innovation options
+- `?vgg16_block_end_spec` for the default VGG-16 taps
+- `?hierarchy_diagnostics` for stimulus-only checks before any neural data

@@ -174,11 +174,12 @@ fit_hierarchy_transform <- function(recipe, blocks, block_id = NULL) {
 #' Apply a fitted hierarchy transformation
 #'
 #' Row-independent apply path for a \code{\link{fit_hierarchy_transform}}
-#' object. This is the readable alias of \code{predict()}.
+#' object. \code{apply_hierarchy_transform()} is the readable alias of
+#' \code{predict()}.
 #'
 #' @param object A \code{hierarchy_transform}.
-#' @param blocks New blocks with the same stages and columns as the training
-#'   data. A named list or \code{feature_hierarchy}.
+#' @param blocks,newdata New blocks with the same stages and columns as the
+#'   training data. A named list or \code{feature_hierarchy}.
 #' @param ... Unused.
 #'
 #' @return A named list of numeric matrices, one per output band.
@@ -187,11 +188,7 @@ apply_hierarchy_transform <- function(object, blocks, ...) {
   predict(object, blocks, ...)
 }
 
-#' @param object A \code{hierarchy_transform}.
-#' @param newdata New blocks with the same stages and columns as the training
-#'   data. A named list or \code{feature_hierarchy}.
-#' @param ... Unused.
-#' @return A named list of numeric matrices, one per output band.
+#' @rdname apply_hierarchy_transform
 #' @export
 #' @method predict hierarchy_transform
 predict.hierarchy_transform <- function(object, newdata, ...) {
@@ -358,9 +355,9 @@ print.hierarchy_transform <- function(x, ...) {
   score_sds[!is.finite(score_sds) | score_sds < .Machine$double.eps] <- 1
 
   scores <- if (identical(spec$score_weighting, "whitened") && k > 0L) {
-    scale(scores_unweighted, center = FALSE, scale = score_sds + 1e-8)
+    .plain_matrix(scale(scores_unweighted, center = FALSE, scale = score_sds + 1e-8))
   } else {
-    scores_unweighted
+    .plain_matrix(scores_unweighted)
   }
 
   center <- if (!is.null(pca$center)) pca$center else FALSE
@@ -389,9 +386,7 @@ print.hierarchy_transform <- function(x, ...) {
   )
 }
 
-#' Partial PCA via eigencore::svd_partial, returned in prcomp shape.
-#'
-#' @keywords internal
+#' @noRd
 .prcomp_eigencore <- function(X, k, center = TRUE, scale. = FALSE) {
   n <- nrow(X)
   center_v <- if (isTRUE(center)) {
@@ -473,7 +468,16 @@ print.hierarchy_transform <- function(x, ...) {
   if (identical(pca_fit$score_weighting, "whitened")) {
     Z <- scale(Z, center = FALSE, scale = pca_fit$score_sds + 1e-8)
   }
-  Z
+  .plain_matrix(Z)
+}
+
+#' @keywords internal
+.plain_matrix <- function(x) {
+  x <- as.matrix(x)
+  storage.mode(x) <- "double"
+  attr(x, "scaled:center") <- NULL
+  attr(x, "scaled:scale") <- NULL
+  x
 }
 
 #' @keywords internal

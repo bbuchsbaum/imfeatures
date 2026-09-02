@@ -23,7 +23,7 @@ Defaults to "cpu" for quick inspection.}
 
 \item{pretrained}{Logical. Use pretrained model weights? Defaults to TRUE.}
 
-\item{model_parameters}{Named list (optional). Additional parameters for 
+\item{model_parameters}{Named list (optional). Additional parameters for
 specific models (e.g., list(variant = "ViT-B/32") for CLIP).}
 }
 \value{

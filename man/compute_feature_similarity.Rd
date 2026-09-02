@@ -63,8 +63,8 @@ img_paths <- list.files(img_dir, pattern = "\\\\.jpg$", full.names = TRUE)
 # Compute similarity matrix using features from specific layers
 sim_matrix <- compute_feature_similarity(
   impaths = img_paths,
-  layers = c(10, 15),  # Two VGG16 layers
-  model = NULL,  # Use default VGG16
+  layers = c(10, 15), # Two VGG16 layers
+  model = NULL, # Use default VGG16
   target_size = c(224, 224),
   metric = "cosine"
 )
@@ -77,16 +77,16 @@ layer15_sim <- sim_matrix$layer_15
 sim_pooled <- compute_feature_similarity(
   impaths = img_paths,
   layers = c(12),
-  spatial_pooling = "avg",  # Average pool spatial dimensions
+  spatial_pooling = "avg", # Average pool spatial dimensions
   metric = "cosine",
-  lowmem = TRUE  # Memory-efficient computation
+  lowmem = TRUE # Memory-efficient computation
 )
 
 # Use subsampling for very large feature vectors
 sim_subsampled <- compute_feature_similarity(
   impaths = img_paths,
   layers = c(10),
-  subsamp_prop = 0.5,  # Use 50\% of features
+  subsamp_prop = 0.5, # Use 50\% of features
   metric = "euclidean"
 )
 

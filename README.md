@@ -26,6 +26,10 @@ features.
   mid-, high-, or semantic-tier VGG-16 activations. `im_features()` and
   `im_feature_sim()` expose lower-level layer selection and similarity
   matrices.
+- **Feature hierarchies**: `extract_feature_hierarchy()` returns named
+  stage blocks with per-stage poolers. `fit_hierarchy_transform()` then
+  compresses those blocks and applies ordered innovations that can be
+  reused on new images.
 - **Model zoo features**: `im_features_tv()` uses Python `thingsvision`
   for torchvision, timm, SSL, CLIP, and related models.
 - **Vision-language features**: `caption_features()` can generate
