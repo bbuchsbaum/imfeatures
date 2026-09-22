@@ -41,8 +41,8 @@ vgg_hierarchy_spec <- function(architecture = c("vgg16", "vgg19"),
 #' VGG-16 block-end hierarchy with depth-adaptive DCT pooling
 #'
 #' One tap at the end of each convolutional block, plus \code{fc1} and
-#' pre-softmax logits. Spatial modes decrease from \(6\times 6\) in block 1
-#' to \(2\times 2\) in block 5.
+#' pre-softmax logits. Spatial modes decrease from \eqn{6 \times 6} in block 1
+#' to \eqn{2 \times 2} in block 5.
 #'
 #' @inheritParams vgg_hierarchy_spec
 #' @export

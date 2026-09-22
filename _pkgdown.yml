@@ -32,6 +32,7 @@ reference:
   - fit_hierarchy_transform
   - apply_hierarchy_transform
   - residualize_tiers
+  - predict.residualized_tiers
   - vgg_hierarchy_spec
   - vgg16_block_end_spec
   - vgg19_block_end_spec
@@ -50,3 +51,57 @@ reference:
   - effective_rank
   - hierarchy_diagnostics
   - check_transform_invariance
+- title: Feature extraction
+  contents:
+  - extract_features
+  - extract_vgg_features
+  - extract_features_tv
+  - extract_multimodal_features
+  - clip_features
+  - clip_text_features
+  - load_vgg16_places
+  - show_model
+  - im_predict
+  - get_recommended_layers
+  - get_default_module_name
+  - list_module_names
+  - get_transformations
+  - print.vgg_feature_set
+- title: Captions and text
+  contents:
+  - caption_features
+  - caption_features_many
+  - build_caption_prompt
+  - compute_caption_similarity
+  - embed_text
+  - check_caption_provider_auth
+  - list_caption_providers
+  - get_caption_templates
+  - get_caption_focus_areas
+  - get_default_caption_model
+- title: Similarity and metrics
+  contents:
+  - compute_feature_similarity
+  - compute_feature_similarity_tv
+  - compute_edge_entropy
+  - cosine_similarity
+  - image_mse
+  - plot_im_scatter
+- title: ThingsVision backend
+  contents:
+  - tv_get_extractor
+  - tv_extract
+  - tv_extract.thingsvision_extractor
+  - tv_create_dataset
+  - tv_create_dataloader
+  - tv_align.thingsvision_extractor
+  - get_backend
+  - print.thingsvision_extractor
+- title: Setup and configuration
+  contents:
+  - imfeatures_config
+  - install_python_deps
+  - configure_hpc_python
+  - use_existing_python
+  - hpc_setup
+  - places_cat365

@@ -11,6 +11,6 @@ vgg16_block_end_spec(target_size = c(224, 224))
 }
 \description{
 One tap at the end of each convolutional block, plus \code{fc1} and
-pre-softmax logits. Spatial modes decrease from \(6\times 6\) in block 1
-to \(2\times 2\) in block 5.
+pre-softmax logits. Spatial modes decrease from \eqn{6 \times 6} in block 1
+to \eqn{2 \times 2} in block 5.
 }
