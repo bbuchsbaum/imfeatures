@@ -19,6 +19,10 @@ features.
   oriented-edge entropy and pairwise edge entropy across distance
   ranges. It works on grayscale matrices or image paths and does not
   require Python.
+- **Saliency-modulated entropy**: `compute_saliency_features()` weights
+  image edges by an aligned heat map and returns controls and support
+  diagnostics. Separate functions describe map concentration and
+  multiscale spatial entropy.
 - **Multiscale color entropy**: `image_mse()` computes mean multiscale
   entropy for the `H`, `S`, and `V` channels of an `imager::cimg` image.
   This is also R-native.
@@ -59,6 +63,58 @@ img <- matrix(runif(96 * 96), nrow = 96)
 edge <- compute_edge_entropy(img)
 edge[, c("entropy", "pentropy_20_80", "pentropy_80_160", "pentropy_160_240")]
 ```
+
+Weight image structure by an aligned saliency heat map:
+
+``` r
+library(imfeatures)
+img <- outer(1:24, 1:24, function(x, y) sin(x * .6) + cos(y * .4))
+xy <- seq(-1, 1, length.out = nrow(img))
+saliency <- outer(xy, xy, function(x, y) exp(-4 * (x^2 + y^2)))
+attention <- compute_saliency_features(
+  img, saliency, representation = "weights", pairwise = FALSE,
+  filter_length = 7L, gabor_bins = 8L
+)
+attention$features[, c("control", "first_order", "effective_fraction")]
+#>             control first_order effective_fraction
+#> 1          observed    2.852257          0.4728147
+#> 2        unweighted    2.879718          1.0000000
+#> 3       centre_bias    2.925043          0.7762660
+#> 4        flip_axis1    2.852257          0.4728147
+#> 5        flip_axis2    2.852257          0.4728147
+#> 6         rotate180    2.852257          0.4728147
+#> 7          rotate90    2.852257          0.4728147
+#> 8         rotate270    2.852257          0.4728147
+#> 9 donor_unavailable          NA                 NA
+
+# Pairwise features are enabled by default; pairwise = FALSE is a cheaper start.
+# Use representation = "log_density" for natural-log density outputs.
+spatial <- saliency_multiscale_entropy(saliency, "weights")
+spatial$summary
+#>   scale_index   scale block_pixels H_location KL_uniform effective_fraction
+#> 1           1 0.03125            1   8.089272  1.0806533          0.4728147
+#> 2           2 0.06250            2   6.113612  1.0599181          0.4796593
+#> 3           3 0.12500            3   4.979771  1.0261918          0.4910046
+#> 4           4 0.25000            6   3.160796  0.8626650          0.5499451
+#> 5           5 0.50000           12   1.710975  0.4253822          0.7609434
+#>   status
+#> 1     ok
+#> 2     ok
+#> 3     ok
+#> 4     ok
+#> 5     ok
+```
+
+The controls include unweighted edges, a declared Gaussian centre bias,
+and exact flips/rotations. Supply `saliency_donor_assignments()` and
+named donor maps for cross-image controls; without a donor pool those
+controls are explicitly unavailable. These comparisons describe
+model-weighted image structure and do not establish an effect of human
+attention. The new API uses the same geometry and validity rules in both
+backends. Pairwise family contrasts use common valid cells; raw
+unweighted contrasts describe the overall effect of weighting. See
+`vignette("saliency-entropy")` for a runnable workflow,
+concentration-matched controls, support diagnostics, and interpretation.
 
 Compute multiscale HSV entropy for an `imager` image:
 

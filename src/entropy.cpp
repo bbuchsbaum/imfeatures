@@ -14,6 +14,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <climits>
 
 // Uncomment the following line if you enable OpenMP
 // #include <omp.h>
@@ -27,7 +28,7 @@ using namespace arma;
 inline double entropyCpp(const NumericVector &a) {
   double s = 0.0;
   for (double v : a) { s += v; }
-  if (s <= 0.0) return 0.0;
+  if (s <= 0.0) return NA_REAL;
   double inv_s = 1.0 / s;
   double out = 0.0;
   for (double v : a) {
@@ -441,6 +442,62 @@ List do_statistics_cpp(const NumericVector &counts,
   );
 }
 
+// Shared with the saliency path to preserve native reduction order.
+// [[Rcpp::export]]
+NumericVector saliency_range_means_cpp(const NumericMatrix &shannon_nan, const List &range_list) {
+  int d = shannon_nan.nrow();  // maxdiag
+  int a = shannon_nan.ncol();  // circ_bins
+
+  NumericVector rowmeans(d);
+  if (a > 0) {
+      for (int rr = 0; rr < d; rr++) {
+          double sumv = 0.0;
+          int n_valid = 0;
+          for (int cc = 0; cc < a; cc++) {
+              double val = shannon_nan(rr, cc);
+              if (!NumericVector::is_na(val) && !std::isnan(val)) {
+                  sumv += val;
+                  n_valid++;
+              }
+          }
+          rowmeans[rr] = (n_valid > 0) ? (sumv / (double)n_valid) : NA_REAL;
+      }
+  }
+  int nranges = range_list.size();
+  NumericVector final_shannon(nranges, NA_REAL);
+  for (int i = 0; i < nranges; i++) {
+    SEXP range_element = range_list[i];
+    if (!Rf_isInteger(range_element) || Rf_length(range_element) != 2) {
+        warning("Element %d in 'ranges' list is not an integer vector of length 2. Skipping.", i + 1);
+      continue;
+    }
+    IntegerVector rg = as<IntegerVector>(range_element);
+    int start_r = rg[0];
+    int end_r = rg[1];
+    int start_idx = start_r - 1;
+    int end_idx = end_r - 1;
+    if (start_r <= 0 || end_r < start_r) {
+      warning("Invalid range [%d, %d] at index %d. Skipping.", start_r, end_r, i + 1);
+        continue;
+    }
+    double accum = 0.0;
+    int count = 0;
+    for (int idx = start_idx; idx <= end_idx; idx++) {
+      if (idx >= 0 && idx < d) {
+        double val = rowmeans[idx];
+        if (!NumericVector::is_na(val) && !std::isnan(val)) {
+          accum += val;
+          count++;
+        }
+      }
+    }
+    if (count > 0)
+      final_shannon[i] = accum / (double)count;
+  }
+
+  return final_shannon;
+}
+
 // -----------------------------------------------------------------------------
 // 9) MAIN WRAPPER: edge_entropy_cpp
 // -----------------------------------------------------------------------------
@@ -502,58 +559,8 @@ DataFrame edge_entropy_cpp(const NumericMatrix &image,
   // 5) Compute statistics.
   List stats = do_statistics_cpp(cts["counts"], fbank["bins_vec"]);
 
-  // 6) Summarize Shannon entropy over distance ranges.
-  NumericMatrix shannon_nan = stats["shannon_nan"];
-  int d = shannon_nan.nrow();  // maxdiag
-  int a = shannon_nan.ncol();  // circ_bins
+  NumericVector final_shannon = saliency_range_means_cpp(stats["shannon_nan"], range_list);
 
-  NumericVector rowmeans(d);
-  if (a > 0) {
-      for (int rr = 0; rr < d; rr++) {
-          double sumv = 0.0;
-          int n_valid = 0;
-          for (int cc = 0; cc < a; cc++) {
-              double val = shannon_nan(rr, cc);
-              if (!NumericVector::is_na(val) && !std::isnan(val)) {
-                  sumv += val;
-                  n_valid++;
-              }
-          }
-          rowmeans[rr] = (n_valid > 0) ? (sumv / (double)n_valid) : NA_REAL;
-      }
-  }
-  int nranges = range_list.size();
-  NumericVector final_shannon(nranges, NA_REAL);
-  for (int i = 0; i < nranges; i++) {
-    SEXP range_element = range_list[i];
-    if (!Rf_isInteger(range_element) || Rf_length(range_element) != 2) {
-        warning("Element %d in 'ranges' list is not an integer vector of length 2. Skipping.", i + 1);
-      continue;
-    }
-    IntegerVector rg = as<IntegerVector>(range_element);
-    int start_r = rg[0];
-    int end_r = rg[1];
-    int start_idx = start_r - 1;
-    int end_idx = end_r - 1;
-    if (start_r <= 0 || end_r < start_r) {
-      warning("Invalid range [%d, %d] at index %d. Skipping.", start_r, end_r, i + 1);
-        continue;
-    }
-    double accum = 0.0;
-    int count = 0;
-    for (int idx = start_idx; idx <= end_idx; idx++) {
-      if (idx >= 0 && idx < d) {
-        double val = rowmeans[idx];
-        if (!NumericVector::is_na(val) && !std::isnan(val)) {
-          accum += val;
-          count++;
-        }
-      }
-    }
-    if (count > 0)
-      final_shannon[i] = accum / (double)count;
-  }
-  
   double complex_before = cts["complex_before"];
 
   return DataFrame::create(
@@ -564,4 +571,187 @@ DataFrame edge_entropy_cpp(const NumericMatrix &image,
     _["pentropy_160_240"] = (final_shannon.size() >= 3) ? final_shannon[2] : NA_REAL,
     _["complex_before"]   = complex_before
   );
+}
+
+// Cached filter responses let all saliency controls use the same image edges.
+// [[Rcpp::export]]
+List saliency_filter_cpp(const NumericMatrix &image, int gabor_bins, int filter_length) {
+  if (image.nrow() < 1 || image.ncol() < 1 || gabor_bins < 1 ||
+      filter_length < 1 || filter_length % 2 == 0)
+    stop("Invalid filter dimensions.");
+  for (double value : image)
+    if (!R_finite(value)) stop("Image values must be finite.");
+  List bank = filter_bank_cpp(gabor_bins, filter_length);
+  List out = run_filterbank_cpp(image, bank);
+  out["bins_vec"] = bank["bins_vec"];
+  return out;
+}
+
+// [[Rcpp::export]]
+List saliency_statistics_cpp(const NumericVector &counts, const NumericVector &bins_vec) {
+  return do_statistics_cpp(counts, bins_vec);
+}
+
+// Counting and first-order accumulation on fixed responses. Selection and map
+// normalization happen once in R, identically for the native and reference paths.
+// [[Rcpp::export]]
+List saliency_count_cpp(const IntegerMatrix &orientation,
+                        const NumericMatrix &response,
+                        const NumericMatrix &first_weights,
+                        const NumericMatrix &pair_weights,
+                        const LogicalMatrix &selected,
+                        int num_filters, int maxdiag, int circ_bins,
+                        bool pairwise, bool reference_only,
+                        bool r_geometry = false) {
+  int nr = response.nrow(), nc = response.ncol();
+  if (num_filters < 1 || maxdiag < 1 || circ_bins < 1 ||
+      (double)maxdiag * circ_bins * num_filters > INT_MAX)
+    stop("Invalid histogram dimensions.");
+  if (orientation.nrow() != nr || orientation.ncol() != nc ||
+      first_weights.nrow() != nr || first_weights.ncol() != nc ||
+      pair_weights.nrow() != nr || pair_weights.ncol() != nc ||
+      selected.nrow() != nr || selected.ncol() != nc)
+    stop("Response, weights, selection and orientation dimensions must match.");
+  NumericMatrix weighted(nr, nc);
+  double total_weight = 0.0;
+  std::vector<int> xs, ys;
+  for (int r = 0; r < nr; ++r) {
+    for (int c = 0; c < nc; ++c) {
+      double a = response(r,c), t1 = first_weights(r,c), t2 = pair_weights(r,c);
+      int o = orientation(r,c);
+      if (!R_finite(a) || !R_finite(t1) || !R_finite(t2) ||
+          a < 0 || t1 < 0 || t2 < 0 || o < 1 || o > num_filters ||
+          selected(r,c) == NA_LOGICAL)
+        stop("Invalid response, orientation, selection or saliency weights.");
+      weighted(r,c) = a * t1;
+      total_weight += weighted(r,c);
+      if (!R_finite(total_weight)) stop("Weighted response overflow.");
+      if (selected(r,c) && a > 0) { xs.push_back(r); ys.push_back(c); }
+    }
+  }
+  double first = first_order_entropyCpp(orientation, weighted, num_filters);
+  if (!pairwise) return List::create(_["first_order"] = first);
+  NumericVector counts(Dimension(maxdiag, circ_bins, num_filters));
+  NumericVector base_counts(Dimension(maxdiag, circ_bins, num_filters));
+  NumericMatrix squares(maxdiag, circ_bins), base_squares(maxdiag, circ_bins);
+  NumericMatrix pairs(maxdiag, circ_bins), base_pairs(maxdiag, circ_bins);
+  for (size_t cp = 0; cp < xs.size(); ++cp) {
+    if (cp % 64 == 0) checkUserInterrupt();
+    int x0 = xs[cp], y0 = ys[cp], o0 = orientation(x0,y0);
+    for (size_t j = 0; j < xs.size(); ++j) {
+      int x = xs[j], y = ys[j];
+      double dx = x-x0, dy = y-y0;
+      // The R legacy lookup is displaced by one cell on both axes. The
+      // explicit switch permits reference checks without changing old results.
+      double gx = dx - (r_geometry ? 1.0 : 0.0);
+      double gy = dy - (r_geometry ? 1.0 : 0.0);
+      int d = std::min(maxdiag-1, (int)std::nearbyint(std::hypot(gx,gy)));
+      double angle = std::atan2(dy,dx) * ((double)circ_bins / (2*M_PI)) +
+        (double)o0 * ((double)circ_bins / num_filters);
+      int direction = (int)std::nearbyint(angle);
+      direction = (direction % circ_bins + circ_bins) % circ_bins;
+      int relative = (orientation(x,y)-o0+num_filters) % num_filters;
+      int idx = d + maxdiag * (direction + circ_bins * relative);
+      double base = response(x0,y0) * response(x,y);
+      double weight = base * pair_weights(x0,y0);
+      if (!reference_only) weight *= pair_weights(x,y);
+      if (!R_finite(base*base) || !R_finite(weight*weight))
+        stop("Pair weight overflow; rescale the image responses.");
+      counts[idx] += weight;
+      base_counts[idx] += base;
+      squares(d,direction) += weight*weight;
+      base_squares(d,direction) += base*base;
+      if (weight > 0) pairs(d,direction) += 1;
+      if (base > 0) base_pairs(d,direction) += 1;
+    }
+  }
+  return List::create(_["first_order"] = first, _["counts"] = counts,
+    _["squares"] = squares, _["pairs"] = pairs,
+    _["base_counts"] = base_counts, _["base_squares"] = base_squares,
+    _["base_pairs"] = base_pairs);
+}
+
+// Fixed-selection controls share geometry and the unweighted baseline. Keep
+// histograms separate: averaging their entropies is not pooling their counts.
+// [[Rcpp::export]]
+List saliency_count_batch_cpp(const IntegerMatrix &orientation,
+                             const NumericMatrix &response,
+                             const List &first_weights, const List &pair_weights,
+                             const LogicalMatrix &selected,
+                             int num_filters, int maxdiag, int circ_bins,
+                             bool pairwise, bool reference_only) {
+  int k = first_weights.size(), nr = response.nrow(), nc = response.ncol();
+  if (k < 1 || pair_weights.size() != k) stop("Weight lists must have matching positive lengths.");
+  List output(k);
+  // The single-map first-order path validates all inputs and retains the legacy
+  // accumulation order (including exact uniform-map native parity).
+  for (int z = 0; z < k; ++z) {
+    output[z] = saliency_count_cpp(orientation, response, first_weights[z],
+      pair_weights[z], selected, num_filters, maxdiag, circ_bins, false, reference_only);
+  }
+  if (!pairwise) return output;
+
+  std::vector<int> xs, ys, orientations;
+  std::vector<double> strengths;
+  for (int r = 0; r < nr; ++r) for (int c = 0; c < nc; ++c) {
+    if (selected(r,c) && response(r,c) > 0) {
+      xs.push_back(r); ys.push_back(c);
+      orientations.push_back(orientation(r,c)); strengths.push_back(response(r,c));
+    }
+  }
+  size_t n = xs.size();
+  // Contiguous control weights for each endpoint, avoiding repeated R indexing.
+  std::vector<double> weights(n * k);
+  NumericVector base_counts(Dimension(maxdiag, circ_bins, num_filters));
+  NumericMatrix base_squares(maxdiag, circ_bins), base_pairs(maxdiag, circ_bins);
+  // Interleave controls at each histogram cell so a pair updates adjacent
+  // memory rather than touching K distant cache lines for every accumulator.
+  size_t cells = (size_t)maxdiag * circ_bins;
+  size_t bins = cells * num_filters;
+  std::vector<double> counts(bins * k), squares(cells * k), pairs(cells * k);
+  for (int z = 0; z < k; ++z) {
+    NumericMatrix t = pair_weights[z];
+    for (size_t j = 0; j < n; ++j) weights[j*k+z] = t(xs[j],ys[j]);
+  }
+  for (size_t cp = 0; cp < n; ++cp) {
+    if (cp % 64 == 0) checkUserInterrupt();
+    for (size_t j = 0; j < n; ++j) {
+      double dx = xs[j]-xs[cp], dy = ys[j]-ys[cp];
+      int d = std::min(maxdiag-1, (int)std::nearbyint(std::hypot(dx,dy)));
+      double angle = std::atan2(dy,dx) * ((double)circ_bins / (2*M_PI)) +
+        (double)orientations[cp] * ((double)circ_bins / num_filters);
+      int direction = (int)std::nearbyint(angle);
+      direction = (direction % circ_bins + circ_bins) % circ_bins;
+      int relative = (orientations[j]-orientations[cp]+num_filters) % num_filters;
+      int cell = d + maxdiag * direction;
+      int idx = cell + maxdiag * circ_bins * relative;
+      double base = strengths[cp] * strengths[j];
+      if (!std::isfinite(base*base)) stop("Pair weight overflow; rescale the image responses.");
+      base_counts[idx] += base;
+      base_squares[cell] += base*base;
+      if (base > 0) base_pairs[cell] += 1;
+      for (int z = 0; z < k; ++z) {
+        double w = base * weights[cp*k+z];
+        if (!reference_only) w *= weights[j*k+z];
+        if (!std::isfinite(w*w)) stop("Pair weight overflow; rescale the image responses.");
+        counts[(size_t)idx*k+z] += w;
+        squares[(size_t)cell*k+z] += w*w;
+        if (w > 0) pairs[(size_t)cell*k+z] += 1;
+      }
+    }
+  }
+  for (int z = 0; z < k; ++z) {
+    List result = output[z];
+    NumericVector c(Dimension(maxdiag, circ_bins, num_filters));
+    NumericMatrix s(maxdiag, circ_bins), p(maxdiag, circ_bins);
+    for (size_t i = 0; i < bins; ++i) c[i] = counts[i*k+z];
+    for (size_t i = 0; i < cells; ++i) {
+      s[i] = squares[i*k+z]; p[i] = pairs[i*k+z];
+    }
+    result["counts"] = c; result["squares"] = s; result["pairs"] = p;
+    result["base_counts"] = base_counts; result["base_squares"] = base_squares;
+    result["base_pairs"] = base_pairs;
+    output[z] = result;
+  }
+  return output;
 }

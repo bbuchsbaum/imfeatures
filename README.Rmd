@@ -31,6 +31,9 @@ features.
 - **Edge entropy**: `compute_edge_entropy()` measures first-order oriented-edge
   entropy and pairwise edge entropy across distance ranges. It works on
   grayscale matrices or image paths and does not require Python.
+- **Saliency-modulated entropy**: `compute_saliency_features()` weights image
+  edges by an aligned heat map and returns controls and support diagnostics.
+  Separate functions describe map concentration and multiscale spatial entropy.
 - **Multiscale color entropy**: `image_mse()` computes mean multiscale entropy
   for the `H`, `S`, and `V` channels of an `imager::cimg` image. This is also
   R-native.
@@ -70,6 +73,35 @@ img <- matrix(runif(96 * 96), nrow = 96)
 edge <- compute_edge_entropy(img)
 edge[, c("entropy", "pentropy_20_80", "pentropy_80_160", "pentropy_160_240")]
 ```
+
+Weight image structure by an aligned saliency heat map:
+
+```{r saliency}
+library(imfeatures)
+img <- outer(1:24, 1:24, function(x, y) sin(x * .6) + cos(y * .4))
+xy <- seq(-1, 1, length.out = nrow(img))
+saliency <- outer(xy, xy, function(x, y) exp(-4 * (x^2 + y^2)))
+attention <- compute_saliency_features(
+  img, saliency, representation = "weights", pairwise = FALSE,
+  filter_length = 7L, gabor_bins = 8L
+)
+attention$features[, c("control", "first_order", "effective_fraction")]
+
+# Pairwise features are enabled by default; pairwise = FALSE is a cheaper start.
+# Use representation = "log_density" for natural-log density outputs.
+spatial <- saliency_multiscale_entropy(saliency, "weights")
+spatial$summary
+```
+
+The controls include unweighted edges, a declared Gaussian centre bias, and
+exact flips/rotations. Supply `saliency_donor_assignments()` and named donor maps
+for cross-image controls; without a donor pool those controls are explicitly
+unavailable. These comparisons describe model-weighted image structure and do
+not establish an effect of human attention. The new API uses the same geometry
+and validity rules in both backends. Pairwise family contrasts use common valid
+cells; raw unweighted contrasts describe the overall effect of weighting.
+See `vignette("saliency-entropy")` for a runnable workflow, concentration-matched
+controls, support diagnostics, and interpretation.
 
 Compute multiscale HSV entropy for an `imager` image:
 

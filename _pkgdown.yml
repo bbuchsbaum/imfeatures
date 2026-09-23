@@ -21,7 +21,18 @@ articles:
 - title: Feature hierarchies
   contents:
   - feature-hierarchies
+- title: Image entropy
+  contents:
+  - saliency-entropy
 reference:
+- title: Image and saliency entropy
+  contents:
+  - compute_edge_entropy
+  - compute_saliency_features
+  - saliency_location_entropy
+  - saliency_multiscale_entropy
+  - saliency_donor_assignments
+  - image_mse
 - title: Feature hierarchies
   contents:
   - as_feature_hierarchy

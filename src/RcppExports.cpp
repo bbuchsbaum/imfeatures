@@ -11,6 +11,18 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// saliency_range_means_cpp
+NumericVector saliency_range_means_cpp(const NumericMatrix& shannon_nan, const List& range_list);
+RcppExport SEXP _imfeatures_saliency_range_means_cpp(SEXP shannon_nanSEXP, SEXP range_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type shannon_nan(shannon_nanSEXP);
+    Rcpp::traits::input_parameter< const List& >::type range_list(range_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(saliency_range_means_cpp(shannon_nan, range_list));
+    return rcpp_result_gen;
+END_RCPP
+}
 // edge_entropy_cpp
 DataFrame edge_entropy_cpp(const NumericMatrix& image, std::string impath, int maxdiag, int gabor_bins, int filter_length, int circ_bins, SEXP ranges);
 RcppExport SEXP _imfeatures_edge_entropy_cpp(SEXP imageSEXP, SEXP impathSEXP, SEXP maxdiagSEXP, SEXP gabor_binsSEXP, SEXP filter_lengthSEXP, SEXP circ_binsSEXP, SEXP rangesSEXP) {
@@ -28,9 +40,80 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// saliency_filter_cpp
+List saliency_filter_cpp(const NumericMatrix& image, int gabor_bins, int filter_length);
+RcppExport SEXP _imfeatures_saliency_filter_cpp(SEXP imageSEXP, SEXP gabor_binsSEXP, SEXP filter_lengthSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type image(imageSEXP);
+    Rcpp::traits::input_parameter< int >::type gabor_bins(gabor_binsSEXP);
+    Rcpp::traits::input_parameter< int >::type filter_length(filter_lengthSEXP);
+    rcpp_result_gen = Rcpp::wrap(saliency_filter_cpp(image, gabor_bins, filter_length));
+    return rcpp_result_gen;
+END_RCPP
+}
+// saliency_statistics_cpp
+List saliency_statistics_cpp(const NumericVector& counts, const NumericVector& bins_vec);
+RcppExport SEXP _imfeatures_saliency_statistics_cpp(SEXP countsSEXP, SEXP bins_vecSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericVector& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type bins_vec(bins_vecSEXP);
+    rcpp_result_gen = Rcpp::wrap(saliency_statistics_cpp(counts, bins_vec));
+    return rcpp_result_gen;
+END_RCPP
+}
+// saliency_count_cpp
+List saliency_count_cpp(const IntegerMatrix& orientation, const NumericMatrix& response, const NumericMatrix& first_weights, const NumericMatrix& pair_weights, const LogicalMatrix& selected, int num_filters, int maxdiag, int circ_bins, bool pairwise, bool reference_only, bool r_geometry);
+RcppExport SEXP _imfeatures_saliency_count_cpp(SEXP orientationSEXP, SEXP responseSEXP, SEXP first_weightsSEXP, SEXP pair_weightsSEXP, SEXP selectedSEXP, SEXP num_filtersSEXP, SEXP maxdiagSEXP, SEXP circ_binsSEXP, SEXP pairwiseSEXP, SEXP reference_onlySEXP, SEXP r_geometrySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerMatrix& >::type orientation(orientationSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type response(responseSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type first_weights(first_weightsSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type pair_weights(pair_weightsSEXP);
+    Rcpp::traits::input_parameter< const LogicalMatrix& >::type selected(selectedSEXP);
+    Rcpp::traits::input_parameter< int >::type num_filters(num_filtersSEXP);
+    Rcpp::traits::input_parameter< int >::type maxdiag(maxdiagSEXP);
+    Rcpp::traits::input_parameter< int >::type circ_bins(circ_binsSEXP);
+    Rcpp::traits::input_parameter< bool >::type pairwise(pairwiseSEXP);
+    Rcpp::traits::input_parameter< bool >::type reference_only(reference_onlySEXP);
+    Rcpp::traits::input_parameter< bool >::type r_geometry(r_geometrySEXP);
+    rcpp_result_gen = Rcpp::wrap(saliency_count_cpp(orientation, response, first_weights, pair_weights, selected, num_filters, maxdiag, circ_bins, pairwise, reference_only, r_geometry));
+    return rcpp_result_gen;
+END_RCPP
+}
+// saliency_count_batch_cpp
+List saliency_count_batch_cpp(const IntegerMatrix& orientation, const NumericMatrix& response, const List& first_weights, const List& pair_weights, const LogicalMatrix& selected, int num_filters, int maxdiag, int circ_bins, bool pairwise, bool reference_only);
+RcppExport SEXP _imfeatures_saliency_count_batch_cpp(SEXP orientationSEXP, SEXP responseSEXP, SEXP first_weightsSEXP, SEXP pair_weightsSEXP, SEXP selectedSEXP, SEXP num_filtersSEXP, SEXP maxdiagSEXP, SEXP circ_binsSEXP, SEXP pairwiseSEXP, SEXP reference_onlySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerMatrix& >::type orientation(orientationSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type response(responseSEXP);
+    Rcpp::traits::input_parameter< const List& >::type first_weights(first_weightsSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pair_weights(pair_weightsSEXP);
+    Rcpp::traits::input_parameter< const LogicalMatrix& >::type selected(selectedSEXP);
+    Rcpp::traits::input_parameter< int >::type num_filters(num_filtersSEXP);
+    Rcpp::traits::input_parameter< int >::type maxdiag(maxdiagSEXP);
+    Rcpp::traits::input_parameter< int >::type circ_bins(circ_binsSEXP);
+    Rcpp::traits::input_parameter< bool >::type pairwise(pairwiseSEXP);
+    Rcpp::traits::input_parameter< bool >::type reference_only(reference_onlySEXP);
+    rcpp_result_gen = Rcpp::wrap(saliency_count_batch_cpp(orientation, response, first_weights, pair_weights, selected, num_filters, maxdiag, circ_bins, pairwise, reference_only));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_imfeatures_saliency_range_means_cpp", (DL_FUNC) &_imfeatures_saliency_range_means_cpp, 2},
     {"_imfeatures_edge_entropy_cpp", (DL_FUNC) &_imfeatures_edge_entropy_cpp, 7},
+    {"_imfeatures_saliency_filter_cpp", (DL_FUNC) &_imfeatures_saliency_filter_cpp, 3},
+    {"_imfeatures_saliency_statistics_cpp", (DL_FUNC) &_imfeatures_saliency_statistics_cpp, 2},
+    {"_imfeatures_saliency_count_cpp", (DL_FUNC) &_imfeatures_saliency_count_cpp, 11},
+    {"_imfeatures_saliency_count_batch_cpp", (DL_FUNC) &_imfeatures_saliency_count_batch_cpp, 10},
     {NULL, NULL, 0}
 };
 

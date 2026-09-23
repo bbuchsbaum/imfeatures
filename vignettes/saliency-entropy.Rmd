@@ -1,0 +1,322 @@
+---
+title: "Read saliency-weighted image entropy"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Read saliency-weighted image entropy}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE,
+                     fig.width = 7, fig.height = 3.5)
+old_seed <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
+  get(".Random.seed", envir = .GlobalEnv) else NULL
+library(imfeatures)
+```
+
+A saliency map lets you ask two different questions: what image structure
+receives weight, and how that weight is distributed across space.
+`compute_saliency_features()` keeps these quantities separate. Its first-order
+entropy describes the weighted mixture of edge orientations; its pairwise
+entropy describes relative orientations at specified distances and directions.
+Location entropy describes the map itself.
+
+## Start with an aligned image and map
+
+This small synthetic image has a regular grating on the left and noise on the
+right. The map emphasizes the grating. Matrices follow imager's axis convention:
+the first dimension is horizontal. An input map must match the image's original
+grid, including when the image is supplied as a file path.
+
+```{r image-and-map}
+set.seed(104)
+img <- outer(1:72, 1:80, function(x, y) sin(x * .6))
+img[37:72, ] <- matrix(rnorm(36 * 80), 36, 80)
+saliency <- outer(1:72, 1:80, function(x, y)
+  exp(-((x - 21)^2 + (y - 45)^2) / 180))
+```
+
+```{r show-input, echo=FALSE}
+(function() {
+  old_par <- par(mfrow = c(1, 2), mar = c(2, 2, 2, 1))
+  on.exit(par(old_par))
+  image(img, col = gray.colors(128), axes = FALSE, main = "Image")
+  image(saliency, col = hcl.colors(128, "Inferno"), axes = FALSE, main = "Saliency weights")
+})()
+```
+
+Use smaller filters and ranges appropriate to this small image. Distances are
+**inclusive histogram indices**: index 1 contains rounded distance zero. Keep
+pixel scale and viewing geometry consistent when comparing different images.
+
+```{r measure}
+settings <- list(filter_length = 9L, gabor_bins = 8L, circ_bins = 16L,
+                 maxdiag = 100L,
+                 ranges = list(c(5L, 20L), c(21L, 40L), c(41L, 70L)))
+elapsed <- system.time(
+  result <- do.call(compute_saliency_features, c(
+    list(image = img, saliency = saliency, representation = "weights",
+         centre_match = TRUE, scales = c(1/16, 1/8, 1/4, 1/2)), settings))
+)[["elapsed"]]
+result$features[, c("control", "first_order", "effective_fraction",
+                    "first_order_status")]
+```
+
+```{r validate-example, include=FALSE}
+f <- result$features
+stopifnot(is.finite(f$first_order[1]),
+          f$first_order[1] < f$first_order[f$control == "flip_axis1"],
+          result$metadata$counting_groups == 1L,
+          isTRUE(all.equal(f$effective_fraction[1],
+            f$effective_fraction[f$control == "centre_bias_matched"], tolerance = 1e-8)))
+```
+
+The observed first-order entropy is `r round(f$first_order[1], 3)` bits, compared
+with `r round(f$first_order[f$control == "flip_axis1"], 3)` bits when the map is
+flipped onto the other side. This is a localization check on a constructed
+image, not evidence about human attention. The map's `effective_fraction`
+is `r round(f$effective_fraction[1], 3)`: the entropy-equivalent fraction of the
+whole grid receiving weight. It is not a thresholded hotspot area.
+
+## Choose the representation and selection rule
+
+Use `representation = "weights"` for nonnegative maps and `"log_density"` for
+natural-log density outputs. Log values can be negative; `-Inf` means zero mass.
+The package exponentiates stably and normalizes the map. Multiplying raw weights
+by a positive constant, or adding a constant to log densities, leaves results
+unchanged.
+
+```{r representations}
+raw_location <- saliency_location_entropy(saliency, "weights")
+log_location <- saliency_location_entropy(log(saliency) - 1000, "log_density")
+stopifnot(isTRUE(all.equal(raw_location, log_location, tolerance = 1e-10)))
+raw_location
+```
+
+Signed raw maps are rejected by default. `signed_policy = "rectify"` replaces
+negative weights with zero; `"shift"` subtracts a negative minimum. Choose and
+record a policy appropriate to the model: these choices change its map, and
+neither turns arbitrary model scores into calibrated fixation probabilities.
+Zero-mass maps return NA with a status, rather than a uniform fallback.
+
+```{r signed-map}
+saliency_location_entropy(matrix(c(-1, 0, 1, 2), 2), "weights",
+                          signed_policy = "rectify")
+```
+
+Filtering always precedes weighting. First-order entropy uses all positive
+filtered responses. The default `edge_selection = "image"` selects pairwise
+edges by image response, then uses exactly those edges for every control. This
+isolates reweighting. The legacy selection threshold retains the strongest
+10,000 responses on larger images, including cutoff ties; below 10,000 pixels it
+uses the strongest 10% instead. It is not an exact cap when responses tie.
+
+`edge_selection = "saliency"` selects by response times saliency, so low-contrast
+salient edges can enter. It measures the combined effect of selection and
+weighting and may require separate counting passes for different controls.
+
+```{r selection-sensitivity}
+sensitivity <- do.call(compute_saliency_features, c(
+  list(image = img, saliency = saliency, representation = "weights",
+       edge_selection = "saliency", pair_weighting = "reference",
+       transform_controls = FALSE), settings))
+data.frame(control = names(sensitivity$selection),
+           selected_edges = vapply(sensitivity$selection, nrow, integer(1)))
+```
+
+The default `pair_weighting = "both"` weights both endpoints of each ordered
+pair. `"reference"` weights only the reference endpoint: it asks about structure
+around salient reference edges, including nonsalient endpoints. Neither mode
+filters a saliency-multiplied image.
+
+## Read the comparisons before attributing an effect to alignment
+
+Weighting changes the descriptor. It can increase or decrease entropy: a
+concentrated map may emphasize regular structure, diverse structure, or weak
+edges that counterbalance already uneven response strengths. The unweighted
+contrast describes the **overall effect of weighting**. Exact map transforms
+preserve the saliency value distribution and help examine alignment with this
+particular image. Their overlap with image edges and their pair support can
+still change.
+
+The following values were supplied in the feature review. They are an
+illustration for interpreting contrasts, not measurements from the synthetic
+image above or a benchmark of the revised implementation.
+
+```{r review-table, echo=FALSE}
+review <- data.frame(control = c("unweighted", "centre_bias", "flip_axis1", "observed"),
+  effective_fraction = c(1, .78, .34, .34),
+  `20-80` = c(4.489, 4.459, 4.414, 4.292),
+  `80-160` = c(4.443, 4.370, 4.262, 4.239),
+  `160-240` = c(4.399, 4.375, 4.234, 4.247), check.names = FALSE)
+knitr::kable(review, digits = 3, caption = "Illustrative review values; entropy in bits")
+delta_unweighted <- unlist(review[4, 3:5] - review[1, 3:5])
+delta_flipped <- unlist(review[4, 3:5] - review[3, 3:5])
+knitr::kable(rbind(`Observed minus unweighted` = delta_unweighted,
+                  `Observed minus flipped` = delta_flipped), digits = 3)
+```
+
+All three observed-minus-unweighted values are negative. Against the flipped
+map, the additional reduction is mainly short-range; the long-range difference
+is slightly positive. This one example does not establish a general effect.
+Moreover, those raw summaries may use different valid cells, so they cannot
+alone isolate a change within the same distance-direction cells.
+
+The revised API returns individual common-support contrasts alongside the raw
+differences:
+
+```{r common-support}
+result$ranges[result$ranges$control == "flip_axis1",
+  c("start", "end", "observed_minus_control", "observed_minus_control_common",
+    "common_valid_cell_coverage", "common_status")]
+```
+
+`observed_minus_control_common` intersects the two maps' valid cells before
+averaging. Both maps use equal weight for shared directions at each distance,
+then equal weight for retained distances. `common_valid_cell_coverage` records
+how much of the range survived this intersection.
+
+The signs of first-order and pairwise contrasts differ in this constructed
+example. These measures describe different distributions: marginal orientations
+versus relative orientations conditional on distance and direction. There is no
+requirement that weighting move them together.
+
+For a family summary, the intersection includes the observed map and **all
+usable distinct maps in that family**. This is more restrictive than separate
+pairwise intersections. Identity-equivalent maps and repeated copies within a
+family receive no extra votes. The mean and SD describe the control values;
+the SD is not a standard error or a permutation-test uncertainty estimate.
+
+```{r family-summary}
+result$comparisons[, c("family", "metric", "range_id", "observed_minus_control_mean",
+                       "n_controls", "common_valid_cell_coverage", "status")]
+```
+
+The observed rows of `features` and `ranges` also contain
+`observed_minus_transform_mean` and `observed_minus_donor_mean`. The pairwise
+versions always use the family-wide common support. Other control rows have NA
+in these columns. An unavailable donor pool remains explicit in these results.
+
+The fixed `centre_bias` map uses `centre_sigma = .25`. With
+`centre_match = TRUE`, a second map, `centre_bias_matched`, fits an isotropic
+Gaussian in normalized image coordinates to the observed effective fraction.
+Matching this one entropy value does not match shape, multimodality, edge overlap
+or pair support. The fit can be unattainable on a discrete grid, for example a
+one-pixel point mass versus a centred Gaussian on an even-by-even grid. Inspect
+the fit status and achieved fraction rather than assuming success.
+
+```{r centre-fit}
+result$metadata$controls$centre_bias_matched
+```
+
+## Use whole donor maps with declared matching
+
+Donors come from other stimuli, with model, preprocessing and aspect ratio
+matched by declared strata. They preserve their own concentration, not
+necessarily the observed map's. Include a concentration stratum if your study
+requires one, and inspect the achieved fractions after resizing. Keep donor and
+transform summaries separate: a pooled mean would change its meaning when the
+number of donor replicates changes. No pixel permutation is used.
+
+Here the donor maps are synthetic stand-ins for two other images' maps.
+
+```{r donor-controls}
+donor_maps <- list(
+  donor_a = outer(1:72, 1:80, function(x, y) exp(-((x-55)^2+(y-30)^2)/180)),
+  donor_b = outer(1:72, 1:80, function(x, y) exp(-((x-40)^2+(y-65)^2)/350))
+)
+assignments <- saliency_donor_assignments(
+  c("scene", "donor_a", "donor_b"), rep("same-grid-model-processing", 3),
+  replicates = 2L, seed = 7L
+)
+with_donors <- do.call(compute_saliency_features, c(
+  list(image = img, saliency = saliency, representation = "weights",
+       image_id = "scene", donor_maps = donor_maps, donor_assignments = assignments),
+  settings))
+with_donors$comparisons[with_donors$comparisons$family == "donor",
+  c("metric", "range_id", "n_requested", "n_controls", "controls_used",
+    "observed_minus_control_mean", "status")]
+```
+
+Assignments exclude the same stimulus, including alternate versions identified
+with `stimulus_ids`. Random-number state is restored. Randomized matching does
+not sample all admissible permutations uniformly, so these are descriptive
+controls, not calibrated permutation p-values.
+
+## Inspect support and resizing
+
+```{r support}
+result$ranges[result$ranges$control == "observed",
+  c("start", "end", "entropy", "mass_fraction", "effective_pairs_ratio",
+    "valid_cell_coverage", "status")]
+```
+
+`effective_pairs_ratio` compares Kish effective counts with the unweighted
+counts on the **same selected edges**. A value of 0.22 describes a reduction in
+weight spread relative to that baseline, not retention of 22% of independent
+observations. Pairs share endpoints. Effective count is not an upper bound on
+categorical entropy and is not an automatic bias correction.
+
+Low `valid_cell_coverage` means the summary represents only part of its nominal
+range. Inspect `result$cells$observed` to find which cells are missing or have
+concentrated weights. Compact hotspots can leave long ranges unavailable even
+when some positive mass reaches those distances. NA is distinct from a valid
+entropy of zero. `validity = "support"` requires explicit
+`min_cell_mass_fraction` and `min_effective_pairs`; these replace the legacy mass
+cutoff. `min_common_coverage` can additionally reject comparisons with too little
+shared coverage. Its default zero requires at least one shared cell and does
+not certify adequate support for a scientific interpretation.
+
+Both backends of this new API use Euclidean geometry and the native legacy
+validity rule. The historical R conventions remain in
+`compute_edge_entropy(use_cpp = FALSE)`. Uniform saliency retains native legacy
+results; ordinary numerical tolerance applies to comparisons between backends.
+
+Map downsampling uses area averaging, upsampling uses linear interpolation, and
+mass is renormalized afterward. These operations can change concentration.
+Observed and donor metadata record location metrics before and after resizing.
+The default donor aspect-ratio tolerance is 1%, intended for small grid-rounding
+differences, not for accepting a different field of view. Keep smoothing and
+viewing geometry consistent across images; record model and smoothing details
+with `provenance`. No additional smoothing is applied here.
+
+## Examine spatial organization at several scales
+
+```{r multiscale}
+curve <- result$multiscale$observed$summary
+plot(curve$scale, curve$effective_fraction, type = "b", log = "x",
+     xlab = "Block size / shorter image dimension",
+     ylab = "Effective fraction", ylim = c(0, 1))
+```
+
+The curve aggregates probability into blocks at several shifted grid origins.
+Boundary blocks use their actual areas in the uniform reference. Inspect
+`result$multiscale$observed$curve` for individual origins. This is multiscale
+location entropy, not second-order entropy; it describes clustering without
+uniquely identifying the number or arrangement of hotspots. Use degrees of
+visual angle with `scale_units = "degrees"` and `pixels_per_degree` when that
+calibration is available. Arbitrary resampling and smoothing are not invariances.
+
+## Plan runtime
+
+The main example above took `r format(round(elapsed, 3), nsmall = 3)` seconds in
+this build. It uses a 72-by-80 image and reduced filters and bins, so this is not
+a prediction for full-size stimuli. Pairwise work grows quadratically with the
+number of selected edges and roughly linearly with the number of controls after
+sharing geometry. Default image selection shares one geometry pass and one
+unweighted baseline across controls. Saliency-based selection may require
+separate passes, and ties can increase the selected edge count above 10,000.
+
+Use `pairwise = FALSE` for first-order and map descriptors alone. Benchmark a
+representative image with `system.time()` before processing a corpus; record
+image dimensions, selected edge counts, controls, bins and backend. The R
+backend provides a slower reference implementation. Neither a smoke test nor
+this small runnable example establishes production throughput.
+
+```{r restore-rng, include=FALSE}
+if (is.null(old_seed)) {
+  if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
+    rm(".Random.seed", envir = .GlobalEnv)
+} else assign(".Random.seed", old_seed, envir = .GlobalEnv)
+```

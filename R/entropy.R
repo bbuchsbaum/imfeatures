@@ -579,6 +579,10 @@ compute_edge_entropy <- function(image, max_pixels = 120000L, maxdiag = 500L, ga
         stop("Image must be a numeric matrix/array with at least 2 dimensions")
       }
 
+      # imager keeps singleton depth/channel dimensions. as.matrix() on that
+      # four-dimensional array collapses it to one column, losing image geometry.
+      image_matrix <- matrix(image_matrix, nrow = fimg$image_size[1], ncol = fimg$image_size[2])
+
       result <- edge_entropy_cpp(
         image = as.matrix(image_matrix),
         impath = impath,
