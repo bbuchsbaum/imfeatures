@@ -1,8 +1,8 @@
 ---
-title: "Read saliency-weighted image entropy"
+title: "Measuring image structure with saliency maps"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Read saliency-weighted image entropy}
+  %\VignetteIndexEntry{Measuring image structure with saliency maps}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -15,19 +15,48 @@ old_seed <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
 library(imfeatures)
 ```
 
-A saliency map lets you ask two different questions: what image structure
-receives weight, and how that weight is distributed across space.
-`compute_saliency_features()` keeps these quantities separate. Its first-order
-entropy describes the weighted mixture of edge orientations; its pairwise
-entropy describes relative orientations at specified distances and directions.
-Location entropy describes the map itself.
+An image can contain very different kinds of structure in different places.
+Think of regular stripes on one side and a patch of visual noise on the other.
+A measurement of the whole image combines information from both regions. What
+if you want the measurement to give more importance to one region?
 
-## Start with an aligned image and map
+A **saliency map** supplies a weight for each location in the image. It is often
+shown as a heat map: brighter locations receive more weight. The values might
+come from a model that predicts where people will look, or from a region you
+have chosen to study. Here we will construct a simple map ourselves, so we know
+exactly which part of the image it emphasizes.
 
-This small synthetic image has a regular grating on the left and noise on the
-right. The map emphasizes the grating. Matrices follow imager's axis convention:
-the first dimension is horizontal. An input map must match the image's original
-grid, including when the image is supplied as a file path.
+The package uses **entropy** to summarize how spread out a distribution is.
+For edge orientations, low entropy means that a few orientations account for
+most of the edge strength; higher entropy means that strength is spread more
+evenly across orientations. Regular stripes and visual noise therefore provide
+a useful first example.
+
+`compute_saliency_features()` returns three kinds of measurements:
+
+- **First-order edge entropy:** how varied are the edge orientations in the
+  regions receiving weight? This pools orientations across locations.
+- **Pairwise (second-order) edge entropy:** how varied are the orientation
+  relationships between edges at particular distances and directions from one
+  another? This also takes their spatial arrangement into account.
+- **Location entropy:** how concentrated is the heat map itself? A small bright
+  spot concentrates weight in a small area; a broadly spread map distributes it
+  over more of the image.
+
+The distinction matters because the same bright spot can fall on either stripes
+or noise. Moving that spot preserves the map's concentration but changes which
+image features receive weight. We will use this idea to interpret the results.
+
+## Build an example we can recognize by eye
+
+We will put vertical stripes on the left and random noise on the right, then
+place the heat map's bright spot over the stripes. Later, we will flip the map
+so that it emphasizes the noise. We expect the stripes to have lower
+first-order edge entropy because their edges occupy fewer orientations.
+
+The code below creates two matrices: `img` holds the image values and `saliency`
+holds the weights. Each weight belongs to the pixel at the same position in
+`img`.
 
 ```{r image-and-map}
 set.seed(104)
@@ -46,9 +75,31 @@ saliency <- outer(1:72, 1:80, function(x, y)
 })()
 ```
 
-Use smaller filters and ranges appropriate to this small image. Distances are
-**inclusive histogram indices**: index 1 contains rounded distance zero. Keep
-pixel scale and viewing geometry consistent when comparing different images.
+In the figure, brighter colors in the heat map mean that those parts of the
+image will contribute more to the weighted edge measurements. For your own
+data, check that the image and map have the same dimensions and orientation,
+and cover the same area. A bright spot should sit over the feature you intend
+to emphasize. With imager's matrix convention, the first dimension runs
+horizontally. If you supply an image file, supply a map on that file's original
+pixel grid; the function will resize them together if needed.
+
+## Measure the image with and without the heat map
+
+The function first detects edges in the image, then uses the map to weight
+their contribution. Start by comparing three rows in its output:
+
+- `observed` uses the map we supplied, with its bright spot over the stripes.
+- `unweighted` gives every location the same saliency weight. Stronger image
+  edges still contribute more than weaker ones.
+- `flip_axis1` flips the supplied map horizontally, moving the bright spot
+  onto the noise while leaving the image unchanged.
+
+The function also returns other comparison maps, which we will explain below.
+We use smaller filters and distance ranges to suit this small example. The
+`ranges` entries specify inclusive histogram indices: index 1 represents
+rounded distance zero, so indices 5 through 20 represent rounded distances
+4 through 19 pixels. Keep pixel scale and viewing geometry consistent when
+comparing different images.
 
 ```{r measure}
 settings <- list(filter_length = 9L, gabor_bins = 8L, circ_bins = 16L,
@@ -59,8 +110,10 @@ elapsed <- system.time(
     list(image = img, saliency = saliency, representation = "weights",
          centre_match = TRUE, scales = c(1/16, 1/8, 1/4, 1/2)), settings))
 )[["elapsed"]]
-result$features[, c("control", "first_order", "effective_fraction",
-                    "first_order_status")]
+result$features[
+  result$features$control %in% c("observed", "unweighted", "flip_axis1"),
+  c("control", "first_order", "effective_fraction")
+]
 ```
 
 ```{r validate-example, include=FALSE}
@@ -72,12 +125,20 @@ stopifnot(is.finite(f$first_order[1]),
             f$effective_fraction[f$control == "centre_bias_matched"], tolerance = 1e-8)))
 ```
 
-The observed first-order entropy is `r round(f$first_order[1], 3)` bits, compared
-with `r round(f$first_order[f$control == "flip_axis1"], 3)` bits when the map is
-flipped onto the other side. This is a localization check on a constructed
-image, not evidence about human attention. The map's `effective_fraction`
-is `r round(f$effective_fraction[1], 3)`: the entropy-equivalent fraction of the
-whole grid receiving weight. It is not a thresholded hotspot area.
+With the heat map over the stripes, first-order entropy is
+`r round(f$first_order[1], 3)` bits. Flipping the map onto the noise raises it to
+`r round(f$first_order[f$control == "flip_axis1"], 3)` bits. The measurement is
+responding to the part of the image we emphasized, as intended. Because we made
+this map ourselves, this example tells us about the weighting calculation; it
+does not tell us where a person would actually look.
+
+The `effective_fraction` column describes the map's concentration on a scale
+from a single pixel's fraction of the image up to 1. A uniform map has a value
+of 1. Our map has a value of `r round(f$effective_fraction[1], 3)`: it has the
+same location entropy as distributing weight equally over approximately
+`r round(100 * f$effective_fraction[1])`% of the image. This is a summary of the
+whole weight distribution, rather than an area obtained by drawing a boundary
+around the bright spot. Flipping the map preserves this value.
 
 ## Choose the representation and selection rule
 
@@ -105,9 +166,11 @@ saliency_location_entropy(matrix(c(-1, 0, 1, 2), 2), "weights",
                           signed_policy = "rectify")
 ```
 
-Filtering always precedes weighting. First-order entropy uses all positive
-filtered responses. The default `edge_selection = "image"` selects pairwise
-edges by image response, then uses exactly those edges for every control. This
+The edge filters assign each location a strength, called its **response**, and
+an orientation. First-order entropy uses all positive responses. Pairwise
+entropy uses a subset of edges to keep computation manageable. The default
+`edge_selection = "image"` selects them by response strength, then uses exactly
+those edges for every comparison map. This
 isolates reweighting. The legacy selection threshold retains the strongest
 10,000 responses on larger images, including cutoff ties; below 10,000 pixels it
 uses the strongest 10% instead. It is not an exact cap when responses tie.
@@ -121,8 +184,9 @@ sensitivity <- do.call(compute_saliency_features, c(
   list(image = img, saliency = saliency, representation = "weights",
        edge_selection = "saliency", pair_weighting = "reference",
        transform_controls = FALSE), settings))
-data.frame(control = names(sensitivity$selection),
-           selected_edges = vapply(sensitivity$selection, nrow, integer(1)))
+selected <- sensitivity$selection[c("observed", "unweighted")]
+data.frame(control = names(selected),
+           selected_edges = vapply(selected, nrow, integer(1)))
 ```
 
 The default `pair_weighting = "both"` weights both endpoints of each ordered
@@ -130,7 +194,21 @@ pair. `"reference"` weights only the reference endpoint: it asks about structure
 around salient reference edges, including nonsalient endpoints. Neither mode
 filters a saliency-multiplied image.
 
-## Read the comparisons before attributing an effect to alignment
+## Compare the original map with alternatives
+
+To understand a weighted result, keep the image fixed and change the map.
+These alternative maps are **controls**: they help you ask what accounts for a
+difference in entropy. Alongside the unweighted image, the function provides:
+
+- **A centre map**, labelled `centre_bias`, which puts more weight near the
+  middle of the image regardless of its content.
+- **Flipped or rotated versions of the supplied map**, which preserve its
+  weight values but move them relative to image features. The earlier
+  `flip_axis1` comparison is one example.
+- **Maps borrowed from other images**, when you supply them. The API calls
+  each borrowed map a **donor map**. This lets you compare the image's own
+  saliency map with maps associated with other images, without breaking those
+  maps into randomly shuffled pixels.
 
 Weighting changes the descriptor. It can increase or decrease entropy: a
 concentrated map may emphasize regular structure, diverse structure, or weak
@@ -139,6 +217,10 @@ contrast describes the **overall effect of weighting**. Exact map transforms
 preserve the saliency value distribution and help examine alignment with this
 particular image. Their overlap with image edges and their pair support can
 still change.
+
+Here, **alignment** means where the map's high weights fall relative to image
+features. In our example, the bright spot's alignment with stripes rather than
+noise explains why moving it changes first-order entropy.
 
 The following values were supplied in the feature review. They are an
 illustration for interpreting contrasts, not measurements from the synthetic
@@ -160,11 +242,13 @@ knitr::kable(rbind(`Observed minus unweighted` = delta_unweighted,
 All three observed-minus-unweighted values are negative. Against the flipped
 map, the additional reduction is mainly short-range; the long-range difference
 is slightly positive. This one example does not establish a general effect.
-Moreover, those raw summaries may use different valid cells, so they cannot
-alone isolate a change within the same distance-direction cells.
+Moreover, those raw summaries may average different combinations of distances
+and directions. Each such combination is called a **cell**. A cell is left out
+if it has too little weighted edge-pair support under the chosen validity rule.
 
-The revised API returns individual common-support contrasts alongside the raw
-differences:
+To compare the same cells, we can restrict both maps' calculations to the cells
+that are available for both. This is called **common support**. The output
+includes this comparison alongside the original difference:
 
 ```{r common-support}
 result$ranges[result$ranges$control == "flip_axis1",
@@ -182,11 +266,14 @@ example. These measures describe different distributions: marginal orientations
 versus relative orientations conditional on distance and direction. There is no
 requirement that weighting move them together.
 
-For a family summary, the intersection includes the observed map and **all
-usable distinct maps in that family**. This is more restrictive than separate
-pairwise intersections. Identity-equivalent maps and repeated copies within a
-family receive no extra votes. The mean and SD describe the control values;
-the SD is not a standard error or a permutation-test uncertainty estimate.
+The output also summarizes controls in two groups, called **families**: flipped
+or rotated maps (`transformed`), and maps from other images (`donor`). Within
+each group, it keeps cells available for the observed map and **all usable
+distinct comparison maps**. This is more restrictive than comparing two maps
+at a time. A transformation that leaves the map unchanged is excluded, and
+repeated copies of the same map receive no extra votes. The mean and SD describe
+the control values; the SD is not a standard error or a permutation-test
+uncertainty estimate.
 
 ```{r family-summary}
 result$comparisons[, c("family", "metric", "range_id", "observed_minus_control_mean",
@@ -196,7 +283,8 @@ result$comparisons[, c("family", "metric", "range_id", "observed_minus_control_m
 The observed rows of `features` and `ranges` also contain
 `observed_minus_transform_mean` and `observed_minus_donor_mean`. The pairwise
 versions always use the family-wide common support. Other control rows have NA
-in these columns. An unavailable donor pool remains explicit in these results.
+in these columns. Because we have not yet supplied maps from other images,
+that group's summary is unavailable. We add them in the next section.
 
 The fixed `centre_bias` map uses `centre_sigma = .25`. With
 `centre_match = TRUE`, a second map, `centre_bias_matched`, fits an isotropic
@@ -210,31 +298,40 @@ the fit status and achieved fraction rather than assuming success.
 result$metadata$controls$centre_bias_matched
 ```
 
-## Use whole donor maps with declared matching
+## Add comparison maps from other images
 
-Donors come from other stimuli, with model, preprocessing and aspect ratio
-matched by declared strata. They preserve their own concentration, not
-necessarily the observed map's. Include a concentration stratum if your study
-requires one, and inspect the achieved fractions after resizing. Keep donor and
-transform summaries separate: a pooled mean would change its meaning when the
-number of donor replicates changes. No pixel permutation is used.
+For a collection of images, you can ask whether each image's own saliency map
+produces a different result from maps associated with the other images. First,
+choose which images are suitable comparisons: they should have compatible
+aspect ratios and maps produced by the same model and preprocessing steps.
+`saliency_donor_assignments()` then chooses which other image's map to use for
+each target image.
 
-Here the donor maps are synthetic stand-ins for two other images' maps.
+The `strata` argument expresses these matching groups: only images with the
+same group label can exchange maps. This does not automatically match map
+concentration. Add concentration to your grouping rule if your study requires
+it, and inspect the effective fractions after any resizing. A borrowed map
+retains its own pattern of weights, which may be more or less concentrated
+than the target image's map.
+
+Here we create synthetic stand-ins for two other images' maps. We label all
+three images as belonging to the same matching group and request two sets of
+assignments with `replicates = 2L`.
 
 ```{r donor-controls}
-donor_maps <- list(
-  donor_a = outer(1:72, 1:80, function(x, y) exp(-((x-55)^2+(y-30)^2)/180)),
-  donor_b = outer(1:72, 1:80, function(x, y) exp(-((x-40)^2+(y-65)^2)/350))
+other_maps <- list(
+  other_a = outer(1:72, 1:80, function(x, y) exp(-((x-55)^2+(y-30)^2)/180)),
+  other_b = outer(1:72, 1:80, function(x, y) exp(-((x-40)^2+(y-65)^2)/350))
 )
 assignments <- saliency_donor_assignments(
-  c("scene", "donor_a", "donor_b"), rep("same-grid-model-processing", 3),
+  c("scene", "other_a", "other_b"), rep("same-grid-model-processing", 3),
   replicates = 2L, seed = 7L
 )
-with_donors <- do.call(compute_saliency_features, c(
+with_other_maps <- do.call(compute_saliency_features, c(
   list(image = img, saliency = saliency, representation = "weights",
-       image_id = "scene", donor_maps = donor_maps, donor_assignments = assignments),
+       image_id = "scene", donor_maps = other_maps, donor_assignments = assignments),
   settings))
-with_donors$comparisons[with_donors$comparisons$family == "donor",
+with_other_maps$comparisons[with_other_maps$comparisons$family == "donor",
   c("metric", "range_id", "n_requested", "n_controls", "controls_used",
     "observed_minus_control_mean", "status")]
 ```
@@ -243,6 +340,12 @@ Assignments exclude the same stimulus, including alternate versions identified
 with `stimulus_ids`. Random-number state is restored. Randomized matching does
 not sample all admissible permutations uniformly, so these are descriptive
 controls, not calibrated permutation p-values.
+
+Keep these summaries separate from those for flipped or rotated maps. Combining
+them into one mean would make the result depend on how many assignments from
+other images you requested. The output reports `n_requested` and `n_controls`
+separately because repeated assignments can reuse a map; each distinct map
+receives one vote in the summary.
 
 ## Inspect support and resizing
 
@@ -275,9 +378,10 @@ results; ordinary numerical tolerance applies to comparisons between backends.
 
 Map downsampling uses area averaging, upsampling uses linear interpolation, and
 mass is renormalized afterward. These operations can change concentration.
-Observed and donor metadata record location metrics before and after resizing.
-The default donor aspect-ratio tolerance is 1%, intended for small grid-rounding
-differences, not for accepting a different field of view. Keep smoothing and
+Metadata for the supplied map and maps from other images record location metrics
+before and after resizing. For maps from other images, the default aspect-ratio
+tolerance is 1%, intended for small grid-rounding differences, not for accepting
+a different field of view. Keep smoothing and
 viewing geometry consistent across images; record model and smoothing details
 with `provenance`. No additional smoothing is applied here.
 
