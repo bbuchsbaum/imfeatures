@@ -75,14 +75,14 @@ def register_hook_on_submodule_helper(model, module_path_str, r_hooks_env, key_f
   pil <- reticulate::import("PIL.Image", delay_load = TRUE)
   torch <- reticulate::import("torch", delay_load = TRUE)
 
-  # Corrected multiple assignment
+  # OpenCLIP returns (model, preprocess_train, preprocess_val).
   model_and_transforms <- oc$create_model_and_transforms(
     model_name,
     pretrained = "openai", # or other pretrained weights like 'laion2b_s34b_b79k'
     device = device
   )
   model <- model_and_transforms[[1]]
-  preprocess <- model_and_transforms[[2]]
+  preprocess <- model_and_transforms[[3]] # Validation preprocessing avoids random training augmentation.
   model$eval()
 
   # ------------------------------------------------------------------

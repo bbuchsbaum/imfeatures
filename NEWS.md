@@ -1,5 +1,7 @@
 # imfeatures 0.1.0 (development)
 
+- Use OpenCLIP validation preprocessing in `clip_features()` instead of random
+  training augmentation when extracting image features (#51).
 - **Recompute affected file-input edge entropy analyses:** file paths passed to
   `compute_edge_entropy()` with `use_cpp = TRUE` (the default) were flattened
   into one column by an array-to-matrix conversion. Both spatial dimensions are
