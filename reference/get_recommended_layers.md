@@ -34,7 +34,7 @@ Character vector of module names.
 
 ``` r
 if (FALSE) { # \dontrun{
-get_recommended_layers("resnet50", level = "high")   # "avgpool"
-get_recommended_layers("resnet50", level = "multi")  # c("layer3", "layer4", "avgpool")
+get_recommended_layers("resnet50", level = "high") # "avgpool"
+get_recommended_layers("resnet50", level = "multi") # c("layer3", "layer4", "avgpool")
 } # }
 ```

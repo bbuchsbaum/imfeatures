@@ -41,8 +41,8 @@ For unknown models, returns "avgpool" as a reasonable default.
 
 ``` r
 if (FALSE) { # \dontrun{
-get_default_module_name("resnet50")  # Returns "avgpool"
-get_default_module_name("vgg16")     # Returns "classifier.6"
-get_default_module_name("clip")      # Returns "visual"
+get_default_module_name("resnet50") # Returns "avgpool"
+get_default_module_name("vgg16") # Returns "classifier.6"
+get_default_module_name("clip") # Returns "visual"
 } # }
 ```

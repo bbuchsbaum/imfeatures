@@ -16,7 +16,8 @@ compute_edge_entropy(
   circ_bins = 48L,
   ranges = list(c(20, 80), c(80, 160), c(160, 240)),
   use_cpp = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  boundary = c("zero", "reflect")
 )
 
 edge_entropy(
@@ -28,7 +29,8 @@ edge_entropy(
   circ_bins = 48L,
   ranges = list(c(20, 80), c(80, 160), c(160, 240)),
   use_cpp = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  boundary = c("zero", "reflect")
 )
 ```
 
@@ -81,6 +83,15 @@ edge_entropy(
 
   Logical. If TRUE, print detailed progress messages.
 
+- boundary:
+
+  How the Gabor convolution treats pixels outside the image. `"zero"`
+  (the default, unchanged from earlier versions) pads with zeros, which
+  creates an artificial step edge along the image frame; only a 2-pixel
+  border of responses is discarded, so frame responses about 3–4 pixels
+  deep can survive the response cutoff. `"reflect"` mirrors the image
+  across its edges and avoids that artifact. See Details.
+
 ## Value
 
 A data frame with the following columns:
@@ -117,6 +128,15 @@ different orientations and measures both first-order entropy
 (distribution of dominant orientations) and pairwise entropy (how
 orientation relationships vary with distance and direction).
 
+**Image boundary.** With `boundary = "zero"` the frame of the image
+behaves like a high-contrast straight edge at 0 and 90 degrees. On
+full-frame natural photographs this changes features little, but on
+images with large uniform regions (for example an object on a plain
+background) the frame can contribute a substantial share of the
+strongest responses and distort pairwise entropy, especially at long
+distances. `"reflect"` is recommended for new analyses; keep `"zero"` to
+reproduce earlier results. Both backends honour `boundary`.
+
 The C++ implementation is substantially faster for larger images but
 requires the same inputs. It automatically converts the ranges list to
 the required format for the C++ function.
@@ -126,12 +146,12 @@ the required format for the C++ function.
 ``` r
 # \donttest{
 # Example 1: Using a matrix with default parameters
-img_matrix <- matrix(runif(100*100), nrow=100)
+img_matrix <- matrix(runif(100 * 100), nrow = 100)
 result <- compute_edge_entropy(img_matrix)
-print(result$entropy)  # First-order orientation entropy
-#> [1] 4.581683
-print(result$pentropy_20_80)  # Pairwise entropy for distance range 20-80
-#> [1] 4.581904
+print(result$entropy) # First-order orientation entropy
+#> [1] 4.581809
+print(result$pentropy_20_80) # Pairwise entropy for distance range 20-80
+#> [1] 4.581932
 
 # Example 2: Load and process an image file
 library(imager)
@@ -153,36 +173,36 @@ library(imager)
 img <- load.example("coins")
 gray_img <- grayscale(img)
 #> Warning: Image appears to already be in grayscale mode
-img_array <- as.array(gray_img)[,,1,1]
+img_array <- as.array(gray_img)[, , 1, 1]
 
 # Compute edge entropy with custom parameters
 result_custom <- compute_edge_entropy(
   image = img_array,
-  gabor_bins = 32L,  # More orientation bins
-  filter_length = 41L,  # Larger filter for coarser features
-  circ_bins = 64L,  # More angular bins
-  use_cpp = TRUE  # Use fast C++ implementation
+  gabor_bins = 32L, # More orientation bins
+  filter_length = 41L, # Larger filter for coarser features
+  circ_bins = 64L, # More angular bins
+  use_cpp = TRUE # Use fast C++ implementation
 )
 
 # Example 3: Compare R and C++ implementations
-small_img <- matrix(runif(50*50), nrow=50)
+small_img <- matrix(runif(50 * 50), nrow = 50)
 result_r <- compute_edge_entropy(small_img, use_cpp = FALSE, verbose = TRUE)
 #> [R] filter_bank: First Gabor filter range: [-0.599173185452427, 0.599173185452427], Sum = -8.80221613286648e-17
-#> [R] run_filterbank: Input image range: [2.5581568479538e-05, 0.998988696141168], Mean = 0.506527143447753
-#> [R] run_filterbank: First convolution result (conv) range: [-3.41757949879452, 2.96181634218024], Sum = -125.034634143302
-#> [R] run_filterbank: Range resp_val (after border zero): [0, 1.95445907452918]
-#> [R] do_counting: Range resp_val (input): [0, 1.95445907452918]
-#> [R] do_counting: Calculated cutoff (k-th=2500): 1.10975810535899
-#> [R] do_counting: Range resp_val (after cutoff): [0, 1.95445907452918]
-#> [R] do_counting: Range counts cube: [0, 55.9581081643101], Sum = 106112.855109236
-#> [R] do_statistics: counts_sum range: [1e-05, 127.439600519988], Sum = 106113.095109236
-#> [R] do_statistics: normalized_counts range: [0, 0.999998340887017], Sum = 2597.99799676068
-#> [R] do_statistics: shannon matrix range: [0, 4.35800809998248]
-#> [R] edge_entropy (matrix): Range [20, 80]: rowmeans mean = 2.362952
+#> [R] run_filterbank: Input image range: [2.5581568479538e-05, 0.999674531398341], Mean = 0.504215588028077
+#> [R] run_filterbank: First convolution result (conv) range: [-3.37138501539748, 2.96181634218024], Sum = -132.258595833715
+#> [R] run_filterbank: Range resp_val (after border zero): [0, 1.99187984341218]
+#> [R] do_counting: Range resp_val (input): [0, 1.99187984341218]
+#> [R] do_counting: Calculated cutoff (k-th=2500): 1.10160236654121
+#> [R] do_counting: Range resp_val (after cutoff): [0, 1.99187984341218]
+#> [R] do_counting: Range counts cube: [0, 85.0569475301744], Sum = 107433.68406831
+#> [R] do_statistics: counts_sum range: [1e-05, 129.168392498858], Sum = 107433.92406831
+#> [R] do_statistics: normalized_counts range: [0, 0.999998733142733], Sum = 2481.99806159385
+#> [R] do_statistics: shannon matrix range: [0, 4.37311426649092]
+#> [R] edge_entropy (matrix): Range [20, 80]: rowmeans mean = 2.460553
 #> [R] edge_entropy (matrix): Range [80, 160]: rowmeans mean = NA
 #> [R] edge_entropy (matrix): Range [160, 240]: rowmeans mean = NA
-#> [R] edge_entropy (matrix): Calculated fo = 4.55069384061516
-#> [R] edge_entropy (matrix): final_shannon[1] = 2.36295151946193
+#> [R] edge_entropy (matrix): Calculated fo = 4.54407800808785
+#> [R] edge_entropy (matrix): final_shannon[1] = 2.46055335128775
 #> [R] edge_entropy (matrix): final_shannon[2] = NA
 #> [R] edge_entropy (matrix): final_shannon[3] = NA
 result_cpp <- compute_edge_entropy(small_img, use_cpp = TRUE, verbose = FALSE)
@@ -193,7 +213,7 @@ all.equal(result_r$entropy, result_cpp$entropy, tolerance = 1e-10)
 
 result_ranges <- compute_edge_entropy(
   image = img_array,
-  ranges = list(c(10,50), c(50,100), c(100,200), c(200,400)),
+  ranges = list(c(10, 50), c(50, 100), c(100, 200), c(200, 400)),
   maxdiag = 600L
 )
 # }
@@ -202,7 +222,7 @@ img_files <- list.files("path/to/images", pattern = "\\.jpg$", full.names = TRUE
 entropy_results <- lapply(img_files[1:5], function(f) {
   img <- imager::load.image(f)
   gray <- imager::grayscale(img)
-  arr <- as.array(gray)[,,1,1]
+  arr <- as.array(gray)[, , 1, 1]
   compute_edge_entropy(arr, max_pixels = 100000L)
 })
 } # }

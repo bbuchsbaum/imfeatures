@@ -1,10 +1,12 @@
 # Hierarchical residualization of tiered feature matrices with PCA
 
-Given a named list of feature matrices (e.g., low-, mid-, high-tier
-features), perform PCA within each tier to reduce to a specified number
-of components, then sequentially residualize each tier's PCs against all
-previous tiers using an SVD-based rank-aware approach. Optionally, PC
-scores can be z-scored.
+Compatibility wrapper around
+[`fit_hierarchy_transform`](https://bbuchsbaum.github.io/imfeatures/reference/fit_hierarchy_transform.md).
+Given a named list of feature matrices, it compresses each tier with PCA
+and residualizes later tiers against earlier tiers using a stored
+cross-tier mapping. New observations are transformed inductively: each
+row depends only on that row's own tier values and the training-fitted
+maps.
 
 ## Usage
 
@@ -12,7 +14,7 @@ scores can be z-scored.
 residualize_tiers(
   feature_list,
   numpcs = NULL,
-  pca_method = c("stats", "irlba"),
+  pca_method = c("stats", "eigencore"),
   svd_tol = 1e-07,
   scale_scores = TRUE
 )
@@ -32,9 +34,9 @@ residualize_tiers(
 - pca_method:
 
   Character string, one of "stats" (default, uses
-  [`stats::prcomp`](https://rdrr.io/r/stats/prcomp.html)) or "irlba"
+  [`stats::prcomp`](https://rdrr.io/r/stats/prcomp.html)) or "eigencore"
   (uses
-  [`irlba::prcomp_irlba`](https://rdrr.io/pkg/irlba/man/prcomp_irlba.html)).
+  [`eigencore::svd_partial`](https://bbuchsbaum.github.io/eigencore/reference/svd_partial.html)).
 
 - svd_tol:
 
@@ -53,7 +55,8 @@ residualize_tiers(
 
 ## Value
 
-An object of class `residualized_tiers`, a list with components:
+An object of class `c("residualized_tiers", "hierarchy_transform")`, a
+list with components:
 
 - pca:
 
@@ -71,9 +74,9 @@ An object of class `residualized_tiers`, a list with components:
 
 - projection_bases:
 
-  Named list. For each tier (except the first), stores the orthonormal
-  basis matrix Q (from SVD of preceding tiers' cumulative
-  non-residualized PC scores, truncated by rank), or NULL.
+  Named list. For each tier (except the first), the training-set
+  orthonormal basis of preceding scores, stored as a diagnostic only.
+  Prediction uses stored coefficient maps, not these bases.
 
 - numpcs:
 
@@ -98,13 +101,10 @@ An attribute `total_rank_kept` (sum of `numpcs`) is also attached.
 
 Initial PCA is performed on each tier. If `scale_scores = TRUE`, the
 resulting PC scores are then z-scored (column-wise, per tier). These
-(optionally scaled) PC scores are then sequentially residualized. The
-orthogonalization uses SVD to form a rank-aware basis of the preceding
-tiers' cumulative scores to ensure numerical stability, using the
-`svd_tol` parameter in a LAPACK-style manner. Note: For applications
-like fMRI analysis where data might be processed in folds (e.g., for
-cross-validation), z-scoring should ideally be performed based on
-training fold statistics and then applied to test folds. This function,
-when applied to a whole dataset, uses statistics from the entire input
-for z-scoring. All matrices must contain only finite values; the
-function stops if any NA or Inf values are detected.
+(optionally scaled) PC scores are then sequentially residualized.
+Residualization stores the least-squares map from earlier-tier scores to
+the current tier, so [`predict()`](https://rdrr.io/r/stats/predict.html)
+does not re-estimate that map from the new batch. Exact orthogonality is
+expected on the training observations for unregularized residualization
+and is not expected on new data. All matrices must contain only finite
+values; the function stops if any NA or Inf values are detected.
