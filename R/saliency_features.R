@@ -46,6 +46,10 @@
 #' @param provenance List recording model/version, smoothing, and other source
 #'   details supplied by the caller. No additional smoothing is applied here.
 #' @param use_cpp Use compiled filtering, batched counting and statistics.
+#' @param boundary Convolution boundary handling, as in `compute_edge_entropy()`:
+#'   `"zero"` (default, historical) or `"reflect"`, which avoids artificial
+#'   frame edges. Whole-image and foreground-weighted features differ in how
+#'   much weight frame responses receive, so use `"reflect"` when comparing them.
 #' @return A list with `features` (one row per map/control), `ranges` (pairwise
 #'   range summaries), `cells` (per-control support tables), `multiscale`,
 #'   `selection` (selected coordinates per control), `comparisons` (separate
@@ -94,7 +98,9 @@ compute_saliency_features <- function(image, saliency, representation,
     centre_sigma = .25, transform_controls = TRUE,
     donor_maps = list(), donor_assignments = NULL, scales = NULL,
     scale_units = "relative", pixels_per_degree = NULL, provenance = list(), use_cpp = TRUE,
-    centre_match = FALSE, donor_aspect_tolerance = .01, min_common_coverage = 0) {
+    centre_match = FALSE, donor_aspect_tolerance = .01, min_common_coverage = 0,
+    boundary = c("zero", "reflect")) {
+  boundary <- match.arg(boundary)
   if (missing(representation)) stop("Specify representation explicitly")
   representation <- match.arg(representation, c("weights", "log_density"))
   signed_policy <- match.arg(signed_policy, c("reject", "rectify", "shift"))
@@ -156,11 +162,12 @@ compute_saliency_features <- function(image, saliency, representation,
     map_interpolation = .saliency_resize_method(original_shape, shape),
     location_before_resize = location_before, location_after_resize = .saliency_location(map$q, map$status))
   if (use_cpp) {
-    filtered <- saliency_filter_cpp(image_matrix, gabor_bins, filter_length)
+    filtered <- saliency_filter_cpp(image_matrix, gabor_bins, filter_length, boundary)
     bins <- filtered$bins_vec
   } else {
     bank <- filter_bank(gabor_bins, filter_length)
-    filtered <- run_filterbank(list(image_raw = image_matrix, image_size = shape), bank)
+    filtered <- run_filterbank(list(image_raw = image_matrix, image_size = shape), bank,
+      boundary = boundary)
     bins <- bank$bins_vec
   }
   a <- filtered$resp_val
@@ -270,7 +277,7 @@ compute_saliency_features <- function(image, saliency, representation,
       donor_aspect_tolerance = donor_aspect_tolerance, counting_groups = length(groups),
       original_dimensions = original_shape, analysis_dimensions = shape,
       map_interpolation = .saliency_resize_method(original_shape, shape),
-      filter = list(gabor_bins = gabor_bins, filter_length = filter_length),
+      filter = list(gabor_bins = gabor_bins, filter_length = filter_length, boundary = boundary),
       pair_bins = list(maxdiag = maxdiag, circ_bins = circ_bins, ranges = ranges),
       added_smoothing = "none", provenance = provenance,
       controls = lapply(controls, function(x) x$metadata)))

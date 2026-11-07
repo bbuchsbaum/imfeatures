@@ -5,12 +5,12 @@ saliency_range_means_cpp <- function(shannon_nan, range_list) {
     .Call(`_imfeatures_saliency_range_means_cpp`, shannon_nan, range_list)
 }
 
-edge_entropy_cpp <- function(image, impath = "image", maxdiag = 500L, gabor_bins = 24L, filter_length = 31L, circ_bins = 48L, ranges = NULL) {
-    .Call(`_imfeatures_edge_entropy_cpp`, image, impath, maxdiag, gabor_bins, filter_length, circ_bins, ranges)
+edge_entropy_cpp <- function(image, impath = "image", maxdiag = 500L, gabor_bins = 24L, filter_length = 31L, circ_bins = 48L, ranges = NULL, boundary = "zero") {
+    .Call(`_imfeatures_edge_entropy_cpp`, image, impath, maxdiag, gabor_bins, filter_length, circ_bins, ranges, boundary)
 }
 
-saliency_filter_cpp <- function(image, gabor_bins, filter_length) {
-    .Call(`_imfeatures_saliency_filter_cpp`, image, gabor_bins, filter_length)
+saliency_filter_cpp <- function(image, gabor_bins, filter_length, boundary = "zero") {
+    .Call(`_imfeatures_saliency_filter_cpp`, image, gabor_bins, filter_length, boundary)
 }
 
 saliency_statistics_cpp <- function(counts, bins_vec) {

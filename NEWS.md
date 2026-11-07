@@ -1,5 +1,15 @@
 # imfeatures 0.1.0 (development)
 
+- Add `boundary = c("zero", "reflect")` to `compute_edge_entropy()` and
+  `compute_saliency_features()`. The native filter bank zero-pads the image,
+  so the frame acts as a strong straight edge; only a 2-pixel border was
+  discarded, and frame responses 3-4 pixels deep could enter the retained
+  edge set. On full-frame photographs this barely changes features, but on
+  objects shown against plain backgrounds it can substantially change pairwise
+  entropy, especially `pentropy_160_240`. `"reflect"` mirrors the image at its
+  edges and removes the artifact; it is recommended for new analyses. The
+  default stays `"zero"` so earlier results are reproduced exactly.
+
 - Use OpenCLIP validation preprocessing in `clip_features()` instead of random
   training augmentation when extracting image features (#51).
 - **Recompute affected file-input edge entropy analyses:** file paths passed to

@@ -127,10 +127,42 @@ arma::mat convolve2d_arma(const arma::mat& image, const arma::mat& kernel) {
   return arma::conv2(image, kernel, "same");
 }
 
+// Whole-sample symmetric reflection (edge pixel repeated), applied repeatedly
+// so it is defined for any offset, including images smaller than the kernel.
+inline int reflect_index(int i, int n) {
+  int period = 2 * n;
+  i %= period;
+  if (i < 0) i += period;
+  return (i < n) ? i : period - 1 - i;
+}
+
+// Same-size convolution of a reflection-padded image. Output alignment is
+// identical to conv2(image, kernel, "same") for odd kernels; only the values
+// assumed outside the image differ (mirrored image instead of zeros).
+arma::mat convolve2d_reflect(const arma::mat& image, const arma::mat& kernel) {
+  int h = image.n_rows, w = image.n_cols;
+  int pr = kernel.n_rows / 2, pc = kernel.n_cols / 2;
+  arma::mat padded(h + 2 * pr, w + 2 * pc);
+  for (int c = 0; c < w + 2 * pc; c++) {
+    int cc = reflect_index(c - pc, w);
+    for (int r = 0; r < h + 2 * pr; r++)
+      padded(r, c) = image(reflect_index(r - pr, h), cc);
+  }
+  arma::mat full = arma::conv2(padded, kernel, "full");
+  return full.submat(2 * pr, 2 * pc, 2 * pr + h - 1, 2 * pc + w - 1);
+}
+
+int parse_boundary(const std::string &boundary) {
+  if (boundary == "zero") return 0;
+  if (boundary == "reflect") return 1;
+  stop("boundary must be \"zero\" or \"reflect\".");
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 // 6) APPLY FILTER BANK TO AN IMAGE
 // -----------------------------------------------------------------------------
-List run_filterbank_cpp(const NumericMatrix &image_r, const List &fbank) {
+List run_filterbank_cpp(const NumericMatrix &image_r, const List &fbank, bool reflect = false) {
   NumericVector bins_vec = fbank["bins_vec"];
   NumericVector flt_raw  = fbank["flt_weights"];
   int flt_size           = fbank["flt_size"];
@@ -191,7 +223,7 @@ List run_filterbank_cpp(const NumericMatrix &image_r, const List &fbank) {
     NumericMatrix conv_mat = as<NumericMatrix>(conv_result_sexp); 
     */
     // --- Call arma::conv2 --- 
-    arma::mat conv = convolve2d_arma(image, kernel); // Use arma version again
+    arma::mat conv = reflect ? convolve2d_reflect(image, kernel) : convolve2d_arma(image, kernel);
     // ------------------------
     
     // Store result into the 3D array img_filt
@@ -509,8 +541,10 @@ DataFrame edge_entropy_cpp(const NumericMatrix &image,
                            int gabor_bins = 24,
                            int filter_length = 31,
                            int circ_bins = 48,
-                           SEXP ranges = R_NilValue)
+                           SEXP ranges = R_NilValue,
+                           std::string boundary = "zero")
 {
+  bool reflect = parse_boundary(boundary) == 1;
   List range_list;
   if (Rf_isNull(ranges)) {
     range_list = List::create(
@@ -536,7 +570,7 @@ DataFrame edge_entropy_cpp(const NumericMatrix &image,
   List fbank = filter_bank_cpp(gabor_bins, filter_length);
 
   // 2) Run the filter bank on the image (includes border zeroing if nlines > 0).
-  List fres = run_filterbank_cpp(image, fbank);
+  List fres = run_filterbank_cpp(image, fbank, reflect);
 
   // 3) Calculate First-order entropy *after* border zeroing, *before* thresholding.
   // Need to access the resp_val modified by run_filterbank_cpp (borders zeroed). 
@@ -575,14 +609,16 @@ DataFrame edge_entropy_cpp(const NumericMatrix &image,
 
 // Cached filter responses let all saliency controls use the same image edges.
 // [[Rcpp::export]]
-List saliency_filter_cpp(const NumericMatrix &image, int gabor_bins, int filter_length) {
+List saliency_filter_cpp(const NumericMatrix &image, int gabor_bins, int filter_length,
+                         std::string boundary = "zero") {
+  bool reflect = parse_boundary(boundary) == 1;
   if (image.nrow() < 1 || image.ncol() < 1 || gabor_bins < 1 ||
       filter_length < 1 || filter_length % 2 == 0)
     stop("Invalid filter dimensions.");
   for (double value : image)
     if (!R_finite(value)) stop("Image values must be finite.");
   List bank = filter_bank_cpp(gabor_bins, filter_length);
-  List out = run_filterbank_cpp(image, bank);
+  List out = run_filterbank_cpp(image, bank, reflect);
   out["bins_vec"] = bank["bins_vec"];
   return out;
 }

@@ -33,7 +33,8 @@ compute_saliency_features(
   use_cpp = TRUE,
   centre_match = FALSE,
   donor_aspect_tolerance = 0.01,
-  min_common_coverage = 0
+  min_common_coverage = 0,
+  boundary = c("zero", "reflect")
 )
 }
 \arguments{
@@ -91,6 +92,11 @@ see \code{saliency_multiscale_entropy()}.}
 details supplied by the caller. No additional smoothing is applied here.}
 
 \item{use_cpp}{Use compiled filtering, batched counting and statistics.}
+
+\item{boundary}{Convolution boundary handling, as in \code{compute_edge_entropy()}:
+\code{"zero"} (default, historical) or \code{"reflect"}, which avoids artificial
+frame edges. Whole-image and foreground-weighted features differ in how
+much weight frame responses receive, so use \code{"reflect"} when comparing them.}
 
 \item{centre_match}{Also include a centred Gaussian fitted to the observed
 map's \code{effective_fraction}. This matches location entropy, not shape or pair
