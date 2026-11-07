@@ -1,14 +1,96 @@
 # imfeatures 0.1.0 (development)
 
-- Add `boundary = c("zero", "reflect")` to `compute_edge_entropy()` and
-  `compute_saliency_features()`. The native filter bank zero-pads the image,
-  so the frame acts as a strong straight edge; only a 2-pixel border was
-  discarded, and frame responses 3-4 pixels deep could enter the retained
-  edge set. On full-frame photographs this barely changes features, but on
-  objects shown against plain backgrounds it can substantially change pairwise
-  entropy, especially `pentropy_160_240`. `"reflect"` mirrors the image at its
-  edges and removes the artifact; it is recommended for new analyses. The
-  default stays `"zero"` so earlier results are reproduced exactly.
+## Edge entropy: image-frame artifact and new `boundary` option
+
+**What was wrong.** Edge entropy filters each image with 31 x 31 Gabor
+filters. Pixels outside the image were treated as zero (black), so the image
+frame looked like a strong, perfectly straight edge at 0 and 90 degrees. Only
+a 2-pixel border of filter responses was discarded, but the frame response
+reaches 3-4 pixels into the image (about 35% of the border brightness at
+pixel 3). Those responses can enter the strongest-edge set used for the
+pairwise statistics. Both backends (`use_cpp = TRUE` and `FALSE`) behaved this
+way. Shikang raised the concern.
+
+**Who is affected.**
+
+- Full-frame natural photographs: changes are small. On 17 test photographs,
+  rank correlations between the old and corrected features were 0.99 or
+  higher.
+- Objects on plain or uniform backgrounds, or images with large flat regions:
+  changes can be large. Frame responses made up 7-20% of the retained edges.
+  Rank correlations for `pentropy_160_240` fell to 0.15-0.79, with shifts of
+  up to 1.7 bits. Some long-range values exist only because of the frame and
+  become `NA` once it is removed.
+- Whole-image versus foreground comparisons (for example with
+  `compute_saliency_features()`): only the whole image includes the frame
+  edges, so part of any difference can be the artifact.
+
+**What changed.** `compute_edge_entropy()` and `compute_saliency_features()`
+gain `boundary = c("zero", "reflect")`. `"reflect"` mirrors the image across
+its edges before filtering, so the frame creates no edge. Responses more than
+15 pixels from the edge are unchanged. The default stays `"zero"`, so
+existing scripts reproduce earlier results exactly. Use `"reflect"` for new
+analyses.
+
+**How to run it.**
+
+```r
+# Install this version
+remotes::install_github("bbuchsbaum/imfeatures", ref = "claude/gallant-meitner-a4r2x3")
+library(imfeatures)
+
+compute_edge_entropy("stim/img001.jpg", boundary = "reflect")
+compute_saliency_features("stim/img001.jpg", sal_map, "weights", boundary = "reflect")
+```
+
+**How to tell whether your results change.** Compute the features both
+ways on your actual stimuli and compare.
+
+```r
+files <- list.files("stim", pattern = "\\.(jpe?g|png)$", full.names = TRUE)
+feats <- c("entropy", "pentropy_20_80", "pentropy_80_160",
+           "pentropy_160_240", "complex_before")
+old <- do.call(rbind, lapply(files, compute_edge_entropy, boundary = "zero"))
+new <- do.call(rbind, lapply(files, compute_edge_entropy, boundary = "reflect"))
+
+# 1. Do image rankings change? Spearman rho near 1 means the same order.
+sapply(feats, function(f) cor(old[[f]], new[[f]], method = "spearman",
+                              use = "complete.obs"))
+
+# 2. How big are the changes, relative to the spread across images?
+sapply(feats, function(f) {
+  d <- new[[f]] - old[[f]]
+  c(mean_diff = mean(d, na.rm = TRUE),
+    max_abs_diff = max(abs(d), na.rm = TRUE),
+    sd_across_images = sd(old[[f]], na.rm = TRUE))
+})
+
+# 3. Which values only existed because of the frame?
+sapply(feats, function(f) sum(!is.na(old[[f]]) & is.na(new[[f]])))
+
+# 4. Which images moved most? Look at these first.
+d <- abs(new$pentropy_160_240 - old$pentropy_160_240)
+head(old$im[order(d, decreasing = TRUE)], 10)
+```
+
+How to read the comparison:
+
+- If every Spearman rho is about 0.98 or higher, and the largest change is
+  small next to the spread across images, the artifact is unlikely to matter.
+  Still rerun the main models once to confirm.
+- With few images (under about 20), rho can drop because of very small
+  changes that happen to swap close neighbours. In that case judge mainly by
+  `max_abs_diff` against `sd_across_images`.
+- If rho is lower for any feature, or values become `NA`, rerun the
+  downstream analyses with `"reflect"` features and compare the effect
+  sizes and conclusions, not only whether results stay significant. Long
+  distance ranges such as `pentropy_160_240` are the most likely to change.
+- For whole-image versus foreground hypotheses, compute both measures with
+  `boundary = "reflect"` before interpreting the difference.
+- To report results either way, state which `boundary` setting was used.
+  `compute_saliency_features()` records it in `metadata$filter$boundary`.
+
+## Other changes
 
 - Use OpenCLIP validation preprocessing in `clip_features()` instead of random
   training augmentation when extracting image features (#51).
