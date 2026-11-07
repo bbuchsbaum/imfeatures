@@ -187,14 +187,32 @@ filtered_image <- function(file, max_pixels = 300 * 300) {
 
 
 #' @keywords internal
-run_filterbank <- function(fimg, fbank, verbose = FALSE) {
+reflect_pad <- function(x, pr, pc = pr) {
+  mirror <- function(i, n) {
+    i <- (i - 1L) %% (2L * n)
+    ifelse(i < n, i, 2L * n - 1L - i) + 1L
+  }
+  x[mirror(seq.int(1L - pr, nrow(x) + pr), nrow(x)),
+    mirror(seq.int(1L - pc, ncol(x) + pc), ncol(x)), drop = FALSE]
+}
+
+#' @keywords internal
+run_filterbank <- function(fimg, fbank, verbose = FALSE, boundary = "zero") {
+  boundary <- match.arg(boundary, c("zero", "reflect"))
   shape <- dim(fimg$image_raw)[1:2]
   h <- shape[1]
   w <- shape[2]
   num_filters <- length(fbank$bins_vec)
   img_filt <- array(0, c(num_filters, h, w))
 
-  iraw <- imager::as.cimg(fimg$image_raw)
+  raw <- matrix(fimg$image_raw, h, w)
+  # With reflection, pad by the kernel half-width so the convolution never
+  # reads outside the mirrored image; the crop restores the original grid.
+  pad <- if (boundary == "reflect") dim(fbank$flt_weights)[2:3] %/% 2L else c(0L, 0L)
+  if (boundary == "reflect") raw <- reflect_pad(raw, pad[1], pad[2])
+  keep_r <- pad[1] + seq_len(h)
+  keep_c <- pad[2] + seq_len(w)
+  iraw <- imager::as.cimg(raw)
   # --- Debug: Print input image range ---
   if (verbose) {
     message(
@@ -207,7 +225,7 @@ run_filterbank <- function(fimg, fbank, verbose = FALSE) {
 
   for (i in 1:num_filters) {
     conv_result <- imager::convolve(iraw, imager::as.cimg(fbank$flt_weights[i, , ]))
-    img_filt[i, , ] <- as.array(conv_result) # Ensure it's an array for min/max
+    img_filt[i, , ] <- matrix(as.array(conv_result), nrow(raw), ncol(raw))[keep_r, keep_c]
     # --- Debug: Print range/sum of the first convolution result ---
     if (i == 1 && verbose) {
       message(
@@ -460,6 +478,12 @@ do_statistics <- function(counts, bins_vec, verbose = FALSE) {
 #' @param use_cpp Logical. Whether to use the C++ implementation (generally faster).
 #'        Defaults to TRUE. If FALSE, uses the pure R implementation.
 #' @param verbose Logical. If TRUE, print detailed progress messages.
+#' @param boundary How the Gabor convolution treats pixels outside the image.
+#'   \code{"zero"} (the default, unchanged from earlier versions) pads with
+#'   zeros, which creates an artificial step edge along the image frame; only a
+#'   2-pixel border of responses is discarded, so frame responses about 3--4
+#'   pixels deep can survive the response cutoff. \code{"reflect"} mirrors the
+#'   image across its edges and avoids that artifact. See Details.
 #'
 #' @return A data frame with the following columns:
 #'   \item{im}{Image identifier (file path or "matrix" for matrix input)}
@@ -474,6 +498,15 @@ do_statistics <- function(counts, bins_vec, verbose = FALSE) {
 #' in images. The method applies a bank of Gabor filters at different orientations
 #' and measures both first-order entropy (distribution of dominant orientations) and
 #' pairwise entropy (how orientation relationships vary with distance and direction).
+#'
+#' \strong{Image boundary.} With \code{boundary = "zero"} the frame of the
+#' image behaves like a high-contrast straight edge at 0 and 90 degrees. On
+#' full-frame natural photographs this changes features little, but on images
+#' with large uniform regions (for example an object on a plain background) the
+#' frame can contribute a substantial share of the strongest responses and
+#' distort pairwise entropy, especially at long distances. \code{"reflect"} is
+#' recommended for new analyses; keep \code{"zero"} to reproduce earlier
+#' results. Both backends honour \code{boundary}.
 #'
 #' The C++ implementation is substantially faster for larger images but requires the same inputs.
 #' It automatically converts the ranges list to the required format for the C++ function.
@@ -531,7 +564,9 @@ do_statistics <- function(counts, bins_vec, verbose = FALSE) {
 compute_edge_entropy <- function(image, max_pixels = 120000L, maxdiag = 500L, gabor_bins = 24L,
                                  filter_length = 31L, circ_bins = 48L,
                                  ranges = list(c(20, 80), c(80, 160), c(160, 240)),
-                                 use_cpp = TRUE, verbose = FALSE) {
+                                 use_cpp = TRUE, verbose = FALSE,
+                                 boundary = c("zero", "reflect")) {
+  boundary <- match.arg(boundary)
   assert_image(image)
   assert_scalar(max_pixels, "integer")
   assert_scalar(maxdiag, "integer")
@@ -590,14 +625,15 @@ compute_edge_entropy <- function(image, max_pixels = 120000L, maxdiag = 500L, ga
         gabor_bins = as.integer(gabor_bins),
         filter_length = as.integer(filter_length),
         circ_bins = as.integer(circ_bins),
-        ranges = lapply(ranges, function(r) as.integer(r))
+        ranges = lapply(ranges, function(r) as.integer(r)),
+        boundary = boundary
       )
       return(result)
     } else {
       # Use the existing R implementation
       fimg <- filtered_image(impath, max_pixels)
       fbank <- filter_bank(gabor_bins, filter_length, verbose = verbose)
-      fres <- run_filterbank(fimg, fbank, verbose = verbose)
+      fres <- run_filterbank(fimg, fbank, verbose = verbose, boundary = boundary)
       cts <- do_counting(fres, maxdiag = maxdiag, circ_bins = circ_bins, verbose = verbose)
       stats <- do_statistics(cts$counts, fres$fbank$bins_vec, verbose = verbose)
 
@@ -666,7 +702,8 @@ compute_edge_entropy <- function(image, max_pixels = 120000L, maxdiag = 500L, ga
             gabor_bins = as.integer(gabor_bins),
             filter_length = as.integer(filter_length),
             circ_bins = as.integer(circ_bins),
-            ranges = lapply(ranges, function(r) as.integer(r))
+            ranges = lapply(ranges, function(r) as.integer(r)),
+            boundary = boundary
           )
         },
         error = function(e) {
@@ -686,7 +723,7 @@ compute_edge_entropy <- function(image, max_pixels = 120000L, maxdiag = 500L, ga
 
       # Then proceed with the R implementation
       fbank <- filter_bank(gabor_bins, filter_length, verbose = verbose)
-      fres <- run_filterbank(fimg, fbank, verbose = verbose)
+      fres <- run_filterbank(fimg, fbank, verbose = verbose, boundary = boundary)
       cts <- do_counting(fres, maxdiag = maxdiag, circ_bins = circ_bins, verbose = verbose)
       stats <- do_statistics(cts$counts, fres$fbank$bins_vec, verbose = verbose)
 

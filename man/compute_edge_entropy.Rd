@@ -14,7 +14,8 @@ compute_edge_entropy(
   circ_bins = 48L,
   ranges = list(c(20, 80), c(80, 160), c(160, 240)),
   use_cpp = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  boundary = c("zero", "reflect")
 )
 
 edge_entropy(
@@ -26,7 +27,8 @@ edge_entropy(
   circ_bins = 48L,
   ranges = list(c(20, 80), c(80, 160), c(160, 240)),
   use_cpp = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  boundary = c("zero", "reflect")
 )
 }
 \arguments{
@@ -58,6 +60,13 @@ different distance ranges. Defaults to list(c(20,80), c(80,160), c(160,240)).}
 Defaults to TRUE. If FALSE, uses the pure R implementation.}
 
 \item{verbose}{Logical. If TRUE, print detailed progress messages.}
+
+\item{boundary}{How the Gabor convolution treats pixels outside the image.
+\code{"zero"} (the default, unchanged from earlier versions) pads with
+zeros, which creates an artificial step edge along the image frame; only a
+2-pixel border of responses is discarded, so frame responses about 3--4
+pixels deep can survive the response cutoff. \code{"reflect"} mirrors the
+image across its edges and avoids that artifact. See Details.}
 }
 \value{
 A data frame with the following columns:
@@ -77,6 +86,15 @@ Edge entropy measures quantify the distribution and organization of oriented edg
 in images. The method applies a bank of Gabor filters at different orientations
 and measures both first-order entropy (distribution of dominant orientations) and
 pairwise entropy (how orientation relationships vary with distance and direction).
+
+\strong{Image boundary.} With \code{boundary = "zero"} the frame of the
+image behaves like a high-contrast straight edge at 0 and 90 degrees. On
+full-frame natural photographs this changes features little, but on images
+with large uniform regions (for example an object on a plain background) the
+frame can contribute a substantial share of the strongest responses and
+distort pairwise entropy, especially at long distances. \code{"reflect"} is
+recommended for new analyses; keep \code{"zero"} to reproduce earlier
+results. Both backends honour \code{boundary}.
 
 The C++ implementation is substantially faster for larger images but requires the same inputs.
 It automatically converts the ranges list to the required format for the C++ function.

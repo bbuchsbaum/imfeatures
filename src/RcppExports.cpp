@@ -24,8 +24,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // edge_entropy_cpp
-DataFrame edge_entropy_cpp(const NumericMatrix& image, std::string impath, int maxdiag, int gabor_bins, int filter_length, int circ_bins, SEXP ranges);
-RcppExport SEXP _imfeatures_edge_entropy_cpp(SEXP imageSEXP, SEXP impathSEXP, SEXP maxdiagSEXP, SEXP gabor_binsSEXP, SEXP filter_lengthSEXP, SEXP circ_binsSEXP, SEXP rangesSEXP) {
+DataFrame edge_entropy_cpp(const NumericMatrix& image, std::string impath, int maxdiag, int gabor_bins, int filter_length, int circ_bins, SEXP ranges, std::string boundary);
+RcppExport SEXP _imfeatures_edge_entropy_cpp(SEXP imageSEXP, SEXP impathSEXP, SEXP maxdiagSEXP, SEXP gabor_binsSEXP, SEXP filter_lengthSEXP, SEXP circ_binsSEXP, SEXP rangesSEXP, SEXP boundarySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -36,20 +36,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type filter_length(filter_lengthSEXP);
     Rcpp::traits::input_parameter< int >::type circ_bins(circ_binsSEXP);
     Rcpp::traits::input_parameter< SEXP >::type ranges(rangesSEXP);
-    rcpp_result_gen = Rcpp::wrap(edge_entropy_cpp(image, impath, maxdiag, gabor_bins, filter_length, circ_bins, ranges));
+    Rcpp::traits::input_parameter< std::string >::type boundary(boundarySEXP);
+    rcpp_result_gen = Rcpp::wrap(edge_entropy_cpp(image, impath, maxdiag, gabor_bins, filter_length, circ_bins, ranges, boundary));
     return rcpp_result_gen;
 END_RCPP
 }
 // saliency_filter_cpp
-List saliency_filter_cpp(const NumericMatrix& image, int gabor_bins, int filter_length);
-RcppExport SEXP _imfeatures_saliency_filter_cpp(SEXP imageSEXP, SEXP gabor_binsSEXP, SEXP filter_lengthSEXP) {
+List saliency_filter_cpp(const NumericMatrix& image, int gabor_bins, int filter_length, std::string boundary);
+RcppExport SEXP _imfeatures_saliency_filter_cpp(SEXP imageSEXP, SEXP gabor_binsSEXP, SEXP filter_lengthSEXP, SEXP boundarySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericMatrix& >::type image(imageSEXP);
     Rcpp::traits::input_parameter< int >::type gabor_bins(gabor_binsSEXP);
     Rcpp::traits::input_parameter< int >::type filter_length(filter_lengthSEXP);
-    rcpp_result_gen = Rcpp::wrap(saliency_filter_cpp(image, gabor_bins, filter_length));
+    Rcpp::traits::input_parameter< std::string >::type boundary(boundarySEXP);
+    rcpp_result_gen = Rcpp::wrap(saliency_filter_cpp(image, gabor_bins, filter_length, boundary));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -109,8 +111,8 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_imfeatures_saliency_range_means_cpp", (DL_FUNC) &_imfeatures_saliency_range_means_cpp, 2},
-    {"_imfeatures_edge_entropy_cpp", (DL_FUNC) &_imfeatures_edge_entropy_cpp, 7},
-    {"_imfeatures_saliency_filter_cpp", (DL_FUNC) &_imfeatures_saliency_filter_cpp, 3},
+    {"_imfeatures_edge_entropy_cpp", (DL_FUNC) &_imfeatures_edge_entropy_cpp, 8},
+    {"_imfeatures_saliency_filter_cpp", (DL_FUNC) &_imfeatures_saliency_filter_cpp, 4},
     {"_imfeatures_saliency_statistics_cpp", (DL_FUNC) &_imfeatures_saliency_statistics_cpp, 2},
     {"_imfeatures_saliency_count_cpp", (DL_FUNC) &_imfeatures_saliency_count_cpp, 11},
     {"_imfeatures_saliency_count_batch_cpp", (DL_FUNC) &_imfeatures_saliency_count_batch_cpp, 10},
