@@ -69,9 +69,25 @@ test_that("R and C++ backends agree with reflection padding", {
     boundary = "reflect")
   cpp <- imfeatures:::saliency_filter_cpp(img, 24L, 31L, "reflect")
   expect_equal(r$resp_val, cpp$resp_val, tolerance = 1e-8)
-  expect_identical(r$resp_bin, cpp$resp_bin)
+  # Mirroring about the edge pixel can make opposite orientations tie exactly
+  # on the outermost rows; those pixels are zeroed, so compare retained ones.
+  kept <- cpp$resp_val > 0
+  expect_identical(r$resp_bin[kept], cpp$resp_bin[kept])
   res_r <- compute_edge_entropy(img, use_cpp = FALSE, boundary = "reflect")
   res_c <- compute_edge_entropy(img, use_cpp = TRUE, boundary = "reflect")
   expect_equal(res_c$entropy, res_r$entropy, tolerance = 5e-4)
   expect_equal(res_c$complex_before, res_r$complex_before, tolerance = 5e-4)
+})
+
+test_that("saliency features pass the boundary through both backends", {
+  set.seed(7)
+  img <- matrix(runif(40 * 36), 40, 36)
+  sal <- matrix(1, 40, 36)
+  run <- function(cpp, boundary) compute_saliency_features(img, sal, "weights",
+    pairwise = FALSE, filter_length = 9L, gabor_bins = 8L,
+    transform_controls = FALSE, use_cpp = cpp, boundary = boundary)
+  r <- run(FALSE, "reflect"); cpp <- run(TRUE, "reflect"); zero <- run(TRUE, "zero")
+  expect_equal(cpp$features$first_order, r$features$first_order, tolerance = 1e-8)
+  expect_false(isTRUE(all.equal(cpp$features$first_order, zero$features$first_order)))
+  expect_identical(cpp$metadata$filter$boundary, "reflect")
 })

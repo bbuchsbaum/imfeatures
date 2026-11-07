@@ -94,8 +94,7 @@ with large uniform regions (for example an object on a plain background) the
 frame can contribute a substantial share of the strongest responses and
 distort pairwise entropy, especially at long distances. \code{"reflect"} is
 recommended for new analyses; keep \code{"zero"} to reproduce earlier
-results. With \code{use_cpp = FALSE}, \code{"zero"} keeps the historical
-\code{imager::convolve()} boundary handling.
+results. Both backends honour \code{boundary}.
 
 The C++ implementation is substantially faster for larger images but requires the same inputs.
 It automatically converts the ranges list to the required format for the C++ function.
