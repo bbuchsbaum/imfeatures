@@ -102,3 +102,29 @@ test_that("compute_feature_similarity works end-to-end with real model", {
   # Clean up
   unlink(img_paths)
 })
+
+test_that("low-memory similarity uses feature values and fills the diagonal", {
+  temp_imgs <- file.path(tempdir(), paste0("sim_mock_", 1:3, ".png"))
+  for (img in temp_imgs) {
+    png(img, width = 10, height = 10)
+    par(mar = c(0, 0, 0, 0))
+    image(matrix(runif(100), 10, 10), axes = FALSE)
+    dev.off()
+  }
+  on.exit(unlink(temp_imgs))
+  feats <- list(c(1, 0, 0, 1), c(1, 1, 0, 0), c(-1, 0, 2, 1))
+  names(feats) <- temp_imgs
+  # Same tibble layout as extract_features(): image, layer, feature
+  fake_extract <- function(impath, layers, model = NULL, spatial_pooling = "none", ...) {
+    tibble::tibble(image = impath, layer = layers, feature = list(feats[[impath]]))
+  }
+  testthat::local_mocked_bindings(extract_features = fake_extract)
+
+  res <- compute_feature_similarity(temp_imgs, layers = "fc1", model = "mock", lowmem = TRUE)
+  sim <- res$layer_fc1
+  cosine <- function(a, b) sum(a * b) / sqrt(sum(a^2) * sum(b^2))
+  expected <- outer(1:3, 1:3, Vectorize(function(i, j) cosine(feats[[i]], feats[[j]])))
+  expect_equal(unname(sim), expected, tolerance = 1e-12)
+  expect_equal(unname(diag(sim)), rep(1, 3))
+  expect_true(isSymmetric(sim))
+})
