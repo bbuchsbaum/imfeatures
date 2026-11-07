@@ -43,7 +43,7 @@ extract_feature_hierarchy <- function(impaths,
   multi <- .vgg_multi_output_model(model, resolved$unique_layers)
   n <- length(impaths)
   stage_names <- names(spec$taps)
-  collected <- setNames(vector("list", length(stage_names)), stage_names)
+  collected <- stats::setNames(vector("list", length(stage_names)), stage_names)
   starts <- seq(1L, n, by = batch_size)
 
   for (s0 in starts) {

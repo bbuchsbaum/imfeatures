@@ -92,6 +92,10 @@ How to read the comparison:
 
 ## Other changes
 
+- Fix `compute_feature_similarity()` with `lowmem = TRUE` (the default). It
+  read the image-path column of `extract_features()` output instead of the
+  features, so off-diagonal similarities were `NA`, and it left the diagonal
+  at 0. It now matches `lowmem = FALSE`.
 - Use OpenCLIP validation preprocessing in `clip_features()` instead of random
   training augmentation when extracting image features (#51).
 - **Recompute affected file-input edge entropy analyses:** file paths passed to

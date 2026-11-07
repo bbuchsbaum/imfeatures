@@ -89,16 +89,16 @@ compute_feature_similarity <- function(impaths, layers, model = NULL, target_siz
     for (i in 1:length(impaths)) {
       pb$tick()
       for (j in 1:length(impaths)) {
-        if (i < j & i != j) {
-          # print(j)
+        # Upper triangle including the diagonal; features are memoised.
+        if (i <= j) {
           fi <- imfeat(impaths[i],
             layers = layers, model = model,
             spatial_pooling = spatial_pooling
-          )
+          )$feature
           fj <- imfeat(impaths[j],
             layers = layers, model = model,
             spatial_pooling = spatial_pooling
-          )
+          )$feature
           for (k in 1:length(layers)) {
             m <- proxy::simil(as.vector(fi[[k]]), as.vector(fj[[k]]), method = metric, by_rows = FALSE)
             out[[k]][i, j] <- m[1, 1]
