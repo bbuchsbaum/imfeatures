@@ -1,6 +1,9 @@
 ---
 title: "Choose a spatial pooling for VGG-16 features"
-output: rmarkdown::html_vignette
+output:
+  albersdown::albers_vignette:
+    family: red
+    preset: homage
 vignette: >
   %\VignetteIndexEntry{Choose a spatial pooling for VGG-16 features}
   %\VignetteEngine{knitr::rmarkdown}
@@ -116,7 +119,7 @@ show_map <- function(m, main = "", zlim = range(m), col = hcl.colors(64, "viridi
     col = col, zlim = zlim, axes = FALSE, xlab = "", ylab = "",
     main = main, asp = 1, useRaster = TRUE
   )
-  box(col = "grey60")
+  rect(0.5, 0.5, ncol(m) + 0.5, nrow(m) + 0.5, border = "grey60")
 }
 
 # What does each pooled column "look at"? Pool one-hot maps (one per

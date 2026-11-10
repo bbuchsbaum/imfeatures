@@ -17,6 +17,8 @@ rings, or not at all. These options are now documented in one place.
   `extract_vgg_features()` now states output sizes, column order and scale,
   with examples.
 - Printing a `vgg_hierarchy_spec` now lists the pooler of each stage.
+- All vignettes and the pkgdown site now use the `albersdown` theme from
+  CRAN (`albersdown::albers_vignette`, red family, homage preset).
 
 Fixes:
 

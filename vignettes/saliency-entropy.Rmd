@@ -1,6 +1,9 @@
 ---
 title: "Measuring image structure with saliency maps"
-output: rmarkdown::html_vignette
+output:
+  albersdown::albers_vignette:
+    family: red
+    preset: homage
 vignette: >
   %\VignetteIndexEntry{Measuring image structure with saliency maps}
   %\VignetteEngine{knitr::rmarkdown}

@@ -46,9 +46,10 @@ Suggests:
   rmarkdown,
   eigencore,
   tensorflow,
-  png
+  png,
+  albersdown (>= 2.1.0)
 VignetteBuilder: knitr
-Config/Needs/website: pkgdown
+Config/Needs/website: pkgdown, albersdown
 RoxygenNote: 7.3.3
 Depends:
     R (>= 4.1.0)

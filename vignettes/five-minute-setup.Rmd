@@ -1,6 +1,9 @@
 ---
 title: "Five-minute set-up"
-output: rmarkdown::html_vignette
+output:
+  albersdown::albers_vignette:
+    family: red
+    preset: homage
 vignette: >
   %\VignetteIndexEntry{Five-minute set-up}
   %\VignetteEngine{knitr::rmarkdown}
