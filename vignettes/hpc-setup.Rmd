@@ -1,6 +1,9 @@
 ---
 title: "HPC Setup for imfeatures"
-output: rmarkdown::html_vignette
+output:
+  albersdown::albers_vignette:
+    family: red
+    preset: homage
 vignette: >
   %\VignetteIndexEntry{HPC Setup for imfeatures}
   %\VignetteEngine{knitr::rmarkdown}

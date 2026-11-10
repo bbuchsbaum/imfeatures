@@ -1,6 +1,9 @@
 ---
 title: "Build ordered image-feature hierarchies"
-output: rmarkdown::html_vignette
+output:
+  albersdown::albers_vignette:
+    family: red
+    preset: homage
 vignette: >
   %\VignetteIndexEntry{Build ordered image-feature hierarchies}
   %\VignetteEngine{knitr::rmarkdown}

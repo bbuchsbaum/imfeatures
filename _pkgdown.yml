@@ -1,5 +1,6 @@
 url: https://bbuchsbaum.github.io/imfeatures/
 template:
+  package: albersdown
   bootstrap: 5
 home:
   title: imfeatures
