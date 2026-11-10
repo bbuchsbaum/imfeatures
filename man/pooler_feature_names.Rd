@@ -17,6 +17,34 @@ pooler_feature_names(pooler, stage, n_channels, spatial = NULL)
 \item{spatial}{Optional integer length-2 spatial size \code{c(H, W)} for
 identity flattening of 4-D maps.}
 }
+\value{
+A character vector with one name per pooled column.
+}
 \description{
-Feature names for a pooled stage
+Builds the column names that match the output of
+\code{\link{pool_activations}}, in the same order. Names have three
+tokens separated by \code{"::"}: the stage, the zero-padded channel, and
+the spatial feature, for example \code{b3::channel_017::dct_y0_x1}.
+}
+\details{
+\tabular{ll}{
+  \strong{Pooler} \tab \strong{Spatial token} \cr
+  \code{global_average_pool()} \tab \code{gap} \cr
+  \code{global_max_pool()} \tab \code{gmp} \cr
+  \code{adaptive_grid_pool()} \tab \code{grid_y<row>_x<col>} (one-based cell) \cr
+  \code{dct_pool()} \tab \code{dct_y<v>_x<u>} (zero-based frequency) \cr
+  \code{radial_pool()} \tab \code{radial_r<ring>} (one-based, centre outwards) \cr
+  \code{identity_pool()} on a 4-D map \tab \code{y<row>_x<col>} (one-based position) \cr
+  \code{identity_pool()} on a dense layer \tab \code{stage::f_001} (two tokens)
+}
+}
+\examples{
+pooler_feature_names(global_average_pool(), "b5", 2)
+pooler_feature_names(dct_pool(2, 2), "b5", 1)
+pooler_feature_names(identity_pool(), "b5", 1, spatial = c(2, 2))
+pooler_feature_names(identity_pool(), "fc1", 3)
+
+}
+\seealso{
+\code{\link{pool_activations}}, \code{\link{poolers}}.
 }

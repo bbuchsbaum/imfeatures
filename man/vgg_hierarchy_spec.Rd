@@ -18,10 +18,16 @@ vgg_hierarchy_spec(
 names. The virtual tap \code{"classifier_logits"} requests pre-softmax
 ImageNet logits. Defaults to \code{\link{vgg_block_end_taps}}.}
 
-\item{pooling}{Named list of \code{imfeatures_pooler} objects, one per
-stage. A single pooler is recycled across stages. Dense taps default to
-\code{\link{identity_pool}}; convolutional taps default to
-\code{\link{global_average_pool}}.}
+\item{pooling}{How to pool each stage over space; see
+\code{\link{poolers}} for the options. Supply one of:
+\itemize{
+  \item \code{NULL} (default): \code{\link{global_average_pool}} for
+    convolutional taps and \code{\link{identity_pool}} for dense taps.
+  \item A single pooler, used for every stage. Dense stages have no
+    spatial axes and pass through unchanged whatever the pooler.
+  \item A named list with one pooler per stage. Names must cover every
+    stage in \code{taps}.
+}}
 
 \item{target_size}{Image resize dimensions passed to Keras.}
 }
@@ -29,5 +35,31 @@ stage. A single pooler is recycled across stages. Dense taps default to
 An object of class \code{c("vgg_hierarchy_spec", "feature_hierarchy_spec")}.
 }
 \description{
-Specify a VGG feature hierarchy
+A spec names the layers to tap and says how each one is pooled over
+space. Pass it to \code{\link{extract_feature_hierarchy}} to get one
+feature block per stage.
+}
+\examples{
+# Default: global average pooling on convolutional stages
+vgg_hierarchy_spec("vgg16")
+
+# One pooler for every stage
+vgg_hierarchy_spec("vgg16", pooling = adaptive_grid_pool(2, 2))
+
+# A different pooler per stage
+vgg_hierarchy_spec(
+  "vgg16",
+  taps = c(b4 = "block4_conv3", b5 = "block5_conv3", fc1 = "fc1"),
+  pooling = list(
+    b4 = dct_pool(3, 3),
+    b5 = radial_pool(),
+    fc1 = identity_pool()
+  )
+)
+
+}
+\seealso{
+\code{\link{vgg16_block_end_spec}} for a ready-made spec,
+  \code{\link{poolers}}, and
+  \code{vignette("spatial-pooling", package = "imfeatures")}.
 }

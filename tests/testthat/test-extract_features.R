@@ -27,3 +27,18 @@ test_that("spatial_pooling parameter in im_features function is validated", {
     "impath file\\(s\\) not found: dummy.jpg"
   )
 })
+
+test_that("spatial pooling strings are validated consistently", {
+  ok <- c("none", "avg", "max", "resize_3x3", "resize_2x4", "resize_14x14")
+  for (x in ok) {
+    expect_silent(imfeatures:::.assert_spatial_pooling(x))
+  }
+  bad <- list("mean", "resize_0x3", "resize_3x0", "resize_3", "resize_3x3x3", "", NA_character_, c("avg", "max"), 3)
+  for (x in bad) {
+    expect_error(imfeatures:::.assert_spatial_pooling(x), "'spatial_pooling' must be")
+  }
+  expect_error(
+    imfeatures:::.assert_spatial_pooling("resize_abc", "pooling"),
+    "'pooling' must be"
+  )
+})

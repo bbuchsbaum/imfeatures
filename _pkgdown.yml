@@ -21,6 +21,7 @@ articles:
 - title: Feature hierarchies
   contents:
   - feature-hierarchies
+  - spatial-pooling
 - title: Image entropy
   contents:
   - saliency-entropy
@@ -46,22 +47,24 @@ reference:
   - predict.residualized_tiers
   - vgg_hierarchy_spec
   - vgg16_block_end_spec
-  - vgg19_block_end_spec
   - vgg_block_end_taps
   - extract_feature_hierarchy
-  - global_average_pool
-  - global_max_pool
-  - adaptive_grid_pool
-  - dct_pool
-  - radial_pool
-  - identity_pool
-  - pool_activations
-  - pooler_feature_names
-  - as_nhwc
   - linear_cka
   - effective_rank
   - hierarchy_diagnostics
   - check_transform_invariance
+- title: Spatial pooling
+  desc: >
+    How convolutional feature maps are reduced over height and width. See
+    `vignette("spatial-pooling")` for a comparison of the options.
+  contents:
+  - poolers
+  - adaptive_grid_pool
+  - dct_pool
+  - radial_pool
+  - pool_activations
+  - pooler_feature_names
+  - as_nhwc
 - title: Deep network features
   contents:
   - extract_features

@@ -166,3 +166,65 @@ test_that("malformed multi-output predictions fail explicitly", {
     "batch dimension"
   )
 })
+
+test_that("pooling accepts any resize_HxW and rejects malformed values", {
+  img_dir <- file.path(tempdir(), "imgs_pooling_arg")
+  paths <- make_dummy_images(img_dir, 2)
+  local_vgg_mocks()
+
+  # The mocked layers are dense, so pooling leaves them alone; this checks
+  # that the argument is accepted and recorded.
+  for (pooling in c("none", "avg", "max", "resize_3x3", "resize_2x4")) {
+    out <- extract_vgg_features(
+      paths,
+      tier = "high", model = list(dummy = TRUE), pooling = pooling
+    )
+    expect_identical(out$pooling, pooling)
+  }
+
+  for (pooling in c("mean", "resize_0x3", "resize_3", "resize_axb")) {
+    expect_error(
+      extract_vgg_features(
+        paths,
+        tier = "high", model = list(dummy = TRUE), pooling = pooling
+      ),
+      "'pooling' must be"
+    )
+  }
+})
+
+test_that("pooling reduces 4-D maps per image and layer", {
+  img_dir <- file.path(tempdir(), "imgs_pooling_values")
+  paths <- make_dummy_images(img_dir, 3)
+
+  maps <- function(n, layer_index) {
+    a <- array(0, dim = c(n, 2, 2, 2))
+    for (i in seq_len(n)) {
+      a[i, , , 1] <- i * c(1, 2, 3, 4)
+      a[i, , , 2] <- layer_index * 10 + i * c(4, 3, 2, 1)
+    }
+    a
+  }
+  local_mocked_bindings(
+    .vgg_multi_output_model = function(model, layers) {
+      structure(list(layers = layers), class = "mock_multi_model")
+    },
+    .vgg_forward_batch = function(multi, paths, target_size) {
+      lapply(seq_along(multi$layers), function(j) maps(length(paths), j))
+    },
+    .package = "imfeatures"
+  )
+
+  avg <- extract_vgg_features(paths, tier = "high", model = list(dummy = TRUE), pooling = "avg")
+  mx <- extract_vgg_features(paths, tier = "high", model = list(dummy = TRUE), pooling = "max")
+  raw <- extract_vgg_features(paths, tier = "high", model = list(dummy = TRUE), pooling = "none")
+
+  # Three layers of two channels each: channel-wise summaries, layer by layer.
+  expect_equal(dim(avg$features), c(3, 6))
+  expect_equal(avg$features[2, ], c(5, 15, 5, 25, 5, 35))
+  expect_equal(mx$features[3, ], c(12, 22, 12, 32, 12, 42))
+
+  # "none" flattens each layer with height fastest, then width, then channel.
+  expect_equal(dim(raw$features), c(3, 3 * 2 * 2 * 2))
+  expect_equal(raw$features[1, 1:8], c(1, 2, 3, 4, 14, 13, 12, 11))
+})

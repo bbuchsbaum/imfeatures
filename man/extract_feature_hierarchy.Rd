@@ -27,11 +27,40 @@ architecture is loaded with ImageNet weights.}
 \item{layout}{Layout of 4-D backend outputs; \code{"nhwc"} for Keras.}
 }
 \value{
-A \code{\link{as_feature_hierarchy}} object.
+A \code{\link{as_feature_hierarchy}} object. Its \code{schema}
+  records the taps, the poolers, and the layout that produced the blocks.
 }
 \description{
 Runs one batched multi-output forward pass and applies a per-stage pooler.
 Convolutional activations are converted to NHWC before pooling. The virtual
 tap \code{classifier_logits} is computed from \code{fc2} and the ImageNet
 classifier weights without applying softmax.
+}
+\details{
+Spatial pooling is set per stage in \code{spec}; see \code{\link{poolers}}
+for the options. Each block has one row per image and one column per
+pooled feature, named as described in
+\code{\link{pooler_feature_names}}. Full-resolution maps are pooled batch
+by batch and never held for all images at once, so memory use depends on
+\code{batch_size} and on the pooled width, not on the number of images.
+}
+\examples{
+\dontrun{
+imgs <- list.files("stimuli", pattern = "\\\\.jpg$", full.names = TRUE)
+
+# Depth-adaptive DCT pooling at the end of each VGG-16 block
+raw <- extract_feature_hierarchy(imgs, spec = vgg16_block_end_spec())
+vapply(raw$blocks, ncol, integer(1))
+
+# The same taps, with a 3 x 3 grid on every convolutional stage
+taps <- vgg_block_end_taps("vgg16")
+pooling <- lapply(taps, function(tap) adaptive_grid_pool(3, 3))
+pooling[c("fc1", "logits")] <- list(identity_pool(), identity_pool())
+spec <- vgg_hierarchy_spec("vgg16", taps = taps, pooling = pooling)
+raw_grid <- extract_feature_hierarchy(imgs, spec = spec)
+}
+}
+\seealso{
+\code{\link{vgg_hierarchy_spec}}, \code{\link{poolers}}, and
+  \code{vignette("spatial-pooling", package = "imfeatures")}.
 }

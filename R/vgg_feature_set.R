@@ -9,19 +9,42 @@
 #' }
 #' Layers are retrieved by name (e.g., \code{"block1_conv1"}) instead of numeric indices.
 #'
+#' @section Feature dimensions:
+#' The same pooling is applied to every layer in the tier, and the pooled
+#' layers are concatenated in network order. With 224 x 224 input the number
+#' of columns in \code{features} is:
+#'
+#' \tabular{lrrr}{
+#'   \strong{Tier} \tab \strong{\code{"avg"} or \code{"max"}} \tab \strong{\code{"resize_3x3"}} \tab \strong{\code{"none"}} \cr
+#'   \code{"low"} \tab 384 \tab 3,456 \tab 9,633,792 \cr
+#'   \code{"mid"} \tab 2,304 \tab 20,736 \tab 3,612,672 \cr
+#'   \code{"high"} \tab 1,536 \tab 13,824 \tab 301,056 \cr
+#'   \code{"semantic"} \tab 8,192 \tab 8,192 \tab 8,192
+#' }
+#'
+#' \code{"none"} keeps every position of every layer and is rarely practical
+#' beyond a few images. To pool each layer differently, or to use grid, DCT
+#' or radial pooling, use \code{\link{extract_feature_hierarchy}}.
+#'
 #' @param impaths Character vector of image file paths.
 #' @param tier Character; one of "low", "mid", "high", or "semantic".
 #' @param model Preloaded Keras VGG-16 model object. If NULL, defaults to \code{keras3::application_vgg16(weights = 'imagenet')}.
-#' @param target_size Numeric vector of length 2 specifying image resize dimensions (width, height).
-#' @param pooling Character string specifying spatial pooling; passed to the \code{spatial_pooling} argument of \code{im_features}.
-#'        Defaults to "avg" (global average pooling). Other options: "none", "max", "resize_3x3", "resize_5x5", "resize_7x7".
+#' @param target_size Numeric vector of length 2 specifying image resize dimensions (height, width).
+#' @param pooling Character string specifying how each layer's feature map is
+#'        reduced over height and width before the layers are concatenated:
+#'        \code{"avg"} (default, global average pooling), \code{"max"},
+#'        \code{"none"}, or \code{"resize_HxW"} such as \code{"resize_3x3"}.
+#'        The options are those of the \code{spatial_pooling} argument of
+#'        \code{\link{extract_features}}; see its Spatial pooling section.
+#'        The dense layers of the \code{"semantic"} tier have no spatial axes
+#'        and are unaffected.
 #' @param batch_size Integer; number of images per forward pass. Images are pushed
 #'        through a single multi-output model in batches rather than one at a time,
 #'        which is substantially faster for large image sets. Defaults to 8 to
 #'        bound peak memory use for early VGG layers.
 #' @return An S3 object of class \code{vgg_feature_set}, a list with components:
 #' \describe{
-#'   \item{features}{Numeric matrix (N_images × total_channels) of pooled features.}
+#'   \item{features}{Numeric matrix with one row per image and one column per pooled feature (see Feature dimensions).}
 #'   \item{image_paths}{Character vector of input image paths.}
 #'   \item{tier}{The tier name.}
 #'   \item{pooling}{Pooling type used.}
@@ -31,6 +54,20 @@
 #'   \item{target_size}{Numeric vector of image resize dimensions.}
 #'   \item{batch_size}{Integer number of images processed per forward pass.}
 #' }
+#' @examples
+#' \dontrun{
+#' imgs <- list.files("stimuli", pattern = "\\.jpg$", full.names = TRUE)
+#'
+#' # One value per channel: 2,304 columns for the mid tier
+#' mid_avg <- extract_vgg_features(imgs, tier = "mid", pooling = "avg")
+#'
+#' # Keep a coarse 3 x 3 layout: 13,824 columns for the high tier
+#' high_3x3 <- extract_vgg_features(imgs, tier = "high", pooling = "resize_3x3")
+#' dim(high_3x3$features)
+#' }
+#' @seealso \code{\link{extract_features}} for single layers,
+#'   \code{\link{extract_feature_hierarchy}} for per-stage poolers, and
+#'   \code{vignette("spatial-pooling", package = "imfeatures")}.
 #' @export
 #' @importFrom keras3 application_vgg16 keras_model get_layer image_to_array imagenet_preprocess_input
 extract_vgg_features <- function(impaths,
@@ -63,10 +100,12 @@ extract_vgg_features <- function(impaths,
   }
 
   tier <- match.arg(tier)
-  pooling <- match.arg(
-    pooling,
-    c("none", "avg", "max", "resize_3x3", "resize_5x5", "resize_7x7")
-  )
+  # Unambiguous prefixes of the named modes ("av" for "avg") keep working.
+  named <- pmatch(pooling, c("none", "avg", "max"))
+  if (!is.na(named)) {
+    pooling <- c("none", "avg", "max")[named]
+  }
+  .assert_spatial_pooling(pooling, "pooling")
 
   if (is.null(model)) {
     model <- keras3::application_vgg16(weights = "imagenet", include_top = TRUE)

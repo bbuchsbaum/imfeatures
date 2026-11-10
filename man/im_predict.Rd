@@ -11,7 +11,7 @@ im_predict(impath, model = NULL, target_size = c(224, 224), topn = 12)
 
 \item{model}{the Keras model}
 
-\item{target_size}{the target image dimensions for approproate for model}
+\item{target_size}{the target image dimensions (height, width) appropriate for the model}
 
 \item{topn}{number of top predictions to return (default: 12)}
 }

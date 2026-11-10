@@ -5,6 +5,13 @@
 #' tap \code{classifier_logits} is computed from \code{fc2} and the ImageNet
 #' classifier weights without applying softmax.
 #'
+#' Spatial pooling is set per stage in \code{spec}; see \code{\link{poolers}}
+#' for the options. Each block has one row per image and one column per
+#' pooled feature, named as described in
+#' \code{\link{pooler_feature_names}}. Full-resolution maps are pooled batch
+#' by batch and never held for all images at once, so memory use depends on
+#' \code{batch_size} and on the pooled width, not on the number of images.
+#'
 #' @param impaths Character vector of image paths, or a directory containing
 #'   \code{jpg}/\code{jpeg}/\code{png} files.
 #' @param spec A \code{\link{vgg_hierarchy_spec}} or other
@@ -14,7 +21,26 @@
 #' @param batch_size Images per forward pass.
 #' @param layout Layout of 4-D backend outputs; \code{"nhwc"} for Keras.
 #'
-#' @return A \code{\link{as_feature_hierarchy}} object.
+#' @return A \code{\link{as_feature_hierarchy}} object. Its \code{schema}
+#'   records the taps, the poolers, and the layout that produced the blocks.
+#'
+#' @examples
+#' \dontrun{
+#' imgs <- list.files("stimuli", pattern = "\\.jpg$", full.names = TRUE)
+#'
+#' # Depth-adaptive DCT pooling at the end of each VGG-16 block
+#' raw <- extract_feature_hierarchy(imgs, spec = vgg16_block_end_spec())
+#' vapply(raw$blocks, ncol, integer(1))
+#'
+#' # The same taps, with a 3 x 3 grid on every convolutional stage
+#' taps <- vgg_block_end_taps("vgg16")
+#' pooling <- lapply(taps, function(tap) adaptive_grid_pool(3, 3))
+#' pooling[c("fc1", "logits")] <- list(identity_pool(), identity_pool())
+#' spec <- vgg_hierarchy_spec("vgg16", taps = taps, pooling = pooling)
+#' raw_grid <- extract_feature_hierarchy(imgs, spec = spec)
+#' }
+#' @seealso \code{\link{vgg_hierarchy_spec}}, \code{\link{poolers}}, and
+#'   \code{vignette("spatial-pooling", package = "imfeatures")}.
 #' @export
 #' @importFrom keras3 application_vgg16 application_vgg19
 extract_feature_hierarchy <- function(impaths,
@@ -44,6 +70,7 @@ extract_feature_hierarchy <- function(impaths,
   n <- length(impaths)
   stage_names <- names(spec$taps)
   collected <- stats::setNames(vector("list", length(stage_names)), stage_names)
+  activation_dims <- stats::setNames(vector("list", length(stage_names)), stage_names)
   starts <- seq(1L, n, by = batch_size)
 
   for (s0 in starts) {
@@ -55,6 +82,10 @@ extract_feature_hierarchy <- function(impaths,
       preds, spec, resolved, logits_weights, layout
     )
     for (st in stage_names) {
+      # rbind() drops attributes, so keep the activation shape separately.
+      if (is.null(activation_dims[[st]])) {
+        activation_dims[[st]] <- attr(batch_blocks[[st]], "activation_dim")
+      }
       collected[[st]] <- rbind(collected[[st]], batch_blocks[[st]])
     }
   }
@@ -62,7 +93,7 @@ extract_feature_hierarchy <- function(impaths,
   for (st in stage_names) {
     storage.mode(collected[[st]]) <- "double"
   }
-  collected <- .name_extracted_blocks(collected, spec)
+  collected <- .name_extracted_blocks(collected, spec, activation_dims, layout)
 
   as_feature_hierarchy(
     collected,
@@ -115,31 +146,28 @@ extract_feature_hierarchy <- function(impaths,
 }
 
 #' @keywords internal
-.name_extracted_blocks <- function(blocks, spec) {
+.name_extracted_blocks <- function(blocks, spec, activation_dims = NULL, layout = "nhwc") {
   for (st in names(blocks)) {
     mat <- blocks[[st]]
     pooler <- spec$pooling[[st]]
-    tap <- spec$taps[[st]]
-    if (identical(pooler$type, "identity") && tap %in% .vgg_dense_taps) {
-      colnames(mat) <- pooler_feature_names(pooler, st, ncol(mat))
-    } else if (identical(pooler$type, "identity")) {
-      # 4-D flatten: infer H, W from ncol / channels if possible
-      colnames(mat) <- pooler_feature_names(pooler, st, ncol(mat))
+    d <- activation_dims[[st]]
+    n_modes <- switch(pooler$type,
+      gap = 1L,
+      gmp = 1L,
+      grid = pooler$ny * pooler$nx,
+      dct = pooler$ny * pooler$nx,
+      radial = length(pooler$breaks) - 1L,
+      1L
+    )
+    if (length(d) == 4L && identical(pooler$type, "identity")) {
+      # Flattened 4-D map: name every position and channel.
+      hwc <- if (identical(layout, "nchw")) d[c(3L, 4L, 2L)] else d[2:4]
+      colnames(mat) <- pooler_feature_names(pooler, st, hwc[3], spatial = hwc[1:2])
+    } else if (length(d) == 4L && ncol(mat) %% n_modes == 0L) {
+      colnames(mat) <- pooler_feature_names(pooler, st, ncol(mat) / n_modes)
     } else {
-      n_modes <- switch(pooler$type,
-        gap = 1L,
-        gmp = 1L,
-        grid = pooler$ny * pooler$nx,
-        dct = pooler$ny * pooler$nx,
-        radial = length(pooler$breaks) - 1L,
-        1L
-      )
-      if (n_modes > 0L && ncol(mat) %% n_modes == 0L) {
-        n_channels <- ncol(mat) / n_modes
-        colnames(mat) <- pooler_feature_names(pooler, st, n_channels)
-      } else {
-        colnames(mat) <- pooler_feature_names(identity_pool(), st, ncol(mat))
-      }
+      # Dense activations pass through every pooler unchanged.
+      colnames(mat) <- pooler_feature_names(identity_pool(), st, ncol(mat))
     }
     blocks[[st]] <- mat
   }

@@ -7,10 +7,63 @@
 dct_pool(ny, nx, order = c("zigzag", "raster"))
 }
 \arguments{
-\item{ny, nx}{Number of retained DCT modes along height and width.}
+\item{ny, nx}{Number of retained DCT modes along height and width. Neither
+may exceed the size of the activation map it is applied to.}
 
 \item{order}{\code{"zigzag"} (default) or \code{"raster"}.}
 }
+\value{
+An \code{imfeatures_pooler} that yields \code{ny * nx} columns per
+  channel.
+}
 \description{
-Low-frequency 2-D DCT pooling
+Projects each channel's activation map onto the lowest \code{ny x nx}
+modes of a two-dimensional discrete cosine transform (DCT-II). The result
+summarizes \emph{where} a channel is active as a mean plus a few smooth
+spatial contrasts (left versus right, top versus bottom, centre versus
+edges, and so on).
+}
+\details{
+Mode \code{(v, u)} has \code{v} half-cycles along height and \code{u}
+half-cycles along width. All \code{ny * nx} modes with \code{v < ny} and
+\code{u < nx} are kept.
+}
+\section{Scale of the coefficients}{
+
+The mode \code{(0, 0)} is rescaled to be the spatial mean, so the first
+column of each channel equals \code{\link{global_average_pool}}. All
+other modes use the orthonormal DCT-II basis. Their coefficients grow with
+the square root of the number of positions: a unit-amplitude cosine
+pattern gives a coefficient near 9.9 on a 14 x 14 map and near 158 on a
+224 x 224 map. Columns from different modes or different stages are
+therefore not on a common scale. Standardize the columns before you
+combine them. \code{\link{block_pca}} does so by default
+(\code{feature_scale = "sd"}).
+}
+
+\section{Column order and names}{
+
+Columns are ordered by channel, then by mode. \code{order = "zigzag"}
+sorts modes from low to high frequency along anti-diagonals, as in JPEG:
+\code{(0,0), (0,1), (1,0), (2,0), (1,1), (0,2), ...}. \code{order =
+"raster"} sorts them row by row. Both orders keep the same modes; only
+the column order differs. Names take the form
+\code{stage::channel_001::dct_y0_x1}, where \code{y} and \code{x} are the
+zero-based frequencies \code{v} and \code{u}.
+}
+
+\examples{
+# A channel that is active only on the left half of a 6 x 6 map
+a <- array(0, dim = c(1, 6, 6, 1))
+a[1, , 1:3, 1] <- 1
+out <- pool_activations(dct_pool(2, 2), a)
+colnames(out) <- pooler_feature_names(dct_pool(2, 2), "b3", 1)
+round(out, 3)
+# dct_y0_x0 is the mean (0.5); dct_y0_x1 carries the left-right contrast.
+
+}
+\seealso{
+\code{\link{poolers}} for the other pooling options, and
+  \code{\link{vgg16_block_end_spec}} for a ready-made VGG-16 spec that
+  uses DCT pooling.
 }

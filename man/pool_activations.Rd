@@ -7,17 +7,41 @@
 pool_activations(pooler, a, layout = "nhwc", ...)
 }
 \arguments{
-\item{pooler}{An \code{imfeatures_pooler}.}
+\item{pooler}{An \code{imfeatures_pooler}; see \code{\link{poolers}}.}
 
-\item{a}{Numeric matrix (\code{N × P}) or 4-D array.}
+\item{a}{Numeric matrix (\code{N x P}) or 4-D array with one image per
+slice of the first dimension.}
 
-\item{layout}{Tensor layout for 4-D inputs; see \code{\link{as_nhwc}}.}
+\item{layout}{Tensor layout for 4-D inputs: \code{"nhwc"} (Keras, default)
+or \code{"nchw"} (PyTorch). See \code{\link{as_nhwc}}.}
 
 \item{...}{Unused.}
 }
 \value{
-An \code{N × P} numeric matrix.
+An \code{N x P} numeric matrix without column names. \code{P} is
+  the number of channels times the pooler's columns per channel. Use
+  \code{\link{pooler_feature_names}} to label the columns.
 }
 \description{
-Apply a pooler to an activation tensor
+Reduces a batch of activations to one feature row per image. This is the
+function \code{\link{extract_feature_hierarchy}} calls for each stage; you
+can also call it directly on activations from any backend.
+}
+\details{
+A 4-D array is first put in \code{N x H x W x C} order (see
+\code{\link{as_nhwc}}) and then pooled over height and width. A 2-D
+\code{N x P} matrix has no spatial axes and is returned unchanged by every
+pooler, which is how dense layers pass through a spec.
+}
+\examples{
+# PyTorch-style activations: 2 images, 3 channels, 8 x 8 map
+nchw <- array(rnorm(2 * 3 * 8 * 8), dim = c(2, 3, 8, 8))
+feats <- pool_activations(adaptive_grid_pool(2, 2), nchw, layout = "nchw")
+colnames(feats) <- pooler_feature_names(adaptive_grid_pool(2, 2), "layer4", 3)
+dim(feats)
+head(colnames(feats))
+
+}
+\seealso{
+\code{\link{poolers}}, \code{\link{pooler_feature_names}}.
 }

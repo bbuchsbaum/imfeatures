@@ -9,7 +9,7 @@
 #' @param layers the layer indices
 #' @param model the Keras model
 #' @param target_size the target image dimensions for appropriate for model
-#' @param spatial_pooling A character string specifying the type of spatial processing to apply to 4D feature maps (see \code{extract_features} for details)
+#' @param spatial_pooling How to reduce 4-D feature maps over height and width before similarities are computed: \code{"none"} (default), \code{"avg"}, \code{"max"}, or \code{"resize_HxW"}. See the Spatial pooling section of \code{\link{extract_features}}. With \code{"none"}, similarities compare activations position by position; with \code{"avg"} or \code{"max"} they ignore where in the image a feature occurred.
 #' @param metric the similarity metric to use, default is 'cosine' (see \code{proxy} package for allowable metrics)
 #' @param lowmem logical, if TRUE use memory-efficient computation (default: TRUE)
 #' @param cache_size maximum cache size in bytes for memoization (default: 2048 * 2048^2)
@@ -174,22 +174,53 @@ vgg16 <- function() {
 #' @param impath path to image file
 #' @param layers the layer indices
 #' @param model the Keras model
-#' @param target_size the target image dimensions for approproate for model
-#' @param spatial_pooling A character string specifying the type of spatial processing to apply to 4D feature maps (typically from convolutional layers).
-#'        Options are:
-#'        \itemize{
-#'          \item{\code{"none"}: (Default) No spatial processing is applied; the full feature maps are returned (usually as a 4D array: 1 x H x W x C).}
-#'          \item{\code{"avg"}: Global average pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).}
-#'          \item{\code{"max"}: Global max pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).}
-#'          \item{\code{"resize_HxW"}: Downsamples the spatial dimensions to
-#'          \code{H} by \code{W} using area pooling, then flattens. Bilinear
-#'          interpolation is retained when the requested size upsamples a map.
-#'          Any value matching \code{"^resize_[0-9]+x[0-9]+$"} is accepted
-#'          (e.g., \code{"resize_3x3"}, \code{"resize_7x7"}). Results in a
-#'          vector of length \code{H * W * C}.}
-#'        }
-#'        This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
-#'        this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.
+#' @param target_size the target image dimensions (height, width) appropriate for the model
+#' @param spatial_pooling How to reduce 4-D feature maps (\code{1 x H x W x C},
+#'   as produced by convolutional layers) over height and width. One of:
+#'   \describe{
+#'     \item{\code{"none"}}{(Default) No pooling. The full map is returned as
+#'       a 4-D array.}
+#'     \item{\code{"avg"}}{Global average pooling: the mean over all
+#'       positions, giving a vector of length \code{C}.}
+#'     \item{\code{"max"}}{Global max pooling: the maximum over all
+#'       positions, giving a vector of length \code{C}.}
+#'     \item{\code{"resize_HxW"}}{Resize the map to \code{H} by \code{W}
+#'       and flatten, for example \code{"resize_3x3"} or
+#'       \code{"resize_7x7"}. Any positive \code{H} and \code{W} are
+#'       accepted. This keeps coarse spatial layout and gives a vector of
+#'       length \code{H * W * C}.}
+#'   }
+#'   See the Spatial pooling section for details.
+#'
+#' @section Spatial pooling:
+#' Pooling trades spatial detail for size. For VGG-16 \code{block5_conv3}
+#' (a 14 x 14 map with 512 channels), \code{"none"} keeps 100,352 values,
+#' \code{"resize_3x3"} keeps 4,608, and \code{"avg"} or \code{"max"} keep
+#' 512.
+#'
+#' \code{"resize_HxW"} shrinks a map by area averaging: each output cell is
+#' the mean of the input positions it covers, with partial overlap weighted
+#' by area. Averaging the cells of a resized map therefore reproduces
+#' \code{"avg"}. If the requested size is larger than the map in either
+#' direction, bilinear interpolation is used instead. Resizing runs in
+#' TensorFlow. If TensorFlow is unavailable, a warning is raised and the
+#' unpooled map is returned.
+#'
+#' A resized or unpooled map is flattened with height varying fastest, then
+#' width, then channel. To recover the array from a flattened
+#' \code{"resize_HxW"} vector \code{v}, use
+#' \code{array(v, dim = c(H, W, C))}.
+#'
+#' \code{spatial_pooling} only affects 4-D outputs. Dense layers such as
+#' \code{fc1} have no spatial axes and are returned as they are.
+#'
+#' These string options serve \code{extract_features()},
+#' \code{\link{compute_feature_similarity}()} and
+#' \code{\link{extract_vgg_features}()}. For per-stage pooling, and for grid,
+#' DCT and radial pooling, use \code{\link{extract_feature_hierarchy}} with
+#' the pooler objects described in \code{\link{poolers}}.
+#' @seealso \code{vignette("spatial-pooling", package = "imfeatures")} for a
+#'   comparison of all pooling options.
 #' @importFrom keras3 application_vgg16 image_load image_to_array imagenet_preprocess_input keras_model get_layer array_reshape
 #' @return A tibble with columns \code{image}, \code{layer} and a list-column \code{feature}.
 #'   The tibble inherits class \code{imfeatures_feature_tbl} for dplyr compatibility.
@@ -233,13 +264,7 @@ extract_features <- function(impath, layers, model = NULL, target_size = c(224, 
   checkmate::assert_vector(layers, min.len = 1)
   checkmate::assert_integerish(target_size, len = 2)
 
-  # Validate spatial pooling argument. Accept 'none', 'avg', 'max' or
-  # patterns of the form 'resize_HxW'
-  valid_opts <- c("none", "avg", "max")
-  if (!(spatial_pooling %in% valid_opts ||
-    grepl("^resize_[0-9]+x[0-9]+$", spatial_pooling))) {
-    stop("'spatial_pooling' must be 'none', 'avg', 'max', or 'resize_HxW'")
-  }
+  .assert_spatial_pooling(spatial_pooling, "spatial_pooling")
 
   if (is.null(model)) {
     model <- application_vgg16(weights = "imagenet", include_top = TRUE)
@@ -282,6 +307,22 @@ extract_features <- function(impath, layers, model = NULL, target_size = c(224, 
 #' @rdname extract_features
 #' @export
 im_features <- extract_features
+
+# Validate a spatial pooling string: 'none', 'avg', 'max', or 'resize_HxW'
+# with positive integer H and W.
+#' @keywords internal
+.assert_spatial_pooling <- function(x, arg = "spatial_pooling") {
+  ok <- is.character(x) && length(x) == 1L && !is.na(x) &&
+    (x %in% c("none", "avg", "max") ||
+      grepl("^resize_[1-9][0-9]*x[1-9][0-9]*$", x))
+  if (!ok) {
+    stop(sprintf(
+      "'%s' must be 'none', 'avg', 'max', or 'resize_HxW' (for example 'resize_3x3')",
+      arg
+    ), call. = FALSE)
+  }
+  invisible(x)
+}
 
 #' @keywords internal
 .process_feature_map <- function(p, spatial_pooling) {
