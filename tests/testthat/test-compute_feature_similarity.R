@@ -97,7 +97,8 @@ test_that("compute_feature_similarity works end-to-end with real model", {
   expect_true(all(diag(sim_matrix) > 0.99))
 
   # Check that off-diagonal elements are valid similarities
-  expect_true(all(sim_matrix >= -1 & sim_matrix <= 1))
+  # Cosine self-similarity can exceed 1 by floating-point rounding.
+  expect_true(all(sim_matrix >= -1 - 1e-8 & sim_matrix <= 1 + 1e-8))
 
   # Clean up
   unlink(img_paths)

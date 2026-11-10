@@ -2,15 +2,56 @@
 % Please edit documentation in R/hierarchy_spec.R
 \name{vgg16_block_end_spec}
 \alias{vgg16_block_end_spec}
+\alias{vgg19_block_end_spec}
 \title{VGG-16 block-end hierarchy with depth-adaptive DCT pooling}
 \usage{
 vgg16_block_end_spec(target_size = c(224, 224))
+
+vgg19_block_end_spec(target_size = c(224, 224))
 }
 \arguments{
 \item{target_size}{Image resize dimensions passed to Keras.}
 }
+\value{
+A \code{vgg_hierarchy_spec}; see \code{\link{vgg_hierarchy_spec}}.
+}
 \description{
 One tap at the end of each convolutional block, plus \code{fc1} and
-pre-softmax logits. Spatial modes decrease from 6 x 6 in block 1
-to 2 x 2 in block 5.
+pre-softmax logits. Convolutional blocks use \code{\link{dct_pool}}, and
+the number of spatial modes decreases from 6 x 6 in block 1 to 2 x 2 in
+block 5. Early blocks have few channels and fine spatial structure, so
+they keep more spatial modes; late blocks have many channels and coarse
+maps, so they keep fewer. This keeps the stages similar in width.
+}
+\details{
+With the default 224 x 224 input the VGG-16 stages are:
+
+\tabular{lllrrr}{
+  \strong{Stage} \tab \strong{Layer} \tab \strong{Pooler} \tab \strong{Map} \tab \strong{Channels} \tab \strong{Columns} \cr
+  \code{b1} \tab \code{block1_conv2} \tab \code{dct_pool(6, 6)} \tab 224 x 224 \tab 64 \tab 2304 \cr
+  \code{b2} \tab \code{block2_conv2} \tab \code{dct_pool(5, 5)} \tab 112 x 112 \tab 128 \tab 3200 \cr
+  \code{b3} \tab \code{block3_conv3} \tab \code{dct_pool(4, 4)} \tab 56 x 56 \tab 256 \tab 4096 \cr
+  \code{b4} \tab \code{block4_conv3} \tab \code{dct_pool(3, 3)} \tab 28 x 28 \tab 512 \tab 4608 \cr
+  \code{b5} \tab \code{block5_conv3} \tab \code{dct_pool(2, 2)} \tab 14 x 14 \tab 512 \tab 2048 \cr
+  \code{fc1} \tab \code{fc1} \tab \code{identity_pool()} \tab -- \tab 4096 \tab 4096 \cr
+  \code{logits} \tab \code{classifier_logits} \tab \code{identity_pool()} \tab -- \tab 1000 \tab 1000
+}
+
+The first DCT column of every channel is its global average, so each
+convolutional block contains the usual average-pooled features plus
+low-frequency layout. DCT columns are not on a common scale across modes
+or stages (see \code{\link{dct_pool}}); standardize them before
+combining, as \code{\link{block_pca}} does by default.
+
+\code{vgg19_block_end_spec()} uses the same poolers on the VGG-19
+block-end layers (\code{block3_conv4}, \code{block4_conv4},
+\code{block5_conv4}); map sizes and column counts are identical.
+}
+\examples{
+spec <- vgg16_block_end_spec()
+spec
+spec$pooling$b1
+}
+\seealso{
+\code{\link{vgg_hierarchy_spec}} to choose other taps or poolers.
 }

@@ -38,7 +38,7 @@ im_feature_sim(
 
 \item{target_size}{the target image dimensions for appropriate for model}
 
-\item{spatial_pooling}{A character string specifying the type of spatial processing to apply to 4D feature maps (see \code{extract_features} for details)}
+\item{spatial_pooling}{How to reduce 4-D feature maps over height and width before similarities are computed: \code{"none"} (default), \code{"avg"}, \code{"max"}, or \code{"resize_HxW"}. See the Spatial pooling section of \code{\link{extract_features}}. With \code{"none"}, similarities compare activations position by position; with \code{"avg"} or \code{"max"} they ignore where in the image a feature occurred.}
 
 \item{metric}{the similarity metric to use, default is 'cosine' (see \code{proxy} package for allowable metrics)}
 
