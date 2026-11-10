@@ -2,6 +2,73 @@
 
 ## imfeatures 0.1.0 (development)
 
+### Spatial pooling: documentation, a new vignette, and three fixes
+
+Convolutional feature maps can be reduced over space in several ways:
+global average or max, a coarse grid, low-frequency DCT modes,
+centre-to-periphery rings, or not at all. These options are now
+documented in one place.
+
+- New vignette,
+  [`vignette("spatial-pooling")`](https://bbuchsbaum.github.io/imfeatures/articles/spatial-pooling.md).
+  It shows what each option keeps, how wide the resulting VGG-16
+  features are, and how the string options (`"avg"`, `"max"`, `"none"`,
+  `"resize_HxW"`) relate to the pooler objects
+  ([`global_average_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md),
+  [`adaptive_grid_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/adaptive_grid_pool.md),
+  [`dct_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/dct_pool.md),
+  [`radial_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/radial_pool.md),
+  [`identity_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md)).
+  It runs without Keras or Python.
+- New help page
+  [`?poolers`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md)
+  compares the pooler objects. The help for each pooler,
+  [`pool_activations()`](https://bbuchsbaum.github.io/imfeatures/reference/pool_activations.md),
+  [`pooler_feature_names()`](https://bbuchsbaum.github.io/imfeatures/reference/pooler_feature_names.md),
+  [`vgg_hierarchy_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg_hierarchy_spec.md),
+  [`vgg16_block_end_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg16_block_end_spec.md),
+  [`extract_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features.md)
+  and
+  [`extract_vgg_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_vgg_features.md)
+  now states output sizes, column order and scale, with examples.
+- Printing a `vgg_hierarchy_spec` now lists the pooler of each stage.
+
+Fixes:
+
+- [`adaptive_grid_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/adaptive_grid_pool.md)
+  failed with “invalid number of intervals” when either grid dimension
+  was 1, for example `adaptive_grid_pool(1, 3)`. A single bin now works;
+  `adaptive_grid_pool(1, 1)` equals global average pooling. Results for
+  two or more bins are unchanged.
+- [`radial_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/radial_pool.md)
+  accepted breaks outside `[0, 1]` and silently returned all-zero
+  columns for the rings they defined. Such breaks are now an error. A
+  ring that holds no positions on a small map still gives zeros, now
+  with a warning.
+- `extract_vgg_features(pooling = )` accepted only `"resize_3x3"`,
+  `"resize_5x5"` and `"resize_7x7"`, while
+  [`extract_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features.md)
+  accepted any `"resize_HxW"`. Both now accept any positive `H` and `W`,
+  and both reject a zero size such as `"resize_0x3"` up front.
+
+One naming change: when
+[`extract_feature_hierarchy()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_feature_hierarchy.md)
+flattens a convolutional map with
+[`identity_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md),
+columns are now named by channel and position (`b5::channel_001::y1_x1`)
+instead of by index (`b5::f_001`). When a dense stage is given a spatial
+pooler, its columns are named `fc1::f_001`, as they pass through
+unpooled. Values and column order are unchanged in both cases.
+
+One thing to know:
+[`dct_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/dct_pool.md)
+returns the spatial mean as its first column, but its other columns grow
+with the size of the map (16 times larger at 224 x 224 than at 14 x 14
+for the same pattern). This has not changed. Standardize DCT columns
+before combining them;
+[`block_pca()`](https://bbuchsbaum.github.io/imfeatures/reference/block_pca.md)
+does so by default.
+
 ### Edge entropy: image-frame artifact and new `boundary` option
 
 **What was wrong.** Edge entropy filters each image with 31 x 31 Gabor

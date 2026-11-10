@@ -6,6 +6,7 @@
 <url><loc>https://bbuchsbaum.github.io/imfeatures/articles/hpc-setup.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/articles/index.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/articles/saliency-entropy.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/imfeatures/articles/spatial-pooling.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/authors.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/index.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/news/index.html</loc></url>
@@ -54,12 +55,9 @@
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/get_default_module_name.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/get_recommended_layers.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/get_transformations.html</loc></url>
-<url><loc>https://bbuchsbaum.github.io/imfeatures/reference/global_average_pool.html</loc></url>
-<url><loc>https://bbuchsbaum.github.io/imfeatures/reference/global_max_pool.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/hierarchy_diagnostics.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/hierarchy_recipe.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/hpc_setup.html</loc></url>
-<url><loc>https://bbuchsbaum.github.io/imfeatures/reference/identity_pool.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/im_predict.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/image_mse.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/imfeatures-package.html</loc></url>
@@ -76,6 +74,7 @@
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/plot_im_scatter.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/pool_activations.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/pooler_feature_names.html</loc></url>
+<url><loc>https://bbuchsbaum.github.io/imfeatures/reference/poolers.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/predict.residualized_tiers.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/print.thingsvision_extractor.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/print.vgg_feature_set.html</loc></url>
@@ -94,7 +93,6 @@
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/tv_get_extractor.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/use_existing_python.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/vgg16_block_end_spec.html</loc></url>
-<url><loc>https://bbuchsbaum.github.io/imfeatures/reference/vgg19_block_end_spec.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/vgg_block_end_taps.html</loc></url>
 <url><loc>https://bbuchsbaum.github.io/imfeatures/reference/vgg_hierarchy_spec.html</loc></url>
 </urlset>

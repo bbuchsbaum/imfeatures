@@ -40,31 +40,12 @@
 - [`vgg_hierarchy_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg_hierarchy_spec.md)
   : Specify a VGG feature hierarchy
 - [`vgg16_block_end_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg16_block_end_spec.md)
+  [`vgg19_block_end_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg16_block_end_spec.md)
   : VGG-16 block-end hierarchy with depth-adaptive DCT pooling
-- [`vgg19_block_end_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg19_block_end_spec.md)
-  : VGG-19 block-end hierarchy with depth-adaptive DCT pooling
 - [`vgg_block_end_taps()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg_block_end_taps.md)
   : Block-end tap names for a VGG architecture
 - [`extract_feature_hierarchy()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_feature_hierarchy.md)
   : Extract a named feature hierarchy from images
-- [`global_average_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/global_average_pool.md)
-  : Global average pooling over spatial axes
-- [`global_max_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/global_max_pool.md)
-  : Global max pooling over spatial axes
-- [`adaptive_grid_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/adaptive_grid_pool.md)
-  : Adaptive rectangular grid pooling
-- [`dct_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/dct_pool.md)
-  : Low-frequency 2-D DCT pooling
-- [`radial_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/radial_pool.md)
-  : Radial centre/periphery pooling
-- [`identity_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/identity_pool.md)
-  : Leave activations unchanged, flattening 4-D maps
-- [`pool_activations()`](https://bbuchsbaum.github.io/imfeatures/reference/pool_activations.md)
-  : Apply a pooler to an activation tensor
-- [`pooler_feature_names()`](https://bbuchsbaum.github.io/imfeatures/reference/pooler_feature_names.md)
-  : Feature names for a pooled stage
-- [`as_nhwc()`](https://bbuchsbaum.github.io/imfeatures/reference/as_nhwc.md)
-  : Convert a 4-D activation tensor to NHWC layout
 - [`linear_cka()`](https://bbuchsbaum.github.io/imfeatures/reference/linear_cka.md)
   : Linear-kernel CKA between two observation-by-feature matrices
 - [`effective_rank()`](https://bbuchsbaum.github.io/imfeatures/reference/effective_rank.md)
@@ -73,6 +54,29 @@
   : Stimulus-only diagnostics for a fitted hierarchy transform
 - [`check_transform_invariance()`](https://bbuchsbaum.github.io/imfeatures/reference/check_transform_invariance.md)
   : Check batch invariance and row-permutation equivariance
+
+## Spatial pooling
+
+How convolutional feature maps are reduced over height and width. See
+[`vignette("spatial-pooling")`](https://bbuchsbaum.github.io/imfeatures/articles/spatial-pooling.md)
+for a comparison of the options.
+
+- [`global_average_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md)
+  [`global_max_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md)
+  [`identity_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md)
+  : Spatial poolers for convolutional activations
+- [`adaptive_grid_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/adaptive_grid_pool.md)
+  : Adaptive rectangular grid pooling
+- [`dct_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/dct_pool.md)
+  : Low-frequency 2-D DCT pooling
+- [`radial_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/radial_pool.md)
+  : Radial centre/periphery pooling
+- [`pool_activations()`](https://bbuchsbaum.github.io/imfeatures/reference/pool_activations.md)
+  : Apply a pooler to an activation tensor
+- [`pooler_feature_names()`](https://bbuchsbaum.github.io/imfeatures/reference/pooler_feature_names.md)
+  : Feature names for a pooled stage
+- [`as_nhwc()`](https://bbuchsbaum.github.io/imfeatures/reference/as_nhwc.md)
+  : Convert a 4-D activation tensor to NHWC layout
 
 ## Deep network features
 

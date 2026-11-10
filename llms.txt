@@ -174,6 +174,40 @@ sim <- im_feature_sim(
 sim$layer_block3_conv3
 ```
 
+### Spatial pooling
+
+Convolutional layers return a map per channel. Spatial pooling turns
+those maps into a feature vector, and decides how much the features
+remember about *where* in the image something occurred.
+
+| You want | [`extract_feature_hierarchy()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_feature_hierarchy.md) | [`extract_vgg_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_vgg_features.md), [`im_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features.md) |
+|:---|:---|:---|
+| One value per channel | [`global_average_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md), [`global_max_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md) | `"avg"`, `"max"` |
+| Coarse location in a grid | `adaptive_grid_pool(ny, nx)` | `"resize_HxW"` |
+| The average plus smooth layout contrasts | `dct_pool(ny, nx)` | – |
+| Centre versus periphery | `radial_pool(breaks)` | – |
+| Every position | [`identity_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md) | `"none"` |
+
+``` r
+
+# One pooling for a whole tier
+vgg_3x3 <- extract_vgg_features(imgs, tier = "high", pooling = "resize_3x3")
+
+# A pooler per stage: DCT modes for block 4, rings for block 5
+spec <- vgg_hierarchy_spec(
+  "vgg16",
+  taps = c(b4 = "block4_conv3", b5 = "block5_conv3"),
+  pooling = list(b4 = dct_pool(3, 3), b5 = radial_pool())
+)
+raw <- extract_feature_hierarchy(imgs, spec = spec)
+```
+
+[`vgg16_block_end_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg16_block_end_spec.md)
+is a ready-made spec with DCT pooling at the end of each block. See
+[`vignette("spatial-pooling")`](https://bbuchsbaum.github.io/imfeatures/articles/spatial-pooling.md)
+for what each option keeps, the resulting feature sizes, and how to
+choose.
+
 Generate captions or caption embeddings when an `ellmer` provider is
 configured:
 
@@ -294,31 +328,12 @@ vignette("hpc-setup", package = "imfeatures")
 - [`vgg_hierarchy_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg_hierarchy_spec.md)
   : Specify a VGG feature hierarchy
 - [`vgg16_block_end_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg16_block_end_spec.md)
+  [`vgg19_block_end_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg16_block_end_spec.md)
   : VGG-16 block-end hierarchy with depth-adaptive DCT pooling
-- [`vgg19_block_end_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg19_block_end_spec.md)
-  : VGG-19 block-end hierarchy with depth-adaptive DCT pooling
 - [`vgg_block_end_taps()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg_block_end_taps.md)
   : Block-end tap names for a VGG architecture
 - [`extract_feature_hierarchy()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_feature_hierarchy.md)
   : Extract a named feature hierarchy from images
-- [`global_average_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/global_average_pool.md)
-  : Global average pooling over spatial axes
-- [`global_max_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/global_max_pool.md)
-  : Global max pooling over spatial axes
-- [`adaptive_grid_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/adaptive_grid_pool.md)
-  : Adaptive rectangular grid pooling
-- [`dct_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/dct_pool.md)
-  : Low-frequency 2-D DCT pooling
-- [`radial_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/radial_pool.md)
-  : Radial centre/periphery pooling
-- [`identity_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/identity_pool.md)
-  : Leave activations unchanged, flattening 4-D maps
-- [`pool_activations()`](https://bbuchsbaum.github.io/imfeatures/reference/pool_activations.md)
-  : Apply a pooler to an activation tensor
-- [`pooler_feature_names()`](https://bbuchsbaum.github.io/imfeatures/reference/pooler_feature_names.md)
-  : Feature names for a pooled stage
-- [`as_nhwc()`](https://bbuchsbaum.github.io/imfeatures/reference/as_nhwc.md)
-  : Convert a 4-D activation tensor to NHWC layout
 - [`linear_cka()`](https://bbuchsbaum.github.io/imfeatures/reference/linear_cka.md)
   : Linear-kernel CKA between two observation-by-feature matrices
 - [`effective_rank()`](https://bbuchsbaum.github.io/imfeatures/reference/effective_rank.md)
@@ -327,6 +342,29 @@ vignette("hpc-setup", package = "imfeatures")
   : Stimulus-only diagnostics for a fitted hierarchy transform
 - [`check_transform_invariance()`](https://bbuchsbaum.github.io/imfeatures/reference/check_transform_invariance.md)
   : Check batch invariance and row-permutation equivariance
+
+## Spatial pooling
+
+How convolutional feature maps are reduced over height and width. See
+[`vignette("spatial-pooling")`](https://bbuchsbaum.github.io/imfeatures/articles/spatial-pooling.md)
+for a comparison of the options.
+
+- [`global_average_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md)
+  [`global_max_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md)
+  [`identity_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md)
+  : Spatial poolers for convolutional activations
+- [`adaptive_grid_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/adaptive_grid_pool.md)
+  : Adaptive rectangular grid pooling
+- [`dct_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/dct_pool.md)
+  : Low-frequency 2-D DCT pooling
+- [`radial_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/radial_pool.md)
+  : Radial centre/periphery pooling
+- [`pool_activations()`](https://bbuchsbaum.github.io/imfeatures/reference/pool_activations.md)
+  : Apply a pooler to an activation tensor
+- [`pooler_feature_names()`](https://bbuchsbaum.github.io/imfeatures/reference/pooler_feature_names.md)
+  : Feature names for a pooled stage
+- [`as_nhwc()`](https://bbuchsbaum.github.io/imfeatures/reference/as_nhwc.md)
+  : Convert a 4-D activation tensor to NHWC layout
 
 ## Deep network features
 
@@ -447,6 +485,8 @@ vignette("hpc-setup", package = "imfeatures")
 
 - [Build ordered image-feature
   hierarchies](https://bbuchsbaum.github.io/imfeatures/articles/feature-hierarchies.md):
+- [Choose a spatial pooling for VGG-16
+  features](https://bbuchsbaum.github.io/imfeatures/articles/spatial-pooling.md):
 
 ### Image entropy
 

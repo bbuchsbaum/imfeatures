@@ -86,9 +86,42 @@ architecture is loaded with ImageNet weights.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code><a href="as_feature_hierarchy.html">as_feature_hierarchy</a></code> object.</p>
+    <p>A <code><a href="as_feature_hierarchy.html">as_feature_hierarchy</a></code> object. Its <code>schema</code>
+  records the taps, the poolers, and the layout that produced the blocks.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Spatial pooling is set per stage in <code>spec</code>; see <code><a href="poolers.html">poolers</a></code>
+for the options. Each block has one row per image and one column per
+pooled feature, named as described in
+<code><a href="pooler_feature_names.html">pooler_feature_names</a></code>. Full-resolution maps are pooled batch
+by batch and never held for all images at once, so memory use depends on
+<code>batch_size</code> and on the pooled width, not on the number of images.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="vgg_hierarchy_spec.html">vgg_hierarchy_spec</a></code>, <code><a href="poolers.html">poolers</a></code>, and
+  <code><a href="../articles/spatial-pooling.html">vignette("spatial-pooling", package = "imfeatures")</a></code>.</p></div>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+<span class="r-in"><span><span class="va">imgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="st">"stimuli"</span>, pattern <span class="op">=</span> <span class="st">"\\.jpg$"</span>, full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Depth-adaptive DCT pooling at the end of each VGG-16 block</span></span></span>
+<span class="r-in"><span><span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu">extract_feature_hierarchy</span><span class="op">(</span><span class="va">imgs</span>, spec <span class="op">=</span> <span class="fu"><a href="vgg16_block_end_spec.html">vgg16_block_end_spec</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">raw</span><span class="op">$</span><span class="va">blocks</span>, <span class="va">ncol</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># The same taps, with a 3 x 3 grid on every convolutional stage</span></span></span>
+<span class="r-in"><span><span class="va">taps</span> <span class="op">&lt;-</span> <span class="fu"><a href="vgg_block_end_taps.html">vgg_block_end_taps</a></span><span class="op">(</span><span class="st">"vgg16"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">pooling</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">taps</span>, <span class="kw">function</span><span class="op">(</span><span class="va">tap</span><span class="op">)</span> <span class="fu"><a href="adaptive_grid_pool.html">adaptive_grid_pool</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">pooling</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"fc1"</span>, <span class="st">"logits"</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="poolers.html">identity_pool</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="poolers.html">identity_pool</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="vgg_hierarchy_spec.html">vgg_hierarchy_spec</a></span><span class="op">(</span><span class="st">"vgg16"</span>, taps <span class="op">=</span> <span class="va">taps</span>, pooling <span class="op">=</span> <span class="va">pooling</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">raw_grid</span> <span class="op">&lt;-</span> <span class="fu">extract_feature_hierarchy</span><span class="op">(</span><span class="va">imgs</span>, spec <span class="op">=</span> <span class="va">spec</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

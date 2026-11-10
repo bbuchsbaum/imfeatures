@@ -51,8 +51,13 @@ im_feature_sim(
 
 - spatial_pooling:
 
-  A character string specifying the type of spatial processing to apply
-  to 4D feature maps (see `extract_features` for details)
+  How to reduce 4-D feature maps over height and width before
+  similarities are computed: `"none"` (default), `"avg"`, `"max"`, or
+  `"resize_HxW"`. See the Spatial pooling section of
+  [`extract_features`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features.md).
+  With `"none"`, similarities compare activations position by position;
+  with `"avg"` or `"max"` they ignore where in the image a feature
+  occurred.
 
 - metric:
 

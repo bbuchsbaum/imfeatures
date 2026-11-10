@@ -164,17 +164,10 @@
 
         <dt>
 
-          <code><a href="vgg16_block_end_spec.html">vgg16_block_end_spec()</a></code>
+          <code><a href="vgg16_block_end_spec.html">vgg16_block_end_spec()</a></code> <code><a href="vgg16_block_end_spec.html">vgg19_block_end_spec()</a></code>
 
         </dt>
         <dd>VGG-16 block-end hierarchy with depth-adaptive DCT pooling</dd>
-
-        <dt>
-
-          <code><a href="vgg19_block_end_spec.html">vgg19_block_end_spec()</a></code>
-
-        </dt>
-        <dd>VGG-19 block-end hierarchy with depth-adaptive DCT pooling</dd>
 
         <dt>
 
@@ -189,69 +182,6 @@
 
         </dt>
         <dd>Extract a named feature hierarchy from images</dd>
-
-        <dt>
-
-          <code><a href="global_average_pool.html">global_average_pool()</a></code>
-
-        </dt>
-        <dd>Global average pooling over spatial axes</dd>
-
-        <dt>
-
-          <code><a href="global_max_pool.html">global_max_pool()</a></code>
-
-        </dt>
-        <dd>Global max pooling over spatial axes</dd>
-
-        <dt>
-
-          <code><a href="adaptive_grid_pool.html">adaptive_grid_pool()</a></code>
-
-        </dt>
-        <dd>Adaptive rectangular grid pooling</dd>
-
-        <dt>
-
-          <code><a href="dct_pool.html">dct_pool()</a></code>
-
-        </dt>
-        <dd>Low-frequency 2-D DCT pooling</dd>
-
-        <dt>
-
-          <code><a href="radial_pool.html">radial_pool()</a></code>
-
-        </dt>
-        <dd>Radial centre/periphery pooling</dd>
-
-        <dt>
-
-          <code><a href="identity_pool.html">identity_pool()</a></code>
-
-        </dt>
-        <dd>Leave activations unchanged, flattening 4-D maps</dd>
-
-        <dt>
-
-          <code><a href="pool_activations.html">pool_activations()</a></code>
-
-        </dt>
-        <dd>Apply a pooler to an activation tensor</dd>
-
-        <dt>
-
-          <code><a href="pooler_feature_names.html">pooler_feature_names()</a></code>
-
-        </dt>
-        <dd>Feature names for a pooled stage</dd>
-
-        <dt>
-
-          <code><a href="as_nhwc.html">as_nhwc()</a></code>
-
-        </dt>
-        <dd>Convert a 4-D activation tensor to NHWC layout</dd>
 
         <dt>
 
@@ -280,6 +210,64 @@
 
         </dt>
         <dd>Check batch invariance and row-permutation equivariance</dd>
+      </dl></div><div class="section level2">
+      <h2 id="spatial-pooling">Spatial pooling<a class="anchor" aria-label="anchor" href="#spatial-pooling"></a></h2>
+
+      <div class="section-desc"><p>How convolutional feature maps are reduced over height and width. See <code><a href="../articles/spatial-pooling.html">vignette("spatial-pooling")</a></code> for a comparison of the options.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="poolers.html">global_average_pool()</a></code> <code><a href="poolers.html">global_max_pool()</a></code> <code><a href="poolers.html">identity_pool()</a></code>
+
+        </dt>
+        <dd>Spatial poolers for convolutional activations</dd>
+
+        <dt>
+
+          <code><a href="adaptive_grid_pool.html">adaptive_grid_pool()</a></code>
+
+        </dt>
+        <dd>Adaptive rectangular grid pooling</dd>
+
+        <dt>
+
+          <code><a href="dct_pool.html">dct_pool()</a></code>
+
+        </dt>
+        <dd>Low-frequency 2-D DCT pooling</dd>
+
+        <dt>
+
+          <code><a href="radial_pool.html">radial_pool()</a></code>
+
+        </dt>
+        <dd>Radial centre/periphery pooling</dd>
+
+        <dt>
+
+          <code><a href="pool_activations.html">pool_activations()</a></code>
+
+        </dt>
+        <dd>Apply a pooler to an activation tensor</dd>
+
+        <dt>
+
+          <code><a href="pooler_feature_names.html">pooler_feature_names()</a></code>
+
+        </dt>
+        <dd>Feature names for a pooled stage</dd>
+
+        <dt>
+
+          <code><a href="as_nhwc.html">as_nhwc()</a></code>
+
+        </dt>
+        <dd>Convert a 4-D activation tensor to NHWC layout</dd>
       </dl></div><div class="section level2">
       <h2 id="deep-network-features">Deep network features<a class="anchor" aria-label="anchor" href="#deep-network-features"></a></h2>
 

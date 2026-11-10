@@ -38,38 +38,75 @@ im_features(
 
 - target_size:
 
-  the target image dimensions for approproate for model
+  the target image dimensions (height, width) appropriate for the model
 
 - spatial_pooling:
 
-  A character string specifying the type of spatial processing to apply
-  to 4D feature maps (typically from convolutional layers). Options are:
+  How to reduce 4-D feature maps (`1 x H x W x C`, as produced by
+  convolutional layers) over height and width. One of:
 
-  - `"none"`: (Default) No spatial processing is applied; the full
-    feature maps are returned (usually as a 4D array: 1 x H x W x C).
+  `"none"`
 
-  - `"avg"`: Global average pooling is applied across spatial dimensions
-    (H, W), resulting in one value per channel (vector of length C).
+  :   (Default) No pooling. The full map is returned as a 4-D array.
 
-  - `"max"`: Global max pooling is applied across spatial dimensions (H,
-    W), resulting in one value per channel (vector of length C).
+  `"avg"`
 
-  - `"resize_HxW"`: Downsamples the spatial dimensions to `H` by `W`
-    using area pooling, then flattens. Bilinear interpolation is
-    retained when the requested size upsamples a map. Any value matching
-    `"^resize_[0-9]+x[0-9]+$"` is accepted (e.g., `"resize_3x3"`,
-    `"resize_7x7"`). Results in a vector of length `H * W * C`.
+  :   Global average pooling: the mean over all positions, giving a
+      vector of length `C`.
 
-  This parameter only affects 4D outputs. For other layer types (e.g.,
-  2D outputs like N x Features from dense layers, or already pooled
-  features), this parameter is ignored, and features are returned as is.
-  The handling of these raw features (e.g. flattening) is typically
-  managed by downstream functions.
+  `"max"`
+
+  :   Global max pooling: the maximum over all positions, giving a
+      vector of length `C`.
+
+  `"resize_HxW"`
+
+  :   Resize the map to `H` by `W` and flatten, for example
+      `"resize_3x3"` or `"resize_7x7"`. Any positive `H` and `W` are
+      accepted. This keeps coarse spatial layout and gives a vector of
+      length `H * W * C`.
+
+  See the Spatial pooling section for details.
 
 ## Value
 
 A tibble with columns `image`, `layer` and a list-column `feature`. The
 tibble inherits class `imfeatures_feature_tbl` for dplyr compatibility.
+
+## Spatial pooling
+
+Pooling trades spatial detail for size. For VGG-16 `block5_conv3` (a 14
+x 14 map with 512 channels), `"none"` keeps 100,352 values,
+`"resize_3x3"` keeps 4,608, and `"avg"` or `"max"` keep 512.
+
+`"resize_HxW"` shrinks a map by area averaging: each output cell is the
+mean of the input positions it covers, with partial overlap weighted by
+area. Averaging the cells of a resized map therefore reproduces `"avg"`.
+If the requested size is larger than the map in either direction,
+bilinear interpolation is used instead. Resizing runs in TensorFlow. If
+TensorFlow is unavailable, a warning is raised and the unpooled map is
+returned.
+
+A resized or unpooled map is flattened with height varying fastest, then
+width, then channel. To recover the array from a flattened
+`"resize_HxW"` vector `v`, use `array(v, dim = c(H, W, C))`.
+
+`spatial_pooling` only affects 4-D outputs. Dense layers such as `fc1`
+have no spatial axes and are returned as they are.
+
+These string options serve `extract_features()`,
+[`compute_feature_similarity()`](https://bbuchsbaum.github.io/imfeatures/reference/compute_feature_similarity.md)
+and
+[`extract_vgg_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_vgg_features.md).
+For per-stage pooling, and for grid, DCT and radial pooling, use
+[`extract_feature_hierarchy`](https://bbuchsbaum.github.io/imfeatures/reference/extract_feature_hierarchy.md)
+with the pooler objects described in
+[`poolers`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md).
+
+## See also
+
+[`vignette("spatial-pooling", package = "imfeatures")`](https://bbuchsbaum.github.io/imfeatures/articles/spatial-pooling.md)
+for a comparison of all pooling options.
 
 ## Examples
 

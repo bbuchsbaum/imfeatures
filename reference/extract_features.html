@@ -73,28 +73,70 @@
 
 
 <dt id="arg-target-size">target_size<a class="anchor" aria-label="anchor" href="#arg-target-size"></a></dt>
-<dd><p>the target image dimensions for approproate for model</p></dd>
+<dd><p>the target image dimensions (height, width) appropriate for the model</p></dd>
 
 
 <dt id="arg-spatial-pooling">spatial_pooling<a class="anchor" aria-label="anchor" href="#arg-spatial-pooling"></a></dt>
-<dd><p>A character string specifying the type of spatial processing to apply to 4D feature maps (typically from convolutional layers).
-Options are:</p><ul><li><p><code>"none"</code>: (Default) No spatial processing is applied; the full feature maps are returned (usually as a 4D array: 1 x H x W x C).</p></li>
-<li><p><code>"avg"</code>: Global average pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).</p></li>
-<li><p><code>"max"</code>: Global max pooling is applied across spatial dimensions (H, W), resulting in one value per channel (vector of length C).</p></li>
-<li><p><code>"resize_HxW"</code>: Downsamples the spatial dimensions to
-  <code>H</code> by <code>W</code> using area pooling, then flattens. Bilinear
-  interpolation is retained when the requested size upsamples a map.
-  Any value matching <code>"^resize_[0-9]+x[0-9]+$"</code> is accepted
-  (e.g., <code>"resize_3x3"</code>, <code>"resize_7x7"</code>). Results in a
-  vector of length <code>H * W * C</code>.</p></li>
-</ul><p>This parameter only affects 4D outputs. For other layer types (e.g., 2D outputs like N x Features from dense layers, or already pooled features),
-this parameter is ignored, and features are returned as is. The handling of these raw features (e.g. flattening) is typically managed by downstream functions.</p></dd>
+<dd><p>How to reduce 4-D feature maps (<code>1 x H x W x C</code>,
+as produced by convolutional layers) over height and width. One of:</p><dl><dt><code>"none"</code></dt>
+<dd><p>(Default) No pooling. The full map is returned as
+    a 4-D array.</p></dd>
+
+  <dt><code>"avg"</code></dt>
+<dd><p>Global average pooling: the mean over all
+    positions, giving a vector of length <code>C</code>.</p></dd>
+
+  <dt><code>"max"</code></dt>
+<dd><p>Global max pooling: the maximum over all
+    positions, giving a vector of length <code>C</code>.</p></dd>
+
+  <dt><code>"resize_HxW"</code></dt>
+<dd><p>Resize the map to <code>H</code> by <code>W</code>
+    and flatten, for example <code>"resize_3x3"</code> or
+    <code>"resize_7x7"</code>. Any positive <code>H</code> and <code>W</code> are
+    accepted. This keeps coarse spatial layout and gives a vector of
+    length <code>H * W * C</code>.</p></dd>
+
+
+</dl><p>See the Spatial pooling section for details.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A tibble with columns <code>image</code>, <code>layer</code> and a list-column <code>feature</code>.
   The tibble inherits class <code>imfeatures_feature_tbl</code> for dplyr compatibility.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="spatial-pooling">Spatial pooling<a class="anchor" aria-label="anchor" href="#spatial-pooling"></a></h2>
+
+
+<p>Pooling trades spatial detail for size. For VGG-16 <code>block5_conv3</code>
+(a 14 x 14 map with 512 channels), <code>"none"</code> keeps 100,352 values,
+<code>"resize_3x3"</code> keeps 4,608, and <code>"avg"</code> or <code>"max"</code> keep
+512.</p>
+<p><code>"resize_HxW"</code> shrinks a map by area averaging: each output cell is
+the mean of the input positions it covers, with partial overlap weighted
+by area. Averaging the cells of a resized map therefore reproduces
+<code>"avg"</code>. If the requested size is larger than the map in either
+direction, bilinear interpolation is used instead. Resizing runs in
+TensorFlow. If TensorFlow is unavailable, a warning is raised and the
+unpooled map is returned.</p>
+<p>A resized or unpooled map is flattened with height varying fastest, then
+width, then channel. To recover the array from a flattened
+<code>"resize_HxW"</code> vector <code>v</code>, use
+<code>array(v, dim = c(H, W, C))</code>.</p>
+<p><code>spatial_pooling</code> only affects 4-D outputs. Dense layers such as
+<code>fc1</code> have no spatial axes and are returned as they are.</p>
+<p>These string options serve <code>extract_features()</code>,
+<code><a href="compute_feature_similarity.html">compute_feature_similarity()</a></code> and
+<code><a href="extract_vgg_features.html">extract_vgg_features()</a></code>. For per-stage pooling, and for grid,
+DCT and radial pooling, use <code><a href="extract_feature_hierarchy.html">extract_feature_hierarchy</a></code> with
+the pooler objects described in <code><a href="poolers.html">poolers</a></code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="../articles/spatial-pooling.html">vignette("spatial-pooling", package = "imfeatures")</a></code> for a
+  comparison of all pooling options.</p></div>
     </div>
 
     <div class="section level2">

@@ -174,6 +174,40 @@ sim <- im_feature_sim(
 sim$layer_block3_conv3
 ```
 
+### Spatial pooling
+
+Convolutional layers return a map per channel. Spatial pooling turns
+those maps into a feature vector, and decides how much the features
+remember about *where* in the image something occurred.
+
+| You want | [`extract_feature_hierarchy()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_feature_hierarchy.md) | [`extract_vgg_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_vgg_features.md), [`im_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_features.md) |
+|:---|:---|:---|
+| One value per channel | [`global_average_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md), [`global_max_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md) | `"avg"`, `"max"` |
+| Coarse location in a grid | `adaptive_grid_pool(ny, nx)` | `"resize_HxW"` |
+| The average plus smooth layout contrasts | `dct_pool(ny, nx)` | – |
+| Centre versus periphery | `radial_pool(breaks)` | – |
+| Every position | [`identity_pool()`](https://bbuchsbaum.github.io/imfeatures/reference/poolers.md) | `"none"` |
+
+``` r
+
+# One pooling for a whole tier
+vgg_3x3 <- extract_vgg_features(imgs, tier = "high", pooling = "resize_3x3")
+
+# A pooler per stage: DCT modes for block 4, rings for block 5
+spec <- vgg_hierarchy_spec(
+  "vgg16",
+  taps = c(b4 = "block4_conv3", b5 = "block5_conv3"),
+  pooling = list(b4 = dct_pool(3, 3), b5 = radial_pool())
+)
+raw <- extract_feature_hierarchy(imgs, spec = spec)
+```
+
+[`vgg16_block_end_spec()`](https://bbuchsbaum.github.io/imfeatures/reference/vgg16_block_end_spec.md)
+is a ready-made spec with DCT pooling at the end of each block. See
+[`vignette("spatial-pooling")`](https://bbuchsbaum.github.io/imfeatures/articles/spatial-pooling.md)
+for what each option keeps, the resulting feature sizes, and how to
+choose.
+
 Generate captions or caption embeddings when an `ellmer` provider is
 configured:
 

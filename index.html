@@ -163,8 +163,69 @@
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sim</span><span class="op">$</span><span class="va">layer_block3_conv3</span></span></code></pre></div>
-<p>Generate captions or caption embeddings when an <code>ellmer</code> provider is configured:</p>
+<div class="section level3">
+<h3 id="spatial-pooling">Spatial pooling<a class="anchor" aria-label="anchor" href="#spatial-pooling"></a>
+</h3>
+<p>Convolutional layers return a map per channel. Spatial pooling turns those maps into a feature vector, and decides how much the features remember about <em>where</em> in the image something occurred.</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr>
+<th align="left">You want</th>
+<th align="left"><code><a href="reference/extract_feature_hierarchy.html">extract_feature_hierarchy()</a></code></th>
+<th align="left">
+<code><a href="reference/extract_vgg_features.html">extract_vgg_features()</a></code>, <code><a href="reference/extract_features.html">im_features()</a></code>
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td align="left">One value per channel</td>
+<td align="left">
+<code><a href="reference/poolers.html">global_average_pool()</a></code>, <code><a href="reference/poolers.html">global_max_pool()</a></code>
+</td>
+<td align="left">
+<code>"avg"</code>, <code>"max"</code>
+</td>
+</tr>
+<tr>
+<td align="left">Coarse location in a grid</td>
+<td align="left"><code>adaptive_grid_pool(ny, nx)</code></td>
+<td align="left"><code>"resize_HxW"</code></td>
+</tr>
+<tr>
+<td align="left">The average plus smooth layout contrasts</td>
+<td align="left"><code>dct_pool(ny, nx)</code></td>
+<td align="left">–</td>
+</tr>
+<tr>
+<td align="left">Centre versus periphery</td>
+<td align="left"><code>radial_pool(breaks)</code></td>
+<td align="left">–</td>
+</tr>
+<tr>
+<td align="left">Every position</td>
+<td align="left"><code><a href="reference/poolers.html">identity_pool()</a></code></td>
+<td align="left"><code>"none"</code></td>
+</tr>
+</tbody>
+</table>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># One pooling for a whole tier</span></span>
+<span><span class="va">vgg_3x3</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/extract_vgg_features.html">extract_vgg_features</a></span><span class="op">(</span><span class="va">imgs</span>, tier <span class="op">=</span> <span class="st">"high"</span>, pooling <span class="op">=</span> <span class="st">"resize_3x3"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># A pooler per stage: DCT modes for block 4, rings for block 5</span></span>
+<span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/vgg_hierarchy_spec.html">vgg_hierarchy_spec</a></span><span class="op">(</span></span>
+<span>  <span class="st">"vgg16"</span>,</span>
+<span>  taps <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>b4 <span class="op">=</span> <span class="st">"block4_conv3"</span>, b5 <span class="op">=</span> <span class="st">"block5_conv3"</span><span class="op">)</span>,</span>
+<span>  pooling <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>b4 <span class="op">=</span> <span class="fu"><a href="reference/dct_pool.html">dct_pool</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span>, b5 <span class="op">=</span> <span class="fu"><a href="reference/radial_pool.html">radial_pool</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/extract_feature_hierarchy.html">extract_feature_hierarchy</a></span><span class="op">(</span><span class="va">imgs</span>, spec <span class="op">=</span> <span class="va">spec</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="reference/vgg16_block_end_spec.html">vgg16_block_end_spec()</a></code> is a ready-made spec with DCT pooling at the end of each block. See <code><a href="articles/spatial-pooling.html">vignette("spatial-pooling")</a></code> for what each option keeps, the resulting feature sizes, and how to choose.</p>
+<p>Generate captions or caption embeddings when an <code>ellmer</code> provider is configured:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">captions</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/caption_features.html">caption_features</a></span><span class="op">(</span></span>
@@ -175,15 +236,16 @@
 <span>  embedding_backend <span class="op">=</span> <span class="st">"openai"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
+</div>
 <div class="section level2">
 <h2 id="python-setup">Python Setup<a class="anchor" aria-label="anchor" href="#python-setup"></a>
 </h2>
 <p>For workstation use, <code><a href="reference/imfeatures_config.html">imfeatures_config()</a></code> creates or activates the Python environment used by Keras, <code>thingsvision</code>, PyTorch, and <code>open_clip</code>:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/imfeatures_config.html">imfeatures_config</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>If you already manage Python yourself, point <code>reticulate</code> at that interpreter:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/use_existing_python.html">use_existing_python</a></span><span class="op">(</span><span class="st">"/full/path/to/python"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -191,7 +253,7 @@
 <h2 id="hpc-setup">HPC Setup<a class="anchor" aria-label="anchor" href="#hpc-setup"></a>
 </h2>
 <p>On HPC systems, avoid automatic Conda setup during package load. The usual pattern is:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>IMFEATURES_SKIP_PYTHON <span class="op">=</span> <span class="st">"TRUE"</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/imfeatures/">imfeatures</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/use_existing_python.html">use_existing_python</a></span><span class="op">(</span><span class="st">"/full/path/to/venvs/imfeatures/bin/python"</span><span class="op">)</span></span></code></pre></div>
@@ -200,7 +262,7 @@
 RETICULATE_PYTHON=/full/path/to/venvs/imfeatures/bin/python</code></pre>
 <p>Install the Python packages into a cluster-managed module or virtual environment, not an automatically created R miniconda. At minimum the Python side needs <code>Pillow</code> and <code>numpy</code>; model backends add packages such as <code>tensorflow</code>/<code>keras</code>, <code>torch</code>, <code>torchvision</code>, <code>thingsvision</code>, <code>resmem</code>, and <code>open-clip-torch</code>.</p>
 <p>The full HPC walkthrough is in:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"hpc-setup"</span>, package <span class="op">=</span> <span class="st">"imfeatures"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

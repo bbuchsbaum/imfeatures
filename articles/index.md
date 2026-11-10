@@ -11,6 +11,8 @@
 
 - [Build ordered image-feature
   hierarchies](https://bbuchsbaum.github.io/imfeatures/articles/feature-hierarchies.md):
+- [Choose a spatial pooling for VGG-16
+  features](https://bbuchsbaum.github.io/imfeatures/articles/spatial-pooling.md):
 
 ### Image entropy
 

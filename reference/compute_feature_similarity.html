@@ -85,7 +85,7 @@
 
 
 <dt id="arg-spatial-pooling">spatial_pooling<a class="anchor" aria-label="anchor" href="#arg-spatial-pooling"></a></dt>
-<dd><p>A character string specifying the type of spatial processing to apply to 4D feature maps (see <code>extract_features</code> for details)</p></dd>
+<dd><p>How to reduce 4-D feature maps over height and width before similarities are computed: <code>"none"</code> (default), <code>"avg"</code>, <code>"max"</code>, or <code>"resize_HxW"</code>. See the Spatial pooling section of <code><a href="extract_features.html">extract_features</a></code>. With <code>"none"</code>, similarities compare activations position by position; with <code>"avg"</code> or <code>"max"</code> they ignore where in the image a feature occurred.</p></dd>
 
 
 <dt id="arg-metric">metric<a class="anchor" aria-label="anchor" href="#arg-metric"></a></dt>
