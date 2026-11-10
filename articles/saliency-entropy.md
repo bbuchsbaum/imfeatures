@@ -486,7 +486,7 @@ is available. Arbitrary resampling and smoothing are not invariances.
 
 ## Plan runtime
 
-The main example above took 0.581 seconds in this build. It uses a
+The main example above took 0.730 seconds in this build. It uses a
 72-by-80 image and reduced filters and bins, so this is not a prediction
 for full-size stimuli. Pairwise work grows quadratically with the number
 of selected edges and roughly linearly with the number of controls after
