@@ -99,7 +99,7 @@ after the earlier stages are projected out. A small value means that
 stage mostly repeated earlier information.
 
 ![Bar plot of residual energy by
-stage](feature-hierarchies_files/figure-html/residual-energy-plot-1.png)
+stage](feature-hierarchies_files/figure-html/residual-energy-plot-1.png)![](feature-hierarchies_files/figure-html/residual-energy-plot-1.phone.png)
 
 ## Can you apply the same maps to new rows?
 

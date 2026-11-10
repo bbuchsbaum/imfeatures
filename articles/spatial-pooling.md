@@ -87,7 +87,7 @@ dim(acts)
 
 ![Three activation maps, each with one bright blob: top-left,
 bottom-right and
-centre.](spatial-pooling_files/figure-html/toy-plot-1.png)
+centre.](spatial-pooling_files/figure-html/toy-plot-1.png)![](spatial-pooling_files/figure-html/toy-plot-1.phone.png)
 
 [`pool_activations()`](https://bbuchsbaum.github.io/imfeatures/reference/pool_activations.md)
 applies a pooler and returns one row per image.
@@ -158,7 +158,7 @@ The panels below show which positions each of the four features
 averages.
 
 ![Four panels, each highlighting one quadrant of the
-map.](spatial-pooling_files/figure-html/grid-footprint-1.png)
+map.](spatial-pooling_files/figure-html/grid-footprint-1.png)![](spatial-pooling_files/figure-html/grid-footprint-1.phone.png)
 
 The grid is *adaptive*: the same pooler works on a map of any size,
 because the cell boundaries are computed from the map. Cells never
@@ -193,7 +193,7 @@ The panels show the weights of the nine features of `dct_pool(3, 3)`.
 Red weights are positive and blue weights are negative.
 
 ![Nine DCT basis patterns, from a flat map to checkerboard-like
-contrasts.](spatial-pooling_files/figure-html/dct-footprint-1.png)
+contrasts.](spatial-pooling_files/figure-html/dct-footprint-1.png)![](spatial-pooling_files/figure-html/dct-footprint-1.phone.png)
 
 `dct_y0_x0` is flat: it is the mean. `dct_y0_x1` contrasts left with
 right, `dct_y1_x0` contrasts top with bottom, and `dct_y0_x2` contrasts
@@ -305,7 +305,7 @@ centre.
 
 ![Three panels showing a central disc, a middle ring and an outer ring
 that includes the
-corners.](spatial-pooling_files/figure-html/radial-footprint-1.png)
+corners.](spatial-pooling_files/figure-html/radial-footprint-1.png)![](spatial-pooling_files/figure-html/radial-footprint-1.phone.png)
 
 Radius runs from 0 at the centre to 1 at the corners. On a square map
 the middle of each edge is at about 0.71, so the default outer ring

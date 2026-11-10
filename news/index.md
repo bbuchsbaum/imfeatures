@@ -32,6 +32,10 @@ documented in one place.
   [`extract_vgg_features()`](https://bbuchsbaum.github.io/imfeatures/reference/extract_vgg_features.md)
   now states output sizes, column order and scale, with examples.
 - Printing a `vgg_hierarchy_spec` now lists the pooler of each stage.
+- All vignettes and the pkgdown site now use the `albersdown` theme from
+  CRAN
+  ([`albersdown::albers_vignette`](https://bbuchsbaum.github.io/albersdown/reference/albers_vignette.html),
+  red family, homage preset).
 
 Fixes:
 

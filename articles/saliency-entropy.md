@@ -59,7 +59,7 @@ saliency <- outer(1:72, 1:80, function(x, y)
   exp(-((x - 21)^2 + (y - 45)^2) / 180))
 ```
 
-![](saliency-entropy_files/figure-html/show-input-1.png)
+![](saliency-entropy_files/figure-html/show-input-1.png)![](saliency-entropy_files/figure-html/show-input-1.phone.png)
 
 In the figure, brighter colors in the heat map mean that those parts of
 the image will contribute more to the weighted edge measurements. For
@@ -473,7 +473,7 @@ plot(curve$scale, curve$effective_fraction, type = "b", log = "x",
      ylab = "Effective fraction", ylim = c(0, 1))
 ```
 
-![](saliency-entropy_files/figure-html/multiscale-1.png)
+![](saliency-entropy_files/figure-html/multiscale-1.png)![](saliency-entropy_files/figure-html/multiscale-1.phone.png)
 
 The curve aggregates probability into blocks at several shifted grid
 origins. Boundary blocks use their actual areas in the uniform
@@ -486,7 +486,7 @@ is available. Arbitrary resampling and smoothing are not invariances.
 
 ## Plan runtime
 
-The main example above took 0.596 seconds in this build. It uses a
+The main example above took 0.581 seconds in this build. It uses a
 72-by-80 image and reduced filters and bins, so this is not a prediction
 for full-size stimuli. Pairwise work grows quadratically with the number
 of selected edges and roughly linearly with the number of controls after
